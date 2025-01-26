@@ -171,6 +171,17 @@ cython_debug/
 .pypirc
 
 # test files
-*.json
-*.yaml
+.json
+.log
 
+# pre-commit .yaml
+.pre-commit-config.yaml
+.pre-commit-ignore
+.yaml
+log/
+.json
+
+# data
+data/
+logs/
+output/

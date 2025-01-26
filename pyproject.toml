@@ -1,7 +1,7 @@
 [project]
-name = "CVE_analyses"
+name = "test2"
 version = "0.1.0"
-description = "Various CVE analyses, PoCs, etc."
+description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,18 +23,10 @@ dependencies = [
     "scikit-learn>=1.6.0",
     "seaborn>=0.13.2",
     "spacy>=3.8.3",
-    "trufflehog>=2.2.1",
 ]
 
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",
     "uv>=0.5.13",
-]
-
-[tool.uv]
-dev-dependencies = [
-    "ipykernel>=6.29.5",
-    "pip>=0.5.18",
-    "uv",
 ]
