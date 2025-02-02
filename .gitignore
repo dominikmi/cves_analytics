@@ -185,3 +185,5 @@ log/
 data/
 logs/
 output/
+*.ipynb
+*.csv
