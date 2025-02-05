@@ -7,26 +7,26 @@ import os
 import re
 import json
 import datetime
-from pyExploitDb import PyExploitDb
 
 from dotenv import load_dotenv
 load_dotenv()
 
-# Set logging
+# set up the current date and time as one string
+current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+current_time = datetime.datetime.now().strftime('%H:%M:%S')
+
+
+#Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler(os.path.join(os.path.dirname(__file__), "logs/app.log")),
+        logging.FileHandler(f"logs/app-{current_date+current_time}.log"),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-# ExploitDB
-pEdb = PyExploitDb()
-pEdb.debug = False
-pEdb.openFile()
 
 # Download and unzip NVD CVE data
 def download_nvd_cve_data(start_year, end_year, directory):
