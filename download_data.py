@@ -55,7 +55,7 @@ def main():
     # download the known exploited vulnerabilities
     kevs = cveutils.download_known_exploited_vulnerabilities()
 
-    # simulate identified vulns outcome
+    # simulate identified vulns outcome <==== move this part to another script!
     outcome_cves = cves_with_epss.sample(1000)
     outcome_cves.drop(columns=["scope", "confidentiality_impact", "integrity_impact", "availability_impact"], inplace=True)
     outcome_cves = outcome_cves.apply(cveutils.update_row_with_details, axis=1)
