@@ -182,8 +182,8 @@ log/
 .json
 
 # data
-data/
-logs/
-output/
+data/*
+logs/*
+output/*
 *.ipynb
 *.csv
