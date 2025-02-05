@@ -187,3 +187,4 @@ logs/*
 output/*
 *.ipynb
 *.csv
+tagger_parser_ud/

@@ -1,3 +1,4 @@
 data/*
 logs/*
 output/*
+tagger_parser_ud/
