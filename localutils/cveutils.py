@@ -6,14 +6,14 @@ import logging
 import os 
 import re
 import json
-import datetime
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 load_dotenv()
 
 # set up the current date and time as one string
-current_date = datetime.datetime.now().strftime('%Y-%m-%d')
-current_time = datetime.datetime.now().strftime('%H:%M:%S')
+current_date = datetime.now().strftime('%Y-%m-%d')
+current_time = datetime.now().strftime('%H:%M:%S')
 
 
 #Set up logging
@@ -29,13 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 # Download and unzip NVD CVE data
-def download_nvd_cve_data(start_year, end_year, directory):
+def download_nvd_cve_data(start_year: int, end_year: int, directory: str):
     base_url = "https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{}.json.zip"
     
     if not os.path.exists(directory):
         os.makedirs(directory)
     
-    for year in range(start_year, end_year + 1):
+    end_year_plus = end_year + 1
+    for year in range(start_year, end_year_plus):
         file_path = os.path.join(directory, f"nvdcve-1.1-{year}.json.zip")
         if os.path.exists(file_path):
             logger.info(f"File {file_path} already exists, skipping download.")
@@ -102,7 +103,7 @@ def load_nvd_cve_data(directory):
 # Download EPSS scores and ungzip them
 def download_epss_scores(date, directory):
     # Download EPSS scores for a given date -1 day
-    yesterday = datetime.datetime.strptime(date, "%Y-%m-%d") - datetime.timedelta(days=1)
+    yesterday = datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
     yesterday = yesterday.strftime("%Y-%m-%d")
     file_path = os.path.join(directory, f"epss_scores-{yesterday}.csv.gz")
     try:
