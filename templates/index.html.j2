@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVE Analysis Dashboard</title>
+    <!-- Include CSS for styling -->
+    <link href="{{ url_for('static.css') }}" rel="stylesheet">
+    
+</head>
+<body style="font-family: Arial,sans-serif; padding:20px; background-color: #f9f9f9;">
+    <div class="container" id="data-container"></div>
+
+<script src="https://cdn.plotly.com/plotly-1.60.0.js"></script>
+<script>
+    var data = {{data|tojson}};
+    
+    function initPlot() {
+      var layout = {
+          title: 'Vulnerability Risk Prediction',
+          xaxis: {title: 'Year'},
+          yaxis: {title: 'Predicted Risk (%)'}
+      };
+      
+      Plotly.plot('data-container', data.map(d => d.predicted_risk), 
+                  data[0]['year'], layout);
+    }
+    
+    // Load plot after page is ready
+    document.addEventListener("DOMContentLoaded", initPlot);
+
+</script>
+
+</body>
+</html>
