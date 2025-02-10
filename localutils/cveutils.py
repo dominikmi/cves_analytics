@@ -7,6 +7,7 @@ import os
 import re
 import json
 from datetime import datetime, timedelta
+from dateutil import parser, relativedelta
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -126,6 +127,32 @@ def download_epss_scores(date, directory):
     except Exception as e:
         logger.error(f"Failed to download EPSS scores for date {date}: {e}")
         return None
+
+# for the today date find the last given months of EPSS scores and download them
+def download_epss_scores_for_months(months, directory):
+    
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    
+    for i in range(months):
+        date = (datetime.strptime(today_date, "%Y-%m-%d").replace(day=1) - timedelta(days=1)).replace(day=1)
+        date = (date - relativedelta.relativedelta(months=i)).strftime("%Y-%m-%d")
+        file_path = download_epss_scores(date, directory)
+        if file_path:
+            epss_scores = pd.read_csv(file_path,skiprows=1)
+            epss_scores["date"] = date
+            epss_scores.to_csv(f"{directory}/epss_scores-{date}.csv", index=False)
+        else:
+            logger.error(f"Failed to download EPSS scores for date {date}")
+            # download for previous date
+            date = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+            file_path = download_epss_scores(date, directory)
+            if file_path:
+                epss_scores = pd.read_csv(file_path, skiprows=1)
+                epss_scores["date"] = date
+                epss_scores.to_csv(f"{directory}/epss_scores-{date}.csv", index=False)
+            else:
+                logger.error(f"Failed to download EPSS scores for date {date}")
+
 
 # Check on exploitability against exploitdb data
 def get_exploitdb_data(cve_id):
