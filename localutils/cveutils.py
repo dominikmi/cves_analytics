@@ -12,7 +12,7 @@ from dateutil import parser, relativedelta
 from dotenv import load_dotenv
 load_dotenv()
 
-# set up the current date and time as one string
+# set up the current date and time
 current_date = datetime.now().strftime('%Y-%m-%d')
 current_time = datetime.now().strftime('%H:%M:%S')
 
@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 # Download and unzip NVD CVE data
 def download_nvd_cve_data(start_year: int, end_year: int, directory: str):
-    base_url = "https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{}.json.zip"
     
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -43,7 +42,7 @@ def download_nvd_cve_data(start_year: int, end_year: int, directory: str):
             logger.info(f"File {file_path} already exists, skipping download.")
             continue
         
-        url = base_url.format(year)
+        url = f"https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{year}.json.zip"
         response = requests.get(url)
         if response.status_code == 200:
             with open(file_path, 'wb') as file:
@@ -101,9 +100,8 @@ def load_nvd_cve_data(directory):
     cves_df = pd.DataFrame(cves_list, columns=["cve_id", "description", "published_date", "last_modified_date", "cvss_version", "cvss_vector", "attack_vector", "attack_complexity", "privileges_required", "user_interaction", "base_score", "base_severity", "exploitability_score", "impact_score", "scope", "confidentiality_impact", "integrity_impact", "availability_impact"])
     return cves_df
 
-# Download EPSS scores and ungzip them
+# Download EPSS scores for a given day -1 and ungzip it
 def download_epss_scores(date, directory):
-    # Download EPSS scores for a given date -1 day
     yesterday = datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
     yesterday = yesterday.strftime("%Y-%m-%d")
     file_path = os.path.join(directory, f"epss_scores-{yesterday}.csv.gz")
@@ -130,7 +128,7 @@ def download_epss_scores(date, directory):
 
 # for the today date find the last given months of EPSS scores and download them
 def download_epss_scores_for_months(months, directory):
-    
+    """ Download EPSS scores for a given number of months back from today. """
     today_date = datetime.now().strftime("%Y-%m-%d")
     
     for i in range(months):
@@ -189,6 +187,7 @@ def get_exploitdb_data(cve_id):
 
 # Download KEV data  
 def download_known_exploited_vulnerabilities():
+    """ Download the known exploited vulnerabilities data from CISA. """
     url = "https://www.cisa.gov/sites/default/files/csv/known_exploited_vulnerabilities.csv"
     
     # Download the file and return a DataFrame
@@ -205,7 +204,6 @@ def download_known_exploited_vulnerabilities():
         return None
     
 # Enrichment with CISAGOV data
-
 token = os.getenv('GH_TOKEN')
 header = {'Authorization': f'token {token}'}
 url = f"https://api.github.com/repos/cisagov/vulnrichment"
@@ -221,6 +219,7 @@ def get_metric_position_of_other(metrics_list):
 
 # make output flattened
 def flatten_vulnrichment_output(vulnrichment_output):
+    """ Flatten the output from the CISAGOV vulnrichment repository. """
     flattened_output = {}
     for keyval in vulnrichment_output:
         if isinstance(keyval, dict):
@@ -230,7 +229,9 @@ def flatten_vulnrichment_output(vulnrichment_output):
             return None
     return flattened_output
 
+# function for downloading given JSON file for a given CVE ID from the CISAGOV vulnrichment repository
 def cve_vulnrichment(cve_id):
+    """ Download the JSON file for a given CVE ID from the CISAGOV vulnrichment repository. """
     parts = cve_id.split("-")
     year = parts[1]  # Example: "2021"
     number = int(parts[2])  # Example: "3493" → 3493
@@ -305,3 +306,37 @@ def update_row_with_details(row):
     for key, value in details.items():
         row[key] = value  # Add each detail as a new column to the row
     return row
+
+
+def epss_time_machine(number: int, directory: str, unit='months') -> list[str]:
+    """
+    Download EPSS scores for a given number of months or days back from today.
+    
+    Args:
+        number (int): Number of time units to go back (months or days)
+        directory (str): Directory to save the files
+        unit (str): Time unit to use ('months' or 'days')
+    
+    Returns:
+        list: List of downloaded file paths
+    """
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    files = []
+    
+    for i in range(number):
+        # Start with today's date, set it to 1st of current month, then go back
+        date = datetime.strptime(today_date, "%Y-%m-%d")
+        if unit == 'months':
+            # For months, always set to 1st of the month and subtract months
+            date = date.replace(day=1)
+            date = date - relativedelta.relativedelta(months=i)
+        else:
+            # For days, just subtract days
+            date = date - timedelta(days=i)
+            
+        date_str = date.strftime("%Y-%m-%d")
+        file_path = download_epss_scores(date_str, directory)
+        if file_path:
+            files.append(file_path)
+            
+    return files
