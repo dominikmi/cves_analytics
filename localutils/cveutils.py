@@ -340,3 +340,32 @@ def epss_time_machine(number: int, directory: str, unit='months') -> list[str]:
             files.append(file_path)
             
     return files
+
+
+def extract_cwe_for_cve(nvd_path: str) -> pd.DataFrame:
+    """ Extracts the cwe_id for each cve_id from the NVD data """
+    # list of dfs to be concatenated
+    dfs = []
+
+    # read all nvdcve files in data/download
+    files_list = os.listdir(nvd_path)
+
+    for nvdfile in files_list:
+        if nvdfile.startswith('nvdcve-1.1-'):
+            # read json file
+            logger.info(f"Reading file {nvdfile}")
+            with open(f'{nvd_path}/{nvdfile}') as file:
+                data = json.load(file)
+                # get cve_id and cwe_id
+                cves_list = [{
+                    "cve_id": item.get("cve", {}).get("CVE_data_meta", {}).get("ID", "not_found"),
+                    "cwe_id": next((
+                        desc.get("value", "not_found")
+                        for desc in item.get("cve", {}).get("problemtype", {}).get("problemtype_data", [{}])[0].get("description", [])
+                    ), "not_found")
+                } for item in data.get("CVE_Items", [])] 
+                # append to dfs
+                dfs.append(pd.DataFrame(cves_list))
+
+    # concatenate all dfs
+    return pd.concat(dfs, ignore_index=True)
