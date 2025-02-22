@@ -28,6 +28,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ExploitDB
+from pyExploitDb import PyExploitDb
+pEdb = PyExploitDb()
+pEdb.debug = False
+pEdb.openFile()
+
+
 
 # Download and unzip NVD CVE data
 def download_nvd_cve_data(start_year: int, end_year: int, directory: str):
@@ -347,14 +354,14 @@ def epss_time_machine(number: int, directory: str, unit='months') -> list[str]:
 
 def get_cwe_name_and_description(cwe_id):
     """ Get the CWE name and description for a given CWE ID. """
-	try:
-		logger.info(f"Getting CWE data for {cwe_id}")
-		url = f"https://cwe-api.mitre.org/api/v1/cwe/weakness/{cwe_id.split('-')[1]}"
-		response = requests.get(url)
-		cwe_data = response.json()
-		cwe_name =  cwe_data.get("Weaknesses")[0].get("Name")
-		cwe_description = cwe_data.get("Weaknesses")[0].get("Description")
-		return {"cwe_id": cwe_id, "cwe_name": cwe_name, "cwe_desc": cwe_description}
-	except Exception as e:
-		logger.error(f"Error getting CWE data for {cwe_id}, error: {e}")
-		return {"cwe_id": cwe_id, "cwe_name": "not_found", "cwe_desc": "not_found"}
+    try:
+        logger.info(f"Getting CWE data for {cwe_id}")
+        url = f"https://cwe-api.mitre.org/api/v1/cwe/weakness/{cwe_id.split('-')[1]}"
+        response = requests.get(url)
+        cwe_data = response.json()
+        cwe_name =  cwe_data.get("Weaknesses")[0].get("Name")
+        cwe_description = cwe_data.get("Weaknesses")[0].get("Description")
+        return {"cwe_id": cwe_id, "cwe_name": cwe_name, "cwe_desc": cwe_description}
+    except Exception as e:
+        logger.error(f"Error getting CWE data for {cwe_id}, error: {e}")
+        return {"cwe_id": cwe_id, "cwe_name": "not_found", "cwe_desc": "not_found"}

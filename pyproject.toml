@@ -8,6 +8,7 @@ dependencies = [
     "flask>=3.1.0",
     "gensim>=4.3.3",
     "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
     "jupyterlab>=4.3.4",
     "keras>=3.7.0",
     "nltk>=3.9.1",
