@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_file
 import pandas as pd
 import numpy as np
+import csv
+from datetime import datetime
+import logging
+import os
 
 app = Flask(__name__)
+
+# Set up logging
+log_directory = '/Users/mikey/HomeWorks/homelab-repos/cves_analytics/logs'
+if not os.path.exists(log_directory):
+    os.makedirs(log_directory)
+
+logging.basicConfig(filename=os.path.join(log_directory, 'app.log'), level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(message)s')
+
 
 class VulnerabilityAnalyzer:
     def __init__(self):
@@ -42,6 +55,7 @@ class VulnerabilityAnalyzer:
         }
         return results
 
+
 analyzer_instance = VulnerabilityAnalyzer()
 
 @app.route('/', methods=['GET', 'POST'])
@@ -49,6 +63,7 @@ def index():
     if request.method == 'GET':
         # Run simulation and prepare data for plotting.
         simulated_results = analyzer_instance.run_simulation()
+        logging.info('Simulation run successfully.')
 
         # Extract risk scores to visualize in Plotly.
         year_list = [str(year) for year in range(2020, 2025)]
@@ -60,21 +75,15 @@ def index():
 def download_csv():
     if request.method == 'POST':
         csv_content = analyzer_instance.run_simulation()
-        
+        logging.info('CSV download requested.')
+
         # Export as CSV.
         output_file_name = f"vulnerability_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         
-        with open(output_file_name, mode='w', newline='') as csvfile:
-            fieldnames = ['year','predicted_risk']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            for year,risk in zip(simulated_results['year'], simulated_results['predicted_risk']):
-                writer.writerow({
-                    'year':year,
-                    'predicted_risk':risk
-                })
+        df = pd.DataFrame(csv_content)
+        df.to_csv(output_file_name, index=False)
 
         return send_file(output_file_name, mimetype='text/csv', as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=False, port=5001)

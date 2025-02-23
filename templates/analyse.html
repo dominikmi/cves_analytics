@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVE Analysis</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h2>CVE Analysis</h2>
+
+        <!-- Plot 1: CVE Distribution Over Years -->
+        <h4>Distribution of High & Critical CVEs Over Years</h4>
+        <div>{{ plot1|safe }}</div>
+
+        <!-- EPSS Score Threshold Form -->
+        <form method="POST">
+            <label for="epss_slider" class="form-label">EPSS Score Threshold: <span id="epss_value">{{ epss_threshold
+                    }}</span></label>
+            <input type="range" class="form-range" min="0" max="1" step="0.01" name="epss_threshold" id="epss_slider"
+                value="{{ epss_threshold }}" oninput="updateValue(this.value)">
+            <button type="submit" class="btn btn-primary mt-3">Update Chart</button>
+        </form>
+
+        <!-- Plot 2: EPSS Score Distribution -->
+        <h4>Distribution of EPSS Scores Above Threshold</h4>
+        <div>{{ plot2|safe }}</div>
+
+        <!-- Back Button -->
+        <a href="/" class="btn btn-secondary mt-3">Upload New File</a>
+    </div>
+
+    <script>
+        function updateValue(value) {
+            document.getElementById('epss_value').innerText = value;
+        }
+    </script>
+</body>
+
+</html>
