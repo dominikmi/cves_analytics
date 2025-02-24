@@ -55,6 +55,9 @@ def main():
     # download the known exploited vulnerabilities
     kevs = cveutils.download_known_exploited_vulnerabilities()
 
+    # merge the known exploited vulnerabilities with the CVE data
+    cves_with_kevs = pd.merge(cves_with_epss, kevs, on="cve_id", how="left")
+
     # simulate identified vulns outcome <==== move this part to another script!
     outcome_cves = cves_with_epss.sample(1000)
     outcome_cves.drop(columns=["scope", "confidentiality_impact", "integrity_impact", "availability_impact"], inplace=True)
