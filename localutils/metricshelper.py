@@ -4,7 +4,6 @@ import numpy as np
 import requests
 import logging
 import os 
-import re
 import json
 from datetime import datetime, timedelta
 from dateutil import parser, relativedelta
@@ -34,22 +33,20 @@ pEdb = PyExploitDb()
 pEdb.debug = False
 pEdb.openFile()
 
-
-
-# Download and unzip NVD CVE data
-def download_nvd_cve_data(start_year: int, end_year: int, directory: str):
+# download NVD CVE data for a given range of years
+def download_nvd_cve_data(start_year, end_year, directory):
+    base_url = "https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{}.json.zip"
     
     if not os.path.exists(directory):
         os.makedirs(directory)
     
-    end_year_plus = end_year + 1
-    for year in range(start_year, end_year_plus):
+    for year in range(start_year, end_year + 1):
         file_path = os.path.join(directory, f"nvdcve-1.1-{year}.json.zip")
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) or os.path.exists(file_path.replace(".zip", "")):
             logger.info(f"File {file_path} already exists, skipping download.")
             continue
         
-        url = f"https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{year}.json.zip"
+        url = base_url.format(year)
         response = requests.get(url)
         if response.status_code == 200:
             with open(file_path, 'wb') as file:
@@ -72,22 +69,27 @@ def unzip_files(directory):
                 os.remove(file_path)
 
 # Load NVD CVE data into a DataFrame
-def load_nvd_cve_data(directory):
+def load_nvd_cve_data(start_year: int, end_year: int, directory: str):
     data = []
     cves_list = []
     for file in os.listdir(directory):
-        if file.endswith(".json"):
+        # check if file is .json and is within the range of years
+        if file.endswith(".json") and int(file.split("-")[2].split(".")[0]) in range(start_year, end_year + 1):
             file_path = os.path.join(directory, file)
             with open(file_path, 'r') as file:
                 data = json.load(file)
                 logger.info(f"Loaded {file_path}")
-                for index, item in enumerate(data.get("CVE_Items", [])):
+                for _, item in enumerate(data.get("CVE_Items", [])):
+                    # Get the CWE ID and handle empty values
+                    problemtype_data = item.get("cve", {}).get("problemtype", {}).get("problemtype_data", [{}])[0].get("description", [])
+                    cwe_id = problemtype_data[0].get("value", "") if problemtype_data else ""
                     cve = (
                         item.get("cve", {}).get("CVE_data_meta", {}).get("ID", ""), 
                         item.get("cve", {}).get("description", {}).get("description_data", [{}])[0].get("value", ""),
                         item.get("publishedDate", ""),
                         item.get("lastModifiedDate", ""),
                         item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("version", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("version", "")),
+                        cwe_id,
                         item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("vectorString", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("vectorString", "")),
                         item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("attackVector", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("accessVector", "")),
                         item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("attackComplexity", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("accessComplexity", "")),
@@ -104,7 +106,7 @@ def load_nvd_cve_data(directory):
                     )
                     cves_list.append(cve)
 
-    cves_df = pd.DataFrame(cves_list, columns=["cve_id", "description", "published_date", "last_modified_date", "cvss_version", "cvss_vector", "attack_vector", "attack_complexity", "privileges_required", "user_interaction", "base_score", "base_severity", "exploitability_score", "impact_score", "scope", "confidentiality_impact", "integrity_impact", "availability_impact"])
+    cves_df = pd.DataFrame(cves_list, columns=["cve_id", "description", "published_date", "last_modified_date", "cvss_version", "cwe_id", "cvss_vector", "attack_vector", "attack_complexity", "privileges_required", "user_interaction", "base_score", "base_severity", "exploitability_score", "impact_score", "scope", "confidentiality_impact", "integrity_impact", "availability_impact"])
     return cves_df
 
 # Download EPSS scores for a given day -1 and ungzip it
@@ -226,7 +228,8 @@ def get_metric_position_of_other(metrics_list):
 
 # make output flattened
 def flatten_vulnrichment_output(vulnrichment_output):
-    """ Flatten the output from the CISAGOV vulnrichment repository. """
+    if vulnrichment_output is None:
+        return None
     flattened_output = {}
     for keyval in vulnrichment_output:
         if isinstance(keyval, dict):
@@ -237,30 +240,22 @@ def flatten_vulnrichment_output(vulnrichment_output):
     return flattened_output
 
 # function for downloading given JSON file for a given CVE ID from the CISAGOV vulnrichment repository
-def cve_vulnrichment(cve_id):
-    """ Download the JSON file for a given CVE ID from the CISAGOV vulnrichment repository. """
-    parts = cve_id.split("-")
-    year = parts[1]  # Example: "2021"
-    number = int(parts[2])  # Example: "3493" → 3493
-    thousands_group = f"{(number // 1000)}xxx"  # Calculate folder name, e.g., 3xxx
+def cve_vulnrichment(cve_id: str, directory: str = "data/vulnrichment"):
+    year = cve_id.split("-")[1]  # Example: "2021"
+    number = int(cve_id.split("-")[2])  # Example: "1891" → 1891
+    thousands_group = f"{(number // 1000)}xxx"  # Calculate folder name, e.g., 1xxx
+    download_dir = f"{directory}/{year}/{thousands_group}"
 
-    # Construct URL for the JSON file
-    file_path = f"{year}/{thousands_group}/{cve_id}.json"
-    file_url = f"{url}/contents/{file_path}"
+    # Construct file_path for the JSON file
+    file_path = f"{directory}/{year}/{thousands_group}/{cve_id}.json"
+    download_url = f"https://raw.githubusercontent.com/cisagov/vulnrichment/main/{year}/{thousands_group}/{cve_id}.json"
 
     try:
-        # Get the metadata for the file
-        metadata_output = requests.get(file_url,headers=header)
-        metadata_output.raise_for_status()
-        metadata = metadata_output.json()
-        download_url = metadata["download_url"]
-
         # check if the file already exists
-        downloaded_file = os.path.join(download_dir, f"{cve_id}.json")
-        if os.path.exists(downloaded_file):
-            logger.info(f"File {downloaded_file} already exists, skipping download.")
+        if os.path.exists(file_path) and int(year) <= 2025:
+            logger.info(f"Processing data in {file_path}")
             # read the file and return the options
-            with open(downloaded_file, "r") as file:
+            with open(file_path, "r") as file:
                 cve = json.load(file)
                 if cve.get("cveMetadata", {}).get("state") != "REJECTED":
                     adp_list = cve.get("containers", []).get("adp", [])
@@ -273,34 +268,42 @@ def cve_vulnrichment(cve_id):
                     return other[position].get("other").get("content").get("options")
                 else:
                     return [{"Exploitation": None}, {"Automatable": None}, {"Technical Impact": None}]
+        
+        # check if the file does not exist and the year is 2025 return None
+        elif not os.path.exists(file_path) and int(year) < 2025:
+            return [{"Exploitation": None}, {"Automatable": None}, {"Technical Impact": None}]
 
-        # Downloading the JSON file
-        logger.info(f"Download URL found, downloading: {download_url}")
-        json_response = requests.get(download_url)
-        json_response.raise_for_status()
-        json_data = json_response.json()
+        # if file does not exist and the cve is beyond CVE-2025-27357 try to download the file
+        elif not os.path.exists(file_path) and int(year) == 2025 and number <= 27357:
+            # Downloading the JSON file
+            logger.info(f"Download URL found, downloading: {download_url}")
+            json_response = requests.get(download_url)
+            json_response.raise_for_status()
+            json_data = json_response.json()
 
-        # Create the download folder if it doesn't exist
-        os.makedirs(download_dir, exist_ok=True)
+            # Create the download folder if it doesn't exist
+            os.makedirs(download_dir, exist_ok=True)
 
-        # Save the file locally
-        local_file_path = os.path.join(download_dir, f"{cve_id}.json")
-        with open(local_file_path, "w") as f:
-            json.dump(json_data, f, indent=4)
+            # Save the file locally
+            local_file_path = os.path.join(download_dir, f"{cve_id}.json")
+            with open(local_file_path, "w") as f:
+                json.dump(json_data, f, indent=4)
 
-        logger.info(f"Downloaded and saved {cve_id} to {local_file_path}")
-        if json_data.get("cveMetadata", {}).get("state") != "REJECTED":
-            adp_list = json_data.get("containers", []).get("adp", [])
-            for i, item in enumerate(adp_list):
-                if "CISA ADP Vulnrichment" in item.get("title"):
-                    adp_position = i
-            other = adp_list[adp_position].get("metrics", {})
-            position = get_metric_position_of_other(adp_list[adp_position].get("metrics", {}))
-            logger.info(f"Found positions: {adp_position}, {position}")
-            return other[position].get("other").get("content").get("options")
+            logger.info(f"Downloaded and saved {cve_id} to {local_file_path}")
+            if json_data.get("cveMetadata", {}).get("state") != "REJECTED":
+                adp_list = json_data.get("containers", []).get("adp", [])
+                for i, item in enumerate(adp_list):
+                    if "CISA ADP Vulnrichment" in item.get("title"):
+                        adp_position = i
+                other = adp_list[adp_position].get("metrics", {})
+                position = get_metric_position_of_other(adp_list[adp_position].get("metrics", {}))
+                logger.info(f"Found positions: {adp_position}, {position}")
+                return other[position].get("other").get("content").get("options")
+            else:
+                return [{"Exploitation": None}, {"Automatable": None}, {"Technical Impact": None}]
         else:
             return [{"Exploitation": None}, {"Automatable": None}, {"Technical Impact": None}]
-    
+
     except requests.exceptions.HTTPError as e:
         logger.error(f"Error downloading {cve_id}: {e}")
         return [{"Exploitation": None}, {"Automatable": None}, {"Technical Impact": None}]

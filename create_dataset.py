@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 # Dominik Miklaszewski
+# v0.0.2, 2025-02-24 - For a given year range, data from NVD, EPSS, KEVS merged and saved to CSV file.
 # v0.0.1, 2025-02-02 - just getting started, grab the baseline files and start working on them.
 
 import pandas as pd
-import numpy as np
 import argparse
-import os, sys
-from localutils import cveutils
+import sys
+from localutils import metricshelper
 from datetime import datetime
 
 # set up the argument parser
@@ -27,12 +27,12 @@ def main():
     args = parser.parse_args()
 
     # download the NVD CVE data
-    cveutils.download_nvd_cve_data(args.start_year, args.end_year, args.download_path)
+    metricshelper.download_nvd_cve_data(args.start_year, args.end_year, args.download_path)
     # unzip the downloaded files
-    cveutils.unzip_files(args.extract_path)
+    metricshelper.unzip_files(args.extract_path)
 
     # load the CVE data to a dataframe
-    cves = cveutils.load_nvd_cve_data(args.extract_path)
+    cves = metricshelper.load_nvd_cve_data(args.start_year, args.end_year,args.extract_path)
     # Sort the data by CVE ID
     cves = cves.sort_values(by="cve_id")
 
@@ -42,7 +42,7 @@ def main():
     cves.to_csv(f"{args.output_path}/cves_{args.start_year}-{args.end_year}_{today_date}.csv", index=False)
     
     # download the EPSS scores
-    epss_file = cveutils.download_epss_scores(today_date, args.download_path)
+    epss_file = metricshelper.download_epss_scores(today_date, args.download_path)
     
     # merge the EPSS scores with the CVE data
     epss_scores = pd.read_csv(epss_file, skiprows=1)
@@ -53,17 +53,19 @@ def main():
     cves_with_epss.to_csv(f"{args.output_path}/cves_with_epss_{args.start_year}-{args.end_year}_{today_date}.csv", index=False)
     
     # download the known exploited vulnerabilities
-    kevs = cveutils.download_known_exploited_vulnerabilities()
+    kevs = metricshelper.download_known_exploited_vulnerabilities()
 
     # merge the known exploited vulnerabilities with the CVE data
     cves_with_kevs = pd.merge(cves_with_epss, kevs, on="cve_id", how="left")
 
-    # simulate identified vulns outcome <==== move this part to another script!
-    outcome_cves = cves_with_epss.sample(1000)
-    outcome_cves.drop(columns=["scope", "confidentiality_impact", "integrity_impact", "availability_impact"], inplace=True)
-    outcome_cves = outcome_cves.apply(cveutils.update_row_with_details, axis=1)
-    outcome_cves.to_csv(f"{args.output_path}/outcome_cves_epss_enriched-{today_date}.csv", index=False)
+    cves_with_kevs = cves_with_kevs.apply(metricshelper.update_row_with_details, axis=1)
 
+    # normalize description data, some are with "" some not
+    cves_with_kevs["description"] = cves_with_kevs["description"].apply(lambda x: x if x else "")
+
+    # filter out all with Rejected CVEs in description
+    cves_with_kevs = cves_with_kevs[~cves_with_kevs["description"].str.contains("Rejected reason:")]
+    cves_with_kevs.to_csv(f"output/cves_epss_kevs_enriched-{today_date}.csv", index=False)
 
 if __name__ == "__main__":
     main()
