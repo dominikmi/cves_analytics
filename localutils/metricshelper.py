@@ -7,6 +7,7 @@ import os
 import json
 from datetime import datetime, timedelta
 from dateutil import parser, relativedelta
+from localutils.errorhandler import error_handler
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -34,6 +35,7 @@ pEdb.debug = False
 pEdb.openFile()
 
 # download NVD CVE data for a given range of years
+@error_handler()
 def download_nvd_cve_data(start_year, end_year, directory):
     base_url = "https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-{}.json.zip"
     
@@ -69,7 +71,8 @@ def unzip_files(directory):
                 os.remove(file_path)
 
 # Load NVD CVE data into a DataFrame
-def load_nvd_cve_data(start_year: int, end_year: int, directory: str):
+@error_handler(default_return=pd.DataFrame())
+def load_nvd_cve_data(start_year: int, end_year: int, directory: str) -> pd.DataFrame:
     data = []
     cves_list = []
     for file in os.listdir(directory):
@@ -110,6 +113,7 @@ def load_nvd_cve_data(start_year: int, end_year: int, directory: str):
     return cves_df
 
 # Download EPSS scores for a given day -1 and ungzip it
+@error_handler(default_return=None)
 def download_epss_scores(date, directory):
     yesterday = datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
     yesterday = yesterday.strftime("%Y-%m-%d")
@@ -136,6 +140,7 @@ def download_epss_scores(date, directory):
         return None
 
 # for the today date find the last given months of EPSS scores and download them
+@error_handler(default_return=None)
 def download_epss_scores_for_months(months, directory):
     """ Download EPSS scores for a given number of months back from today. """
     today_date = datetime.now().strftime("%Y-%m-%d")
@@ -162,6 +167,7 @@ def download_epss_scores_for_months(months, directory):
 
 
 # Check on exploitability against exploitdb data
+@error_handler()
 def get_exploitdb_data(cve_id):
     """
     Get the ExploitDB data for a given CVE ID.
@@ -195,6 +201,7 @@ def get_exploitdb_data(cve_id):
         })
 
 # Download KEV data  
+@error_handler()
 def download_known_exploited_vulnerabilities():
     """ Download the known exploited vulnerabilities data from CISA. """
     url = "https://www.cisa.gov/sites/default/files/csv/known_exploited_vulnerabilities.csv"
@@ -240,6 +247,7 @@ def flatten_vulnrichment_output(vulnrichment_output):
     return flattened_output
 
 # function for downloading given JSON file for a given CVE ID from the CISAGOV vulnrichment repository
+@error_handler()
 def cve_vulnrichment(cve_id: str, directory: str = "data/vulnrichment"):
     year = cve_id.split("-")[1]  # Example: "2021"
     number = int(cve_id.split("-")[2])  # Example: "1891" → 1891
@@ -309,6 +317,7 @@ def cve_vulnrichment(cve_id: str, directory: str = "data/vulnrichment"):
         return [{"Exploitation": None}, {"Automatable": None}, {"Technical Impact": None}]
 
 # Update the row with the details from the vulnrichment output
+@error_handler()
 def update_row_with_details(row):
     details = flatten_vulnrichment_output(cve_vulnrichment(row['cve_id']))  # Fetch details for the current row's cve_id
     if not details:
@@ -355,6 +364,7 @@ def epss_time_machine(number: int, directory: str, unit='months') -> list[str]:
 # add cwe descriptions to cwe_id in cves_cwes_df by matching CWE-ID with the cwes dataframe
 # https://cwe-api.mitre.org/api/v1/cwe/weakness/<number>
 
+@error_handler()
 def get_cwe_name_and_description(cwe_id):
     """ Get the CWE name and description for a given CWE ID. """
     try:

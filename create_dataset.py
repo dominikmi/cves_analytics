@@ -7,7 +7,7 @@
 import pandas as pd
 import argparse
 import sys
-from localutils import metricshelper
+from localutils.metricshelper import download_nvd_cve_data, unzip_files, load_nvd_cve_data, download_epss_scores, download_known_exploited_vulnerabilities, update_row_with_details
 from datetime import datetime
 
 # set up the argument parser
@@ -27,12 +27,12 @@ def main():
     args = parser.parse_args()
 
     # download the NVD CVE data
-    metricshelper.download_nvd_cve_data(args.start_year, args.end_year, args.download_path)
+    download_nvd_cve_data(args.start_year, args.end_year, args.download_path)
     # unzip the downloaded files
-    metricshelper.unzip_files(args.extract_path)
+    unzip_files(args.extract_path)
 
     # load the CVE data to a dataframe
-    cves = metricshelper.load_nvd_cve_data(args.start_year, args.end_year,args.extract_path)
+    cves = load_nvd_cve_data(args.start_year, args.end_year,args.extract_path)
     # Sort the data by CVE ID
     cves = cves.sort_values(by="cve_id")
 
@@ -42,7 +42,7 @@ def main():
     cves.to_csv(f"{args.output_path}/cves_{args.start_year}-{args.end_year}_{today_date}.csv", index=False)
     
     # download the EPSS scores
-    epss_file = metricshelper.download_epss_scores(today_date, args.download_path)
+    epss_file = download_epss_scores(today_date, args.download_path)
     
     # merge the EPSS scores with the CVE data
     epss_scores = pd.read_csv(epss_file, skiprows=1)
@@ -53,12 +53,12 @@ def main():
     cves_with_epss.to_csv(f"{args.output_path}/cves_with_epss_{args.start_year}-{args.end_year}_{today_date}.csv", index=False)
     
     # download the known exploited vulnerabilities
-    kevs = metricshelper.download_known_exploited_vulnerabilities()
+    kevs = download_known_exploited_vulnerabilities()
 
     # merge the known exploited vulnerabilities with the CVE data
     cves_with_kevs = pd.merge(cves_with_epss, kevs, on="cve_id", how="left")
 
-    cves_with_kevs = cves_with_kevs.apply(metricshelper.update_row_with_details, axis=1)
+    cves_with_kevs = cves_with_kevs.apply(update_row_with_details, axis=1)
 
     # normalize description data, some are with "" some not
     cves_with_kevs["description"] = cves_with_kevs["description"].apply(lambda x: x if x else "")
