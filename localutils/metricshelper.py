@@ -71,7 +71,7 @@ def unzip_files(directory):
                 os.remove(file_path)
 
 # Load NVD CVE data into a DataFrame
-@error_handler(default_return=pd.DataFrame())
+@error_handler(logger)
 def load_nvd_cve_data(start_year: int, end_year: int, directory: str) -> pd.DataFrame:
     data = []
     cves_list = []
@@ -82,34 +82,70 @@ def load_nvd_cve_data(start_year: int, end_year: int, directory: str) -> pd.Data
             with open(file_path, 'r') as file:
                 data = json.load(file)
                 logger.info(f"Loaded {file_path}")
-                for _, item in enumerate(data.get("CVE_Items", [])):
-                    # Get the CWE ID and handle empty values
-                    problemtype_data = item.get("cve", {}).get("problemtype", {}).get("problemtype_data", [{}])[0].get("description", [])
-                    cwe_id = problemtype_data[0].get("value", "") if problemtype_data else ""
-                    cve = (
-                        item.get("cve", {}).get("CVE_data_meta", {}).get("ID", ""), 
-                        item.get("cve", {}).get("description", {}).get("description_data", [{}])[0].get("value", ""),
-                        item.get("publishedDate", ""),
-                        item.get("lastModifiedDate", ""),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("version", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("version", "")),
-                        cwe_id,
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("vectorString", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("vectorString", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("attackVector", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("accessVector", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("attackComplexity", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("accessComplexity", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("privilegesRequired", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("authentication", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("userInteraction", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("userInteraction", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("baseScore", item.get("impact", {}).get("baseMetricV2", {}).get("cvssV2", {}).get("baseScore", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("cvssV3", {}).get("baseSeverity", item.get("impact", {}).get("baseMetricV2", {}).get("severity", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("exploitabilityScore", item.get("impact", {}).get("baseMetricV2", {}).get("exploitabilityScore", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("impactScore", item.get("impact", {}).get("baseMetricV2", {}).get("impactScore", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("scope", item.get("impact", {}).get("baseMetricV2", {}).get("scope", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("confidentialityImpact", item.get("impact", {}).get("baseMetricV2", {}).get("confidentialityImpact", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("integrityImpact", item.get("impact", {}).get("baseMetricV2", {}).get("integrityImpact", "")),
-                        item.get("impact", {}).get("baseMetricV3", {}).get("availabilityImpact", item.get("impact", {}).get("baseMetricV2", {}).get("availabilityImpact", "")),
-                    )
-                    cves_list.append(cve)
+                for _, cve_data in enumerate(data.get("CVE_Items", [])):
+                    cve_id = "not_found"
+                    description = "not_found"
+                    published_date = "not_found"
+                    last_modified_date = "not_found"
+                    cwe_id = "not_found"
+                    cvss_version = "not_found"
+                    severity = "not_found"
+                    base_score = "not_found"
+                    exploitability_score = "not_found"
+                    vector_string = "not_found"
+                    attack_vector = "not_found"
+                    attack_complexity = "not_found"
+                    authentication = "not_found"
+                    user_interaction = "not_found"
+                    confidentiality_impact = "not_found"
+                    integrity_impact = "not_found"
+                    availability_impact = "not_found"
 
-    cves_df = pd.DataFrame(cves_list, columns=["cve_id", "description", "published_date", "last_modified_date", "cvss_version", "cwe_id", "cvss_vector", "attack_vector", "attack_complexity", "privileges_required", "user_interaction", "base_score", "base_severity", "exploitability_score", "impact_score", "scope", "confidentiality_impact", "integrity_impact", "availability_impact"])
+                    if cve_data.get("impact"):
+                        for key in cve_data.get("impact"):
+                            if key == "baseMetricV3":
+                                cve_id = cve_data.get("cve").get("CVE_data_meta").get("ID", "") if cve_data.get("cve") else ""
+                                description = cve_data.get("cve").get("description").get("description_data")[0].get("value", "")
+                                published_date = cve_data.get("publishedDate", "")
+                                last_modified_date = cve_data.get("lastModifiedDate", "")
+                                problemtype_data = cve_data.get("cve", {}).get("problemtype", {}).get("problemtype_data", [{}])[0].get("description", [])
+                                cwe_id = problemtype_data[0].get("value", "") if problemtype_data else ""
+                                cvss_version = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("version") 
+                                severity = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("baseSeverity")
+                                base_score = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("baseScore")
+                                exploitability_score = cve_data.get("impact").get("baseMetricV3").get("exploitabilityScore")
+                                vector_string = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("vectorString")
+                                attack_vector = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("attackVector")
+                                attack_complexity = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("attackComplexity")
+                                authentication = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("privilegesRequired")
+                                user_interaction = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("userInteraction")
+                                confidentiality_impact = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("confidentialityImpact")
+                                integrity_impact = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("integrityImpact")
+                                availability_impact = cve_data.get("impact").get("baseMetricV3").get("cvssV3").get("availabilityImpact")
+                                break
+                            elif key == "baseMetricV2":
+                                cve_id = cve_data.get("cve").get("CVE_data_meta").get("ID", "") if cve_data.get("cve") else ""
+                                description = cve_data.get("cve").get("description").get("description_data")[0].get("value", "")
+                                published_date = cve_data.get("publishedDate", "")
+                                last_modified_date = cve_data.get("lastModifiedDate", "")
+                                problemtype_data = cve_data.get("cve", {}).get("problemtype", {}).get("problemtype_data", [{}])[0].get("description", [])
+                                cwe_id = problemtype_data[0].get("value", "") if problemtype_data else ""
+                                cvss_version = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("version") 
+                                severity = cve_data.get("impact").get("baseMetricV2").get("severity")
+                                base_score = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("baseScore")
+                                exploitability_score = cve_data.get("impact").get("baseMetricV2").get("exploitabilityScore")
+                                vector_string = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("vectorString")
+                                attack_vector = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("accessVector")
+                                attack_complexity = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("accessComplexity")
+                                authentication = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("authentication")
+                                user_interaction = cve_data.get("impact").get("baseMetricV2").get("userInteractionRequired")
+                                confidentiality_impact = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("confidentialityImpact")
+                                integrity_impact = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("integrityImpact")
+                                availability_impact = cve_data.get("impact").get("baseMetricV2").get("cvssV2").get("availabilityImpact")
+                                break
+                    cves_list.append((cve_id, description, published_date, last_modified_date, cvss_version, cwe_id, vector_string, attack_vector, attack_complexity, authentication, user_interaction, base_score, severity, exploitability_score, confidentiality_impact, integrity_impact, availability_impact))
+
+    cves_df = pd.DataFrame(cves_list, columns=["cve_id", "description", "published_date", "last_modified_date", "cvss_version", "cwe_id", "cvss_vector", "attack_vector", "attack_complexity", "privileges_required", "user_interaction", "base_score", "base_severity", "exploitability_score", "confidentiality_impact", "integrity_impact", "availability_impact"])
     return cves_df
 
 # Download EPSS scores for a given day -1 and ungzip it
