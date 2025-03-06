@@ -1,12 +1,11 @@
 import gzip
 import pandas as pd
-import numpy as np
 import requests
 import logging
 import os 
 import json
 from datetime import datetime, timedelta
-from dateutil import parser, relativedelta
+from dateutil import relativedelta
 from localutils.errorhandler import error_handler
 from functools import lru_cache as LRU
 
@@ -17,7 +16,6 @@ load_dotenv()
 current_date = datetime.now().strftime('%Y-%m-%d')
 current_time = datetime.now().strftime('%H:%M:%S')
 
-
 # Set up logging
 log_directory = "logs"
 if not os.path.exists(log_directory):
@@ -27,7 +25,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler(f"{log_directory}/app-{current_date}_{current_time}.log"),
+        logging.FileHandler(filename=f"{log_directory}/app_{current_date}_{current_time}.log"),
         logging.StreamHandler()
     ]
 )
