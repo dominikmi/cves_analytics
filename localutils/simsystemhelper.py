@@ -2,6 +2,7 @@ import pandas as pd
 import random
 import numpy as np
 from faker import Faker
+from localutils.errorhandler import error_handler
 
 # OS P values that True for Linux and False for Windows in Linux and other way around for Windows
 
@@ -228,6 +229,7 @@ linux_servers = {
     "Debian 11": 0.05
 }
 
+@error_handler(default_return={})
 class SimSystem:
 
     def __init__(self, os_p_weights: dict, sys_p_weights: dict, win_svs: dict, lin_svs: dict):
