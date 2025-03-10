@@ -656,6 +656,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dacite"
+version = "1.9.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/a0/7ca79796e799a3e782045d29bf052b5cde7439a2bbb17f15ff44f7aacc63/dacite-1.9.2.tar.gz", hash = "sha256:6ccc3b299727c7aa17582f0021f6ae14d5de47c7227932c47fec4cdfefd26f09", size = 22420 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/35/386550fd60316d1e37eccdda609b074113298f23cef5bddb2049823fe666/dacite-1.9.2-py3-none-any.whl", hash = "sha256:053f7c3f5128ca2e9aceb66892b1a3c8936d02c686e707bee96e19deef4bc4a0", size = 16600 },
+]
+
+[[package]]
 name = "debugpy"
 version = "1.8.11"
 source = { registry = "https://pypi.org/simple" }
@@ -697,6 +706,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fc/f8/98eea607f65de6527f8a2e8885fc8015d3e6f5775df186e443e0964a11c3/distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed", size = 60722 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/12/b3/231ffd4ab1fc9d679809f356cebee130ac7daa00d6d6f3206dd4fd137e9e/distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2", size = 20277 },
+]
+
+[[package]]
+name = "docker"
+version = "7.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
+    { name = "requests" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/91/9b/4a2ea29aeba62471211598dac5d96825bb49348fa07e906ea930394a83ce/docker-7.1.0.tar.gz", hash = "sha256:ad8c70e6e3f8926cb8a92619b832b4ea5299e2831c14284663184e200546fa6c", size = 117834 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/26/57c6fb270950d476074c087527a558ccb6f4436657314bfb6cdf484114c4/docker-7.1.0-py3-none-any.whl", hash = "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0", size = 147774 },
 ]
 
 [[package]]
@@ -2537,6 +2560,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pygrype"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dacite" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8c/3f/9be0d717c70134ffd899e9c8e48495d9f66f9fa90339cf396bb3df175f20/pygrype-0.4.0.tar.gz", hash = "sha256:6a374b5135865fd1c437e128174849c7a7f093e6473b5c16a7a253083cdfd479", size = 12464 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/23/27/8176d6ad7b1908aa05c997888466aad0ae6567ac457a9c3fc718287fffe6/pygrype-0.4.0-py3-none-any.whl", hash = "sha256:68cc7f9b9c1f13033cfbce64f9ca4f476455fe886bc89c5a5ae9992f31cec2cd", size = 15560 },
+]
+
+[[package]]
 name = "pyldavis"
 version = "3.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3180,6 +3215,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cve-bin-tool" },
+    { name = "docker" },
     { name = "faker" },
     { name = "flask" },
     { name = "gensim" },
@@ -3196,6 +3232,7 @@ dependencies = [
     { name = "plotly" },
     { name = "pyarrow" },
     { name = "pyexploitdb" },
+    { name = "pygrype" },
     { name = "pyldavis" },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -3214,6 +3251,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cve-bin-tool", specifier = ">=3.4" },
+    { name = "docker", specifier = ">=7.1.0" },
     { name = "faker", specifier = ">=36.1.1" },
     { name = "flask", specifier = ">=3.1.0" },
     { name = "gensim", specifier = ">=4.3.3" },
@@ -3230,6 +3268,7 @@ requires-dist = [
     { name = "plotly" },
     { name = "pyarrow", specifier = ">=18.1.0" },
     { name = "pyexploitdb", specifier = ">=0.2.61" },
+    { name = "pygrype", specifier = ">=0.4.0" },
     { name = "pyldavis", specifier = ">=3.4.1" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "requests", specifier = ">=2.32.3" },

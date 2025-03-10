@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Dominik Miklaszewski
+# by Dominik Miklaszewski, 02/2025
 # v0.0.2, 2025-02-24 - For a given year range, data from NVD, EPSS, KEVS merged and saved to CSV file.
 # v0.0.1, 2025-02-02 - just getting started, grab the baseline files and start working on them.
 
@@ -91,6 +91,10 @@ def main():
        'kev_vuln_name', 'kev_date_added', 'kev_desc', 'kev_req_action',
        'kev_due_date', 'kev_known_ransom_camp_use', 'notes', 'kev_cwes']]
     
+    # drop duplicates
+    cve_final = cve_final.drop_duplicates(subset=['cve_id'])
+
+    # save the data to a CSV file
     cve_final.to_csv(f"{args.output_path}/cves_epss_kevs_cwe_enriched-{today_date}.csv", index=False)
     logger.info("Process completed")
 if __name__ == "__main__":

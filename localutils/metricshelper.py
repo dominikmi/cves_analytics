@@ -21,15 +21,26 @@ log_directory = "logs"
 if not os.path.exists(log_directory):
     os.makedirs(log_directory)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(filename=f"{log_directory}/app_{current_date}_{current_time}.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+# create logger
+logger = logging.getLogger('metricshelper')
+logger.setLevel(logging.DEBUG)
+
+# Create handlers for console and file outputs
+cons_handler = logging.StreamHandler()
+file_handler = logging.FileHandler(filename=f"{log_directory}/app_{current_date}_{current_time}.log")
+
+# Set log level for handlers
+cons_handler.setLevel(logging.INFO)
+file_handler.setLevel(logging.DEBUG)
+
+# Create a formatter and set it to handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+cons_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+
+# Add handlers to the logger
+logger.addHandler(cons_handler)
+logger.addHandler(file_handler)
 
 # ExploitDB
 from pyExploitDb import PyExploitDb
@@ -49,7 +60,7 @@ def download_nvd_cve_data(start_year, end_year, directory):
     for year in range(start_year, end_year + 1):
         file_path = os.path.join(directory, f"nvdcve-1.1-{year}.json.zip")
         if os.path.exists(file_path) or os.path.exists(file_path.replace(".zip", "")):
-            logger.info(f"File {file_path} already exists, skipping download.")
+            logger.debug(f"File {file_path} already exists, skipping download.")
             continue
         
         url = base_url.format(year)
@@ -57,7 +68,7 @@ def download_nvd_cve_data(start_year, end_year, directory):
         if response.status_code == 200:
             with open(file_path, 'wb') as file:
                 file.write(response.content)
-            logger.info(f"Downloaded {file_path}")
+            logger.debug(f"Downloaded {file_path}")
         else:
             logger.error(f"Failed to download data for year {year}")
 
@@ -73,7 +84,7 @@ def unzip_files(directory):
             file_path = os.path.join(directory, file)
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
                 zip_ref.extractall(directory)
-                logger.info(f"Unzipped {file_path}")
+                logger.debug(f"Unzipped {file_path}")
                 os.remove(file_path)
 
 # Load NVD CVE data into a DataFrame
@@ -88,7 +99,7 @@ def load_nvd_cve_data(start_year: int, end_year: int, directory: str) -> pd.Data
             file_path = os.path.join(directory, file)
             with open(file_path, 'r') as file:
                 data = json.load(file)
-                logger.info(f"Loaded {file_path}")
+                logger.debug(f"Loaded {file_path}")
                 for _, cve_data in enumerate(data.get("CVE_Items", [])):
                     if cve_data.get("impact"):
                         for key in cve_data.get("impact"):
@@ -146,17 +157,17 @@ def download_epss_scores(date, directory):
     file_path = os.path.join(directory, f"epss_scores-{yesterday}.csv.gz")
     try:
         if not os.path.exists(file_path):
-            logger.info(f"Downloading EPSS scores for date {yesterday}")
+            logger.debug(f"Downloading EPSS scores for date {yesterday}")
             url = f"https://epss.cyentia.com/epss_scores-{yesterday}.csv.gz"
             response = requests.get(url)
             if response.status_code == 200:
                 with open(file_path, 'wb') as file:
                     file.write(response.content)
-                logger.info(f"Downloaded {file_path}")
+                logger.debug(f"Downloaded {file_path}")
         else:
-            logger.info(f"File {file_path} already exists, skipping download.")
+            logger.debug(f"File {file_path} already exists, skipping download.")
 
-        logger.info(f"Unzipping {file_path}")
+        logger.debug(f"Unzipping {file_path}")
         with gzip.open(file_path, 'rb') as file_in:
             with open(file_path.replace(".gz", ""), 'wb') as file_out:
                 file_out.write(file_in.read())
@@ -199,7 +210,7 @@ def get_exploitdb_data(cve_id):
     Get the ExploitDB data for a given CVE ID.
     """
     try:
-        logger.info(f"Searching ExploitDB data for {cve_id}")
+        logger.debug(f"Searching ExploitDB data for {cve_id}")
         exploitdb_data = pEdb.searchCve(cve_id)
         if exploitdb_data:
             return pd.Series({
@@ -227,7 +238,7 @@ def get_exploitdb_data(cve_id):
         })
 
 # Download KEV data  
-@error_handler()
+@error_handler(logger)
 def download_known_exploited_vulnerabilities(directory: str):
     """ Download the known exploited vulnerabilities data from CISA. """
     url = "https://www.cisa.gov/sites/default/files/csv/known_exploited_vulnerabilities.csv"
@@ -240,7 +251,7 @@ def download_known_exploited_vulnerabilities(directory: str):
         file_path = os.path.join(directory, "known_exploited_vulnerabilities.csv")
         with open(file_path, 'wb') as file:
             file.write(response.content)
-        logger.info(f"Downloaded known exploited vulnerabilities to {file_path}")
+        logger.debug(f"Downloaded known exploited vulnerabilities to {file_path}")
         return pd.read_csv(file_path)
     except Exception as e:
         print(f"Error loading known exploited vulnerabilities: {e}")
@@ -274,9 +285,9 @@ def flatten_vulnrichment_output(vulnrichment_output):
     return flattened_output
 
 # function for downloading given JSON file for a given CVE ID from the CISAGOV vulnrichment repository
-@error_handler()
+@error_handler(logger)
 def cve_vulnrichment(cve_id):
-    logger.info(f"Processing cve_id -> {cve_id}")
+    logger.debug(f"Processing cve_id -> {cve_id}")
     directory = "data/download/vulnrichment"
     year = cve_id.split("-")[1]  # Example: "2021"
     number = int(cve_id.split("-")[2])  # Example: "1891" → 1891
@@ -285,11 +296,11 @@ def cve_vulnrichment(cve_id):
 
     # Construct file_path for the JSON file
     file_path = f"{cve_dir}/{cve_id}.json"
-    logger.info(f"File path: {file_path}")
+    logger.debug(f"File path: {file_path}")
 
     # check if the file already exists
     if os.path.exists(file_path):
-        logger.info(f"Processing data in {file_path}")
+        logger.debug(f"Processing data in {file_path}")
         # read the file and return the options
         with open(file_path, "r") as file:
             cve = json.load(file)
@@ -300,7 +311,7 @@ def cve_vulnrichment(cve_id):
                         adp_position = i
                 other = adp_list[adp_position].get("metrics", {})
                 position = get_metric_position_of_other(adp_list[adp_position].get("metrics", {}))
-                logger.info(f"Found positions: {adp_position}, {position}")
+                logger.debug(f"Found positions: {adp_position}, {position}")
                 return other[position].get("other").get("content").get("options")
             else:
                 return [{"Exploitation": None}, {"Automatable": None}, {"Technical Impact": None}]
@@ -311,7 +322,7 @@ def cve_vulnrichment(cve_id):
 
 
 # Update the row with the details from the vulnrichment output
-@error_handler()
+@error_handler(logger)
 def update_row_with_details(row):
     details = flatten_vulnrichment_output(cve_vulnrichment(row['cve_id']))  # Fetch details for the current row's cve_id
     if not details:
@@ -320,7 +331,7 @@ def update_row_with_details(row):
         row[key] = value  # Add each detail as a new column to the row
     return row
 
-@error_handler()
+@error_handler(logger)
 def epss_time_machine(number: int, directory: str, unit='months') -> list[str]:
     """
     Download EPSS scores for a given number of months or days back from today.
@@ -368,7 +379,7 @@ def list_to_csv(lst: list) -> str:
 @LRU(maxsize=128)
 def get_cwe_name_and_description(cwe_id):
     try:
-        logger.info(f"Getting CWE data for {cwe_id}")
+        logger.debug(f"Getting CWE data for {cwe_id}")
         if cwe_id in ["not_found", "NVD-CWE-noinfo", "NVD-CWE-Other"] or not cwe_id or cwe_id == "":
             return {"cwe_id": cwe_id, "cwe_name": "not_found", "cwe_desc": "not_found", "cwe_cc_scope": "not_found", "cwe_cc_impact": "not_found"}
         url = f"https://cwe-api.mitre.org/api/v1/cwe/weakness/{cwe_id.split('-')[1]}"
