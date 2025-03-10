@@ -188,3 +188,5 @@ logs/*
 output/*
 *.csv
 tagger_parser_ud/
+.DS_Store
+.env
