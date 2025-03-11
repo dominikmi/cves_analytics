@@ -7,7 +7,7 @@ mitre_attack_impact_map = {
     "RCE": "Execution",
     "Privilege Escalation": "Privilege Escalation",
     "Auth Bypass": "Initial Access",
-    "Lateral Movement": "Lateral Movement"
+    "Lateral Movement": "Lateral Movement",
 }
 
 # MITRE ATT&CK tactics map based on CWE identifier (top 25 CWEs)
@@ -37,19 +37,20 @@ mitre_attack_cwe_map = {
     "CWE-476": "Execution",  # NULL Pointer Dereference
     "CWE-862": "Privilege Escalation",  # Missing Authorization
     "CWE-284": "Privilege Escalation",  # Improper Access Control
-    "CWE-287": "Initial Access"  # Improper Authentication
+    "CWE-287": "Initial Access",  # Improper Authentication
 }
+
 
 class AttackChainAnalyzer:
     """
     Analyzes attack chains by constructing a directed graph of vulnerabilities,
     incorporating CWE relationships and mapping to MITRE ATT&CK phases.
     """
-    
+
     def __init__(self, df: pd.DataFrame) -> None:
         """
         Initializes the attack chain analyzer.
-        
+
         :param df: Pandas DataFrame containing CVE data with 'cve_id', 'impact', 'severity', and 'cwe'.
         """
         self.df = df
@@ -60,7 +61,9 @@ class AttackChainAnalyzer:
         """
         Maps CVE impact and CWE to MITRE ATT&CK tactics.
         """
-        return mitre_attack_impact_map.get(impact, mitre_attack_impact_map.get(cwe, "Unknown"))
+        return mitre_attack_impact_map.get(
+            impact, mitre_attack_impact_map.get(cwe, "Unknown")
+        )
 
     def build_graph(self) -> None:
         """
@@ -75,14 +78,18 @@ class AttackChainAnalyzer:
             "Auth Bypass": 2,
             "Medium": 2,
             "Lateral Movement": 1,
-            "Low": 1
+            "Low": 1,
         }
 
         # Add MITRE phase column directly in DataFrame
-        self.df["mitre_phase"] = self.df.apply(lambda row: self.map_to_mitre(row["impact"], row["cwe"]), axis=1)
+        self.df["mitre_phase"] = self.df.apply(
+            lambda row: self.map_to_mitre(row["impact"], row["cwe"]), axis=1
+        )
 
         # Convert DataFrame to dictionary and add nodes in bulk
-        nodes_data = self.df.set_index("cve_id")[["impact", "severity", "cwe", "mitre_phase"]].to_dict("index")
+        nodes_data = self.df.set_index("cve_id")[
+            ["impact", "severity", "cwe", "mitre_phase"]
+        ].to_dict("index")
         self.attack_graph.add_nodes_from(nodes_data.items())
 
         # Replace impact categories with numerical order
@@ -91,11 +98,14 @@ class AttackChainAnalyzer:
         # Merge DataFrame with itself on CWE, ensuring proper impact hierarchy
         attack_edges = impact_df.merge(
             impact_df, on="cwe", suffixes=("_higher", "_lower")
-        ).query("impact_higher > impact_lower & severity_higher > severity_lower & cve_id_higher != cve_id_lower")
+        ).query(
+            "impact_higher > impact_lower & severity_higher > severity_lower & cve_id_higher != cve_id_lower"
+        )
 
         # Add edges in bulk
-        self.attack_graph.add_edges_from(attack_edges[["cve_id_higher", "cve_id_lower"]].to_records(index=False))
-
+        self.attack_graph.add_edges_from(
+            attack_edges[["cve_id_higher", "cve_id_lower"]].to_records(index=False)
+        )
 
     def find_unique_chains(self) -> List[Tuple[str, ...]]:
         """
@@ -105,6 +115,10 @@ class AttackChainAnalyzer:
         for start_node in self.attack_graph.nodes:
             for end_node in self.attack_graph.nodes:
                 if start_node != end_node:
-                    paths = list(nx.all_simple_paths(self.attack_graph, source=start_node, target=end_node))
+                    paths = list(
+                        nx.all_simple_paths(
+                            self.attack_graph, source=start_node, target=end_node
+                        )
+                    )
                     unique_chains.update(tuple(path) for path in paths)
         return sorted(unique_chains, key=len, reverse=True)

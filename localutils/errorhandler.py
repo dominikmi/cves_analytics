@@ -5,10 +5,11 @@ import logging
 
 # Configure logging with timestamps
 logging.basicConfig(
-    level=logging.ERROR, 
-    format="%(asctime)s - %(levelname)s - %(message)s", 
-    datefmt="%Y-%m-%d %H:%M:%S"
+    level=logging.ERROR,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
+
 
 def error_handler(default_return=None):
     """
@@ -17,6 +18,7 @@ def error_handler(default_return=None):
     :param default_return: The value to return when an exception occurs.
                            If None specified, returns a standardized error response.
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -35,14 +37,22 @@ def error_handler(default_return=None):
                 file_name, line_number, _, _ = error_trace
 
                 # Log detailed error info with timestamp
-                logging.error(f"[{timestamp}] Error in {func_name} at {file_name}, line {line_number}: {e}")
+                logging.error(
+                    f"[{timestamp}] Error in {func_name} at {file_name}, line {line_number}: {e}"
+                )
                 logging.error(f"[{timestamp}] Function call details: {func_args}")
 
                 # Friendly structured error message
-                return default_return if default_return is not None else {
-                    "error": f"Ooops, something's gone wrong in {func_name} at {file_name}, line {line_number}.",
-                    "timestamp": timestamp,
-                    "details": str(e)
-                }
+                return (
+                    default_return
+                    if default_return is not None
+                    else {
+                        "error": f"Ooops, something's gone wrong in {func_name} at {file_name}, line {line_number}.",
+                        "timestamp": timestamp,
+                        "details": str(e),
+                    }
+                )
+
         return wrapper
+
     return decorator
