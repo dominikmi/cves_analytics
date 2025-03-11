@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, render_template, send_file
 import pandas as pd
 import numpy as np
-import csv
 from datetime import datetime
 import logging
 import os

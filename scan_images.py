@@ -10,7 +10,8 @@
 import pandas as pd
 from localutils.dockerscanhelper import DockerImageScanner
 import argparse
-import os,sys
+import os
+import sys
 import logging
 from dotenv import load_dotenv
 from pathlib import Path
@@ -103,7 +104,7 @@ def main():
             except Exception as e:
                 logging.error(f'Error enriching scan results with CVE data: {e}')
         else:
-            logging.error(f'No scan results to enrich with CVE data')
+            logging.error('No scan results to enrich with CVE data')
             return
 
 if __name__ == '__main__':
