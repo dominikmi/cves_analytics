@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "codeium-jupyter>=2.1.2",
     "cve-bin-tool>=3.4",
     "docker>=7.1.0",
     "faker>=36.1.1",
@@ -19,8 +20,10 @@ dependencies = [
     "numpy>=1.26.4",
     "openpyxl>=3.1.5",
     "pandas>=2.2.3",
+    "pgmpy>=0.1.26",
     "pip>=6.0.0",
     "plotly",
+    "polars>=1.33.0",
     "pyarrow>=18.1.0",
     "pyexploitdb>=0.2.61",
     "pygrype>=0.4.0",
@@ -39,3 +42,18 @@ dev = [
     "ruff>=0.8.4",
     "uv>=0.5.13",
 ]
+
+[tool.ruff]
+# Same behavior as Black for line length
+line-length = 88
+
+# Enable Flake8 (E, F), isort (I), pyupgrade (UP),
+# and flake8-bugbear (B) rules
+lint.select = ["E", "F", "I", "UP", "B"]
+
+# Exclude directories you don't want to analyze
+lint.exclude = [".venv", "logs", "docs", "output", "uploads", "data"]
+
+[tool.ruff.lint.isort]
+# Help Ruff differentiate your imports from third-party ones
+known-first-party = ["my_fastapi_app"]

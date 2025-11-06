@@ -1,15 +1,19 @@
 import gzip
-import pandas as pd
-import requests
+import json
 import logging
 import os
-import json
 from datetime import datetime, timedelta
-from dateutil import relativedelta
-from localutils.errorhandler import error_handler
 from functools import lru_cache as LRU
 
+import pandas as pd
+import requests
+from dateutil import relativedelta
 from dotenv import load_dotenv
+
+# ExploitDB
+from pyExploitDb import PyExploitDb
+
+from localutils.errorhandler import error_handler
 
 load_dotenv()
 
@@ -45,9 +49,6 @@ file_handler.setFormatter(formatter)
 logger.addHandler(cons_handler)
 logger.addHandler(file_handler)
 
-# ExploitDB
-from pyExploitDb import PyExploitDb
-
 pEdb = PyExploitDb()
 pEdb.debug = False
 pEdb.openFile()
@@ -81,8 +82,8 @@ def download_nvd_cve_data(start_year, end_year, directory):
 # unzip all found files in the directory
 @error_handler(logger)
 def unzip_files(directory):
-    import zipfile
     import os
+    import zipfile
 
     directory = f"{directory}/NVDCVE"
     for file in os.listdir(directory):
@@ -106,7 +107,7 @@ def load_nvd_cve_data(start_year: int, end_year: int, directory: str) -> pd.Data
             start_year, end_year + 1
         ):
             file_path = os.path.join(directory, file)
-            with open(file_path, "r") as file:
+            with open(file_path) as file:
                 data = json.load(file)
                 logger.debug(f"Loaded {file_path}")
                 for _, cve_data in enumerate(data.get("CVE_Items", [])):
@@ -482,12 +483,13 @@ def download_known_exploited_vulnerabilities(directory: str):
 # Enrichment with CISAGOV data
 token = os.getenv("GH_TOKEN")
 header = {"Authorization": f"token {token}"}
-url = f"https://api.github.com/repos/cisagov/vulnrichment"
+url = "https://api.github.com/repos/cisagov/vulnrichment"
 output = requests.get(url, headers=header)
 download_dir = "data/download/CISAGOV"
 
 
-# function which returns a position in the "metrics" list where the "name" key matches the given value
+# function which returns a position in the "metrics" list
+# where the "name" key matches the given value
 def get_metric_position_of_other(metrics_list):
     for i, metric in enumerate(metrics_list):
         if "other" in metric:
@@ -509,15 +511,18 @@ def flatten_vulnrichment_output(vulnrichment_output):
     return flattened_output
 
 
-# function for downloading given JSON file for a given CVE ID from the CISAGOV vulnrichment repository
+# function for downloading given JSON file
+# for a given CVE ID from the CISAGOV vulnrichment repository
 @error_handler(logger)
 def cve_vulnrichment(cve_id):
     logger.debug(f"Processing cve_id -> {cve_id}")
     directory = "data/download/vulnrichment"
     year = cve_id.split("-")[1]  # Example: "2021"
-    number = int(cve_id.split("-")[2])  # Example: "1891" → 1891
-    thousands_group = f"{(number // 1000)}xxx"  # Calculate folder name, e.g., 1xxx
-    cve_dir = f"{directory}/{year}/{thousands_group}"  # Example: "data/download/vulnrichment/2021/1xxx"
+    number = int(cve_id.split("-")[2])
+    # Calculate folder name, e.g., 1xxx
+    thousands_group = f"{(number // 1000)}xxx"
+    # Example: "data/download/vulnrichment/2021/1xxx"
+    cve_dir = f"{directory}/{year}/{thousands_group}"
 
     # Construct file_path for the JSON file
     file_path = f"{cve_dir}/{cve_id}.json"
@@ -527,7 +532,7 @@ def cve_vulnrichment(cve_id):
     if os.path.exists(file_path):
         logger.debug(f"Processing data in {file_path}")
         # read the file and return the options
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             cve = json.load(file)
             if cve.get("cveMetadata", {}).get("state") != "REJECTED":
                 adp_list = cve.get("containers", []).get("adp", [])
@@ -605,7 +610,8 @@ def epss_time_machine(number: int, directory: str, unit="months") -> list[str]:
     return files
 
 
-# add cwe descriptions to cwe_id in cves_cwes_df by matching CWE-ID with the cwes dataframe
+# add cwe descriptions to cwe_id in cves_cwes_df
+# by matching CWE-ID with the cwes dataframe
 # https://cwe-api.mitre.org/api/v1/cwe/weakness/<number>
 
 
@@ -637,7 +643,7 @@ def get_cwe_name_and_description(cwe_id):
         cwe_data = response.json()
         if (
             cwe_data
-            == f"for weakness: cwe ({cwe_id.split('-')[1]}) not found, use the category endpoint"
+            == f"CWE: ({cwe_id.split('-')[1]}) not found, use the category endpoint"
         ):
             return {
                 "cwe_id": cwe_id,
