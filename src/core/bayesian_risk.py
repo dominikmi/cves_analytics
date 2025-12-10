@@ -389,6 +389,7 @@ class BayesianRiskAssessor:
         cvss_score: float | None = None,
         threat_indicators: ThreatIndicatorsInput | dict[str, bool] | None = None,
         asset_criticality: str = "medium",
+        nlp_features: dict[str, Any] | None = None,
     ) -> BayesianRiskResult:
         """
         Perform Bayesian risk assessment.
@@ -402,6 +403,7 @@ class BayesianRiskAssessor:
             cvss_score: CVSS base score (0-10)
             threat_indicators: Threat indicators (KEV, exploits, etc.)
             asset_criticality: Asset criticality (critical, high, medium, low)
+            nlp_features: NLP-extracted features from description
 
         Returns:
             BayesianRiskResult with posterior probability and uncertainty
@@ -490,6 +492,14 @@ class BayesianRiskAssessor:
                     f"{direction} risk by {abs(1 - criticality_lr) * 100:.0f}%",
                 )
             )
+
+        # 6. Apply NLP-extracted features (weak signals, gated by confidence)
+        if nlp_features:
+            nlp_log_lr, nlp_factors = self._apply_nlp_features(
+                nlp_features, exploitation_plausible
+            )
+            total_log_lr += nlp_log_lr
+            factors.extend(nlp_factors)
 
         # Calculate posterior log-odds and convert to probability
         posterior_log_odds = prior_log_odds + total_log_lr
@@ -881,6 +891,93 @@ class BayesianRiskAssessor:
                 factors.append(
                     (f"Threat: {name}", lr, f"increases risk - {description}")
                 )
+
+        return total_log_lr, factors
+
+    def _apply_nlp_features(
+        self,
+        nlp_features: dict[str, Any],
+        exploitation_plausible: bool,
+    ) -> tuple[float, list[tuple[str, float, str]]]:
+        """
+        Apply NLP-extracted features as weak signals.
+
+        NLP features are intentionally conservative (LRs close to 1.0) since
+        regex-based extraction is less reliable than structured data.
+        """
+        total_log_lr = 0.0
+        factors: list[tuple[str, float, str]] = []
+
+        # Only apply if confidence is reasonable
+        confidence = nlp_features.get("nlp_confidence", 0)
+        if confidence < 0.3:
+            return total_log_lr, factors
+
+        # Attack type LRs (conservative)
+        attack_type_lrs = {
+            "remote_code_execution": 1.15,
+            "command_injection": 1.12,
+            "sql_injection": 1.1,
+            "buffer_overflow": 1.1,
+            "use_after_free": 1.1,
+            "authentication_bypass": 1.12,
+            "privilege_escalation": 1.1,
+            "insecure_deserialization": 1.1,
+            "cross_site_scripting": 1.02,
+            "information_disclosure": 1.0,
+            "denial_of_service": 0.98,
+            "open_redirect": 0.95,
+        }
+
+        primary_attack = nlp_features.get("nlp_primary_attack")
+        if primary_attack and primary_attack in attack_type_lrs:
+            lr = attack_type_lrs[primary_attack]
+            # Gate amplification by exploitability
+            if not exploitation_plausible and lr > 1.0:
+                lr = min(lr, 1.05)  # Cap amplification
+            if lr != 1.0:
+                total_log_lr += math.log(lr)
+                direction = "increases" if lr > 1 else "decreases"
+                attack_name = primary_attack.replace("_", " ").title()
+                factors.append(
+                    (
+                        f"NLP: {attack_name}",
+                        lr,
+                        f"{direction} risk (from description)",
+                    )
+                )
+
+        # Authentication context
+        requires_auth = nlp_features.get("nlp_requires_auth")
+        if requires_auth is True:
+            lr = 0.9  # Auth required reduces risk
+            total_log_lr += math.log(lr)
+            factors.append(
+                ("NLP: Auth required", lr, "reduces risk - authentication needed")
+            )
+        elif requires_auth is False:
+            lr = 1.08 if exploitation_plausible else 1.02
+            total_log_lr += math.log(lr)
+            factors.append(
+                ("NLP: No auth required", lr, "increases risk - unauthenticated")
+            )
+
+        # User interaction context
+        requires_ui = nlp_features.get("nlp_requires_user_interaction")
+        if requires_ui is True:
+            lr = 0.92  # User interaction reduces exploitability
+            total_log_lr += math.log(lr)
+            factors.append(
+                ("NLP: User interaction", lr, "reduces risk - needs victim action")
+            )
+
+        # Default configuration
+        if nlp_features.get("nlp_default_config"):
+            lr = 1.08 if exploitation_plausible else 1.02
+            total_log_lr += math.log(lr)
+            factors.append(
+                ("NLP: Default config", lr, "increases risk - affects defaults")
+            )
 
         return total_log_lr, factors
 

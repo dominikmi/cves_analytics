@@ -9,6 +9,7 @@ import pandas as pd
 from src.core.cvev5_loader import CVEv5Loader
 from src.core.cvss_vector_reassessment import reassess_vulnerabilities
 from src.core.cwe_processor import get_cwe_name_and_description
+from src.core.nlp_extractor import enrich_with_nlp_features
 
 
 class DataEnricher:
@@ -116,6 +117,11 @@ class DataEnricher:
                 enriched["cwe_details"] = enriched["cwe_id"].apply(
                     get_cwe_name_and_description
                 )
+
+            # Extract NLP features from descriptions
+            if "description" in enriched.columns:
+                self.logger.info("Extracting NLP features from descriptions...")
+                enriched = enrich_with_nlp_features(enriched, "description")
 
             duration = time.time() - start_time
             self.logger.info(f"Data enrichment completed in {duration:.2f}s")

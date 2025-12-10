@@ -18,20 +18,27 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
    - Vulnerability enrichment with CISAGOV data
    - CWE metadata retrieval and analysis
 
-3. **Bayesian Risk Assessment** *(NEW)*
+3. **Bayesian Risk Assessment**
    - Principled probabilistic risk scoring using Bayes' theorem
    - EPSS as prior probability, updated with environmental evidence
    - Configurable likelihood ratios for security controls, exposure, CVSS vectors
    - Uncertainty quantification with 95% credible intervals
    - Exploitability gating to prevent false risk inflation
 
-4. **Docker Image Scanning**
+4. **NLP Vulnerability Extraction** *(NEW)*
+   - Rule-based pattern matching on CVE descriptions
+   - Attack type detection (RCE, SQLi, XSS, DoS, etc.)
+   - Context extraction (auth requirements, user interaction)
+   - Confidence scoring based on pattern matches
+   - Integration with Bayesian risk as weak signals
+
+5. **Docker Image Scanning**
    - Scan Docker images using Grype
    - Support for public and private registries
    - Vulnerability detection and reporting
    - Batch scanning from CSV lists
 
-5. **Simulation & Scenario Generation**
+6. **Simulation & Scenario Generation**
    - Generate realistic IT environment scenarios
    - Configurable organization size and reach
    - Industry-specific architecture design
@@ -113,7 +120,8 @@ cves_analytics/
 │   │   ├── cwe_processor.py     # CWE metadata processing
 │   │   ├── vulnrichment_processor.py  # Vulnerability enrichment
 │   │   ├── docker_scanner.py    # Docker image scanning
-│   │   └── vulnerability_analyzer.py  # Attack chain analysis
+│   │   ├── vulnerability_analyzer.py  # Attack chain analysis
+│   │   └── nlp_extractor.py     # NLP feature extraction
 │   ├── simulation/               # Scenario generation
 │   │   ├── scenario_config.py   # Configuration constants
 │   │   ├── scenario_generator.py # Scenario generation
@@ -305,6 +313,63 @@ print(f"Explanation: {result.explanation}")
 | Metasploit Module | 2.5 | 150% |
 | Public Exploit | 2.0 | 100% |
 
+### NLP Feature Extractor (`src/core/nlp_extractor.py`)
+
+Extract vulnerability features from CVE descriptions using rule-based NLP.
+
+```python
+from src.core.nlp_extractor import VulnDescriptionExtractor, enrich_with_nlp_features
+
+extractor = VulnDescriptionExtractor()
+
+# Extract features from a description
+desc = "A remote code execution vulnerability allows attackers to execute arbitrary code."
+features = extractor.extract(desc)
+
+print(f"Attack Types: {[at.value for at, _ in features.attack_types]}")
+print(f"Confidence: {features.confidence:.2f}")
+print(f"Network Accessible: {features.is_network_accessible}")
+print(f"Requires Auth: {features.requires_authentication}")
+
+# Enrich a DataFrame with NLP features
+import polars as pl
+df = pl.DataFrame({
+    "cve_id": ["CVE-2021-44228"],
+    "description": ["Apache Log4j2 allows remote code execution via JNDI lookups."]
+})
+enriched_df = enrich_with_nlp_features(df)
+print(enriched_df.columns)  # Includes nlp_attack_types, nlp_confidence, etc.
+```
+
+#### Detected Attack Types
+
+| Attack Type | Example Patterns |
+|-------------|------------------|
+| Remote Code Execution | "RCE", "execute arbitrary code" |
+| SQL Injection | "SQL injection", "SQLi" |
+| Cross-Site Scripting | "XSS", "cross-site scripting" |
+| Command Injection | "command injection", "arbitrary command" |
+| Buffer Overflow | "buffer overflow", "out-of-bounds" |
+| Privilege Escalation | "privilege escalation", "elevate privileges" |
+| Information Disclosure | "information disclosure", "data leak" |
+| Denial of Service | "DoS", "denial of service", "crash" |
+| Authentication Bypass | "authentication bypass", "bypass auth" |
+
+#### NLP Likelihood Ratios
+
+NLP-extracted features are used as weak signals in Bayesian risk assessment:
+
+| Attack Type | LR | Rationale |
+|-------------|-----|----------|
+| Remote Code Execution | 1.15 | High exploitability |
+| Command Injection | 1.12 | Often weaponized |
+| SQL Injection | 1.10 | Common attack vector |
+| Buffer Overflow | 1.08 | Memory corruption risk |
+| Denial of Service | 0.98 | Lower direct impact |
+| Open Redirect | 0.95 | Lower severity |
+
+**Confidence Gating**: NLP LRs only apply when `nlp_confidence >= 0.3` to avoid noise.
+
 ### Scenario Generator (`src/simulation/scenario_generator.py`)
 
 Generate realistic IT environment scenarios with security controls.
@@ -351,13 +416,16 @@ pytest tests/test_cvss_parser.py::TestCVSSParser
 pytest tests/ -v
 ```
 
-**Test Coverage**: 48 test cases across 7 test files
+**Test Coverage**: 108 test cases across 11 test files
 - CVSS Parser: 10 tests
 - Configuration: 8 tests
 - Logging: 7 tests
 - Error Handling: 8 tests
 - Vulnerability Analyzer: 8 tests
 - Scenario Configuration: 7 tests
+- NLP Extractor: 30 tests
+- Pipeline Structure: 4 tests
+- Bayesian Risk: Additional tests
 
 ## ⚙️ Configuration
 
@@ -619,13 +687,14 @@ For issues, questions, or contributions, please open an issue or submit a pull r
 - ✅ Docker image scanning
 - ✅ Vulnerability analysis
 - ✅ Scenario generation
-- ✅ **Bayesian risk assessment** *(NEW)*
-- ✅ **Security controls modeling** *(NEW)*
-- ✅ **Uncertainty quantification** *(NEW)*
+- ✅ **Bayesian risk assessment**
+- ✅ **Security controls modeling**
+- ✅ **Uncertainty quantification**
+- ✅ **NLP vulnerability extraction** *(NEW)*
 
 ### Planned
-- [ ] Categorization using spacy.io
-- [ ] Severity adjustment based on categories
+- [ ] ML-based categorization using spacy.io
+- [ ] Advanced severity adjustment based on NLP categories
 - [ ] Advanced threat modeling
 - [ ] Web dashboard
 - [ ] API server
@@ -635,7 +704,7 @@ For issues, questions, or contributions, please open an issue or submit a pull r
 
 - **20+ Modules**: Organized by responsibility
 - **4,000+ Lines**: Clean, production-ready code
-- **48 Tests**: Comprehensive test coverage
+- **108 Tests**: Comprehensive test coverage
 - **100% Type Hints**: Full type safety
 - **100% Ruff Compliant**: Code quality assured
 - **Bayesian Risk Engine**: Principled probabilistic assessment

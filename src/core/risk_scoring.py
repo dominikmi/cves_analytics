@@ -96,6 +96,18 @@ def calculate_bayesian_risk(
         is_weaponized=bool(row.get("is_weaponized", False)),
     )
 
+    # Extract NLP features if available
+    nlp_features = None
+    if "nlp_confidence" in row:
+        nlp_features = {
+            "nlp_confidence": row.get("nlp_confidence", 0),
+            "nlp_primary_attack": row.get("nlp_primary_attack"),
+            "nlp_requires_auth": row.get("nlp_requires_auth"),
+            "nlp_requires_user_interaction": row.get("nlp_requires_user_interaction"),
+            "nlp_network_accessible": row.get("nlp_network_accessible"),
+            "nlp_default_config": row.get("nlp_default_config"),
+        }
+
     return assessor.assess(
         epss_score=epss_score,
         epss_percentile=epss_percentile,
@@ -105,6 +117,7 @@ def calculate_bayesian_risk(
         cvss_score=cvss_score,
         threat_indicators=threat_indicators,
         asset_criticality=asset_value,
+        nlp_features=nlp_features,
     )
 
 
