@@ -14,7 +14,7 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
 
 2. **Vulnerability Analysis**
    - Attack chain analysis using graph-based approach
-   - MITRE ATT&CK tactic mapping
+   - **MITRE ATT&CK tactic mapping** (CWE/impact → tactic, displayed in reports)
    - Vulnerability enrichment with CISAGOV data
    - CWE metadata retrieval and analysis
 
