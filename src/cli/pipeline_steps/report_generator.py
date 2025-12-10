@@ -310,6 +310,25 @@ class ReportGenerator:
                             if mitre_tactic and mitre_tactic != "Unknown":
                                 report.append(f"   MITRE ATT&CK Tactic: {mitre_tactic}")
 
+                        # Exploit availability from CVSS-BT
+                        exploits = []
+                        if row.get("has_metasploit", False):
+                            exploits.append("Metasploit")
+                        if row.get("has_exploitdb", False):
+                            exploits.append("ExploitDB")
+                        if row.get("has_nuclei", False):
+                            exploits.append("Nuclei")
+                        if row.get("has_poc_github", False):
+                            exploits.append("GitHub PoC")
+                        if exploits:
+                            report.append(
+                                f"   Exploits Available: {', '.join(exploits)}"
+                            )
+
+                        # KEV status
+                        if row.get("is_kev", False):
+                            report.append("   CISA KEV: Actively Exploited")
+
                         # Add environment context if available
                         if pd.notna(row.get("exposure")):
                             exposure = row["exposure"]

@@ -24,6 +24,7 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
    - Principled probabilistic risk scoring using Bayes' theorem
    - EPSS as prior probability, updated with environmental evidence
    - Configurable likelihood ratios for security controls, exposure, CVSS vectors
+   - **Exploit maturity LRs** from CVSS-BT (Metasploit: 2.5, ExploitDB: 2.0, Nuclei: 1.8, PoC: 1.5)
    - Uncertainty quantification with 95% credible intervals
    - Exploitability gating to prevent false risk inflation
    - **Attack scenarios and remediation focused on Bayesian-critical vulns only**
