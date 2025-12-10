@@ -55,6 +55,7 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
    - Attack paths filtered to Bayesian-critical vulnerabilities
    - NLP attack categories in top vulnerability details
    - Team-based Bayesian risk heatmap
+   - **[View Demo Report](DEMO_REPORT.md)**
 
 ## 🚀 Quick Start
 
