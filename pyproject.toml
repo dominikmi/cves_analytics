@@ -1,7 +1,7 @@
 [project]
-name = "test2"
-version = "0.1.0"
-description = "Add your description here"
+name = "cves-analytics"
+version = "0.2.0"
+description = "CVE data analytics with simulation scenario generation and vulnerability analysis"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -25,6 +25,7 @@ dependencies = [
     "plotly",
     "polars>=1.33.0",
     "pyarrow>=18.1.0",
+    "pydantic-settings>=2.12.0",
     "pyexploitdb>=0.2.61",
     "pygrype>=0.4.0",
     "pyldavis>=3.4.1",
@@ -33,6 +34,7 @@ dependencies = [
     "ruff>=0.8.4",
     "scikit-learn>=1.6.0",
     "seaborn>=0.13.2",
+    "reportlab>=4.0.0",
     "spacy>=3.8.4",
 ]
 
@@ -52,8 +54,13 @@ line-length = 88
 lint.select = ["E", "F", "I", "UP", "B"]
 
 # Exclude directories you don't want to analyze
-lint.exclude = [".venv", "logs", "docs", "output", "uploads", "data"]
+lint.exclude = [".venv", "logs", "docs", "output", "uploads", "data", "notebooks"]
 
 [tool.ruff.lint.isort]
 # Help Ruff differentiate your imports from third-party ones
-known-first-party = ["my_fastapi_app"]
+known-first-party = ["src"]
+
+[tool.ruff.lint.per-file-ignores]
+# E501 line length - many files have complex expressions that are hard to break
+"src/**/*.py" = ["E501"]
+"tests/**/*.py" = ["E501"]

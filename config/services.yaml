@@ -1,0 +1,392 @@
+
+proxy:
+  - name: nginx-proxy
+    image: nginx:latest
+    versions:
+      - nginx:latest
+      - nginx:1.21
+      - nginx:1.18
+    role: load_balancer
+    exposure: internet-facing
+  - name: traefik
+    image: traefik:v2.9
+    versions:
+      - traefik:v2.9
+      - traefik:v2.5
+      - traefik:v2.2
+    role: ingress_controller
+    exposure: internet-facing
+  - name: haproxy
+    image: haproxy:2.4
+    versions:
+      - haproxy:2.4
+      - haproxy:2.2
+      - haproxy:2.0
+    role: load_balancer
+    exposure: internet-facing
+  - name: varnish
+    image: varnish:7.0
+    versions:
+      - varnish:7.0
+      - varnish:6.0
+    role: cache_proxy
+    exposure: internal
+  - name: squid
+    image: sameersbn/squid:latest
+    versions:
+      - sameersbn/squid:3.5.27
+    role: forward_proxy
+    exposure: internal
+
+web_server:
+  - name: apache-httpd
+    image: httpd:2.4
+    versions:
+      - httpd:2.4
+      - httpd:2.2
+    role: web_server
+    exposure: internet-facing
+  - name: nginx-web
+    image: nginx:alpine
+    versions:
+      - nginx:alpine
+      - nginx:1.18-alpine
+    role: web_server
+    exposure: internet-facing
+
+app_server:
+  - name: node-api
+    image: node:18-alpine
+    versions:
+      - node:18-alpine
+      - node:16-alpine
+      - node:14-alpine
+    role: api_server
+    exposure: internal
+  - name: python-flask
+    image: python:3.9-slim
+    versions:
+      - python:3.9-slim
+      - python:3.8-slim
+      - python:3.7-slim
+    role: app_server
+    exposure: internal
+  - name: java-spring
+    image: openjdk:17-slim
+    versions:
+      - openjdk:17-slim
+      - openjdk:11-slim
+    role: app_server
+    exposure: internal
+  - name: php-fpm
+    image: php:8.1-fpm
+    versions:
+      - php:8.1-fpm
+      - php:7.4-fpm
+    role: app_server
+    exposure: internal
+  - name: apache-tomcat
+    image: tomcat:9.0
+    versions:
+      - tomcat:9.0
+      - tomcat:8.5
+      - tomcat:7.0
+    role: app_server
+    exposure: internal
+
+database:
+  - name: postgres-db
+    image: postgres:14
+    versions:
+      - postgres:14
+      - postgres:13
+      - postgres:10
+    role: database
+    exposure: internal
+  - name: mysql-db
+    image: mysql:8.0
+    versions:
+      - mysql:8.0
+      - mysql:5.7
+    role: database
+    exposure: internal
+  - name: mongo-db
+    image: mongo:5.0
+    versions:
+      - mongo:5.0
+      - mongo:4.4
+    role: database
+    exposure: internal
+  - name: redis-cache
+    image: redis:6.2
+    versions:
+      - redis:6.2
+      - redis:6.0
+      - redis:5.0
+    role: cache
+    exposure: internal
+  - name: memcached
+    image: memcached:1.6
+    versions:
+      - memcached:1.6
+      - memcached:1.5
+    role: cache
+    exposure: internal
+
+security:
+  - name: modsecurity-waf
+    image: owasp/modsecurity-crs
+    versions:
+      - owasp/modsecurity-crs:latest
+      - owasp/modsecurity-crs:3.3
+    role: waf
+    exposure: internet-facing
+  - name: vault
+    image: hashicorp/vault
+    versions:
+      - hashicorp/vault:latest
+      - hashicorp/vault:1.10
+    role: secrets_management
+    exposure: internal
+  - name: openvpn
+    image: kylemanna/openvpn
+    versions:
+      - kylemanna/openvpn:latest
+    role: vpn
+    exposure: internet-facing
+  - name: snort-ids
+    image: lsiio/snort
+    versions:
+      - lsiio/snort:latest
+    role: ids
+    exposure: internal
+
+monitoring:
+  - name: prometheus
+    image: prom/prometheus
+    versions:
+      - prom/prometheus:latest
+      - prom/prometheus:v2.30
+    role: monitoring
+    exposure: internal
+  - name: grafana
+    image: grafana/grafana
+    versions:
+      - grafana/grafana:latest
+      - grafana/grafana:8.0
+      - grafana/grafana:7.5
+    role: visualization
+    exposure: internal
+  - name: elasticsearch
+    image: elasticsearch:7.17
+    versions:
+      - elasticsearch:7.17
+      - elasticsearch:6.8
+    role: siem_storage
+    exposure: internal
+
+cms:
+  - name: wordpress
+    image: wordpress:latest
+    versions:
+      - wordpress:latest
+      - wordpress:5.8
+      - wordpress:4.9
+    role: cms
+    exposure: internet-facing
+  - name: drupal
+    image: drupal:latest
+    versions:
+      - drupal:latest
+      - drupal:9.0
+      - drupal:8.9
+    role: cms
+    exposure: internet-facing
+
+auth_service:
+  - name: keycloak
+    image: quay.io/keycloak/keycloak:latest
+    versions:
+      - quay.io/keycloak/keycloak:latest
+      - quay.io/keycloak/keycloak:18.0
+    role: iam
+    exposure: internal
+  - name: authelia
+    image: authelia/authelia:latest
+    versions:
+      - authelia/authelia:latest
+      - authelia/authelia:v4.36
+    role: iam
+    exposure: internal
+
+payment_gateway:
+  - name: killbill
+    image: killbill/killbill:latest
+    versions:
+      - killbill/killbill:latest
+      - killbill/killbill:0.22
+    role: billing
+    exposure: internal
+  - name: mock-stripe
+    image: stripe/stripe-mock:latest
+    versions:
+      - stripe/stripe-mock:latest
+    role: payment_mock
+    exposure: internal
+
+financial_reporting:
+  - name: metabase
+    image: metabase/metabase:latest
+    versions:
+      - metabase/metabase:latest
+      - metabase/metabase:v0.41
+    role: bi_tool
+    exposure: internal
+  - name: superset
+    image: apache/superset:latest
+    versions:
+      - apache/superset:latest
+      - apache/superset:1.3
+    role: bi_tool
+    exposure: internal
+
+messaging:
+  - name: rabbitmq
+    image: rabbitmq:3-management
+    versions:
+      - rabbitmq:3-management
+      - rabbitmq:3.8-management
+    role: message_broker
+    exposure: internal
+  - name: kafka
+    image: confluentinc/cp-kafka:latest
+    versions:
+      - confluentinc/cp-kafka:latest
+      - confluentinc/cp-kafka:5.5
+    role: message_broker
+    exposure: internal
+
+cicd:
+  - name: jenkins
+    image: jenkins/jenkins:lts
+    versions:
+      - jenkins/jenkins:lts
+      - jenkins/jenkins:2.346
+    role: cicd_server
+    exposure: internal
+  - name: gitlab-runner
+    image: gitlab/gitlab-runner:latest
+    versions:
+      - gitlab/gitlab-runner:latest
+    role: cicd_runner
+    exposure: internal
+  - name: drone-ci
+    image: drone/drone:2
+    versions:
+      - drone/drone:2
+      - drone/drone:1
+    role: cicd_server
+    exposure: internal
+  - name: argocd
+    image: argoproj/argocd:latest
+    versions:
+      - argoproj/argocd:latest
+      - argoproj/argocd:v2.4.0
+    role: gitops_controller
+    exposure: internal
+
+network_infra:
+  - name: bastion-host
+    image: paramiko/bastion:latest
+    versions:
+      - paramiko/bastion:latest
+      - paramiko/bastion:v1.0
+    role: bastion
+    exposure: internet-facing
+  - name: consul
+    image: hashicorp/consul:latest
+    versions:
+      - hashicorp/consul:latest
+      - hashicorp/consul:1.9
+    role: service_discovery
+    exposure: internal
+  - name: coredns
+    image: coredns/coredns:latest
+    versions:
+      - coredns/coredns:latest
+      - coredns/coredns:1.8.0
+    role: service_discovery
+    exposure: internal
+
+cloud_resources:
+  - name: aws-s3-bucket
+    image: localstack/localstack:latest
+    versions: ["latest"]
+    role: object_storage
+    exposure: internal
+  - name: aws-rds-instance
+    image: localstack/localstack:latest
+    versions: ["latest"]
+    role: managed_database
+    exposure: internal
+  - name: aws-lambda-function
+    image: localstack/localstack:latest
+    versions: ["latest"]
+    role: serverless_compute
+    exposure: internal
+
+data_processing:
+  - name: apache-hive
+    image: apache/hive:3.1.3
+    versions:
+      - apache/hive:3.1.3
+      - apache/hive:2.3.9
+    role: data_warehouse
+    exposure: internal
+  - name: apache-hadoop
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    versions:
+      - bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+      - bde2020/hadoop-namenode:1.1.0-hadoop2.7.1-java8
+    role: big_data_cluster
+    exposure: internal
+  - name: apache-spark
+    image: bitnami/spark:3
+    versions:
+      - bitnami/spark:3
+      - bitnami/spark:2
+    role: data_processing
+    exposure: internal
+  - name: apache-airflow
+    image: apache/airflow:2.5.0
+    versions:
+      - apache/airflow:2.5.0
+      - apache/airflow:1.10.15
+    role: workflow_orchestration
+    exposure: internal
+
+exporters:
+  - name: postgres-exporter
+    image: prometheuscommunity/postgres-exporter:latest
+    role: monitoring_sidecar
+    exposure: internal
+    target_role: database
+    target_name_contains: postgres
+  - name: mysql-exporter
+    image: prom/mysqld-exporter:latest
+    role: monitoring_sidecar
+    exposure: internal
+    target_role: database
+    target_name_contains: mysql
+  - name: redis-exporter
+    image: oliver006/redis_exporter:latest
+    role: monitoring_sidecar
+    exposure: internal
+    target_role: cache
+    target_name_contains: redis
+  - name: nginx-exporter
+    image: nginx/nginx-prometheus-exporter:latest
+    role: monitoring_sidecar
+    exposure: internal
+    target_role: load_balancer
+    target_name_contains: nginx

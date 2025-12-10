@@ -190,3 +190,8 @@ output/*
 tagger_parser_ud/
 .DS_Store
 .env
+.ipynb
+.windsurf
+notebooks/*
+.ruff_cache
+.vscode
