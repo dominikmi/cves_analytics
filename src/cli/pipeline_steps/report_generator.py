@@ -251,6 +251,25 @@ class ReportGenerator:
                             epss = row["epss_score"]
                             report.append(f"   EPSS (Prior): {epss:.2%}")
 
+                        # NLP-extracted attack category (explains why it's a top vuln)
+                        nlp_attack_types = row.get("nlp_attack_types", [])
+                        if (
+                            nlp_attack_types
+                            and isinstance(nlp_attack_types, list)
+                            and len(nlp_attack_types) > 0
+                        ):
+                            attack_types_str = ", ".join(nlp_attack_types)
+                            report.append(f"   Attack Category: {attack_types_str}")
+
+                        nlp_context = row.get("nlp_context", [])
+                        if (
+                            nlp_context
+                            and isinstance(nlp_context, list)
+                            and len(nlp_context) > 0
+                        ):
+                            context_str = ", ".join(nlp_context)
+                            report.append(f"   Attack Context: {context_str}")
+
                         # CVSS Details
                         if pd.notna(row.get("cvss_score")):
                             score = row["cvss_score"]
