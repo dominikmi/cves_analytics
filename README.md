@@ -24,13 +24,15 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
    - Configurable likelihood ratios for security controls, exposure, CVSS vectors
    - Uncertainty quantification with 95% credible intervals
    - Exploitability gating to prevent false risk inflation
+   - **Attack scenarios and remediation focused on Bayesian-critical vulns only**
 
-4. **NLP Vulnerability Extraction** *(NEW)*
+4. **NLP Vulnerability Extraction**
    - Rule-based pattern matching on CVE descriptions
    - Attack type detection (RCE, SQLi, XSS, DoS, etc.)
    - Context extraction (auth requirements, user interaction)
    - Confidence scoring based on pattern matches
    - Integration with Bayesian risk as weak signals
+   - **Attack categories displayed in vulnerability reports**
 
 5. **Docker Image Scanning**
    - Scan Docker images using Grype
@@ -45,6 +47,14 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
    - Network topology and security posture generation
    - Binary security controls with maturity-based generation
    - System configuration simulation
+
+7. **Bayesian-Focused Reporting**
+   - Executive summary with Bayesian risk distribution
+   - Risk prioritization by exploitation probability
+   - Remediation roadmap based on Bayesian risk categories
+   - Attack paths filtered to Bayesian-critical vulnerabilities
+   - NLP attack categories in top vulnerability details
+   - Team-based Bayesian risk heatmap
 
 ## 🚀 Quick Start
 
@@ -687,14 +697,15 @@ For issues, questions, or contributions, please open an issue or submit a pull r
 - ✅ Docker image scanning
 - ✅ Vulnerability analysis
 - ✅ Scenario generation
-- ✅ **Bayesian risk assessment**
-- ✅ **Security controls modeling**
-- ✅ **Uncertainty quantification**
-- ✅ **NLP vulnerability extraction** *(NEW)*
+- ✅ Bayesian risk assessment
+- ✅ Security controls modeling
+- ✅ Uncertainty quantification
+- ✅ NLP vulnerability extraction
+- ✅ **Bayesian-focused reporting** *(NEW)*
+- ✅ **Attack scenarios filtered by Bayesian risk** *(NEW)*
 
 ### Planned
 - [ ] ML-based categorization using spacy.io
-- [ ] Advanced severity adjustment based on NLP categories
 - [ ] Advanced threat modeling
 - [ ] Web dashboard
 - [ ] API server
@@ -703,8 +714,9 @@ For issues, questions, or contributions, please open an issue or submit a pull r
 ## 📊 Project Statistics
 
 - **20+ Modules**: Organized by responsibility
-- **4,000+ Lines**: Clean, production-ready code
+- **5,000+ Lines**: Clean, production-ready code
 - **108 Tests**: Comprehensive test coverage
 - **100% Type Hints**: Full type safety
 - **100% Ruff Compliant**: Code quality assured
 - **Bayesian Risk Engine**: Principled probabilistic assessment
+- **NLP Feature Extraction**: Attack category detection from CVE descriptions
