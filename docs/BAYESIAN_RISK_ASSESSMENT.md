@@ -508,11 +508,7 @@ Without the floor, this actively exploited vulnerability would be rated "Negligi
    Internet-facing: 2.5
 
 5. CVSS vector LRs:
-   AV:N: 2.0
-   AC:L: 1.5
-   PR:N: 1.8
-   UI:N: 1.5
-   Combined: 8.1
+   AV:N × AC:L × PR:N × UI:N = 2.0 × 1.5 × 1.8 × 1.5 = 8.1
 
 6. Total LR:
    9.0 × 0.021 × 2.5 × 8.1 = 3.83
