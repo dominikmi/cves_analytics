@@ -62,20 +62,87 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- **Python 3.12+**
+- **Docker** - Running daemon required for image scanning
+- **Grype** - Vulnerability scanner ([install guide](https://github.com/anchore/grype#installation))
+
+```bash
+# Install Grype on macOS
+brew install grype
+
+# Or download binary
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+```
+
 ### Installation
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/dominikmi/cves_analytics.git
 cd cves_analytics
 
 # Install dependencies using uv
 uv sync
+
+# Activate virtual environment
+source .venv/bin/activate
 ```
 
 ### Basic Usage
 
-#### Create CVE Dataset
+#### Run the Full Pipeline (Recommended)
+
+The easiest way to use this tool is to run the complete vulnerability assessment pipeline:
+
+```bash
+# Basic run with default settings (small environment)
+python -m src.cli.run_pipeline
+
+# Customize the simulated environment
+python -m src.cli.run_pipeline \
+  --org-size small \
+  --org-reach local \
+  --industry financial-services \
+  --environment prod
+```
+
+**Available options:**
+
+| Option | Values | Default | Description |
+|--------|--------|---------|-------------|
+| `--org-size` | `small`, `mid`, `large`, `enterprise` | `small` | Organization size |
+| `--org-reach` | `local`, `regional`, `national`, `global` | `local` | Geographic reach |
+| `--industry` | `financial-services`, `healthcare`, `technology`, `retail`, `manufacturing` | `financial-services` | Industry type |
+| `--environment` | `dev`, `staging`, `prod` | `prod` | Environment type |
+
+**What the pipeline does:**
+
+1. **Generates a simulated IT environment** - Creates realistic services (nginx, postgres, redis, etc.) with security controls
+2. **Scans Docker images** - Uses Grype to find vulnerabilities in each service's container image
+3. **Enriches with threat intelligence** - Adds CVSS-BT exploit data, EPSS scores, KEV status, CWE details
+4. **Performs Bayesian risk assessment** - Calculates exploitation probability considering your security controls
+5. **Generates a report** - Creates a prioritized vulnerability report saved to `output/`
+
+**Output:**
+- Report saved to `output/report_YYYY-MM-DD_HH-MM-SS.txt`
+- See [DEMO_REPORT.md](DEMO_REPORT.md) for an example
+
+> ⚠️ **Performance Warning:** Larger environments scan more Docker images and process more data.
+>
+> | Org Size | Services | Estimated Time | Docker Images |
+> |----------|----------|----------------|---------------|
+> | `small` | 5-8 | 3-5 minutes | ~7 images |
+> | `mid` | 10-15 | 8-15 minutes | ~15 images |
+> | `large` | 20-30 | 20-40 minutes | ~30 images |
+> | `enterprise` | 40+ | 45+ minutes | ~50+ images |
+>
+> First run downloads ~2GB of CVE data (cached for subsequent runs).
+
+---
+
+#### Create CVE Dataset (Standalone)
 
 ```bash
 python -m src.cli.create_dataset \
@@ -92,7 +159,7 @@ This will:
 4. Enrich with CWE details
 5. Export to CSV
 
-#### Scan Docker Images
+#### Scan Docker Images (Standalone)
 
 ```bash
 # Scan single image
