@@ -9,6 +9,7 @@ import pandas as pd
 from src.core.remediation_planner import RemediationPlanner
 from src.core.risk_scoring import add_risk_scores, categorize_by_risk
 from src.core.threat_intelligence import add_threat_indicators, get_threat_summary
+from src.core.vulnerability_analyzer import AttackChainAnalyzer
 
 
 class ReportGenerator:
@@ -275,10 +276,18 @@ class ReportGenerator:
                             score = row["cvss_score"]
                             report.append(f"   CVSS Score: {score}")
 
-                        # Add CWE if available
-                        if pd.notna(row.get("cwe_id")):
-                            cwe = row["cwe_id"]
+                        # Add CWE and MITRE ATT&CK tactic if available
+                        cwe = row.get("cwe_id", "")
+                        if pd.notna(cwe) and cwe:
                             report.append(f"   CWE: {cwe}")
+                            # Map to MITRE ATT&CK tactic
+                            impact = row.get("impact", "")
+                            mitre_tactic = AttackChainAnalyzer.map_to_mitre(
+                                str(impact) if pd.notna(impact) else "",
+                                str(cwe) if pd.notna(cwe) else "",
+                            )
+                            if mitre_tactic and mitre_tactic != "Unknown":
+                                report.append(f"   MITRE ATT&CK Tactic: {mitre_tactic}")
 
                         # Add environment context if available
                         if pd.notna(row.get("exposure")):
