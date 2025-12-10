@@ -88,27 +88,18 @@ class ReportGenerator:
                     for severity, count in severity_dist.items():
                         report.append(f"  {severity}: {count}")
 
-                # Severity transition matrix (original → reassessed)
-                # Debug: Check if columns exist in enriched_results
-                # report.append(f"\nDEBUG: severity column exists in enriched: {'severity' in enriched_results.columns}")
-                # report.append(f"DEBUG: severity_reassessed column exists in enriched: {'severity_reassessed' in enriched_results.columns}")
-                # report.append(f"DEBUG: enriched columns: {list(enriched_results.columns)}")
-
+                # Bayesian risk by original severity (shows how Bayesian assessment differs)
                 if (
                     "severity" in enriched_results.columns
-                    and "severity_reassessed" in enriched_results.columns
+                    and "risk_category" in enriched_results.columns
                 ):
-                    report.append(
-                        "\nSeverity Transition Matrix (Original → Reassessed):"
-                    )
-                    # Create a cross-tabulation of original vs reassessed severity
+                    report.append("\nOriginal Severity → Bayesian Risk Assessment:")
                     transition_matrix = pd.crosstab(
                         enriched_results["severity"],
-                        enriched_results["severity_reassessed"],
+                        enriched_results["risk_category"],
                         margins=True,
                         margins_name="Total",
                     )
-                    # Format and add to report
                     for row_label in transition_matrix.index:
                         row_data = transition_matrix.loc[row_label]
                         row_str = f"  {row_label}: " + ", ".join(
@@ -201,62 +192,13 @@ class ReportGenerator:
                             f"     Risk Score: {risk_score}, Likelihood: {likelihood}, Impact: {impact}"
                         )
 
-                # Attack chains
-                attack_chains = attack_analysis.get("attack_chains", [])
-                report.append(f"\nAttack Chains Found: {len(attack_chains)}")
-                if attack_chains:
-                    report.append("  Sample Attack Chains:")
-                    for idx, chain in enumerate(attack_chains[:5], 1):
-                        chain_str = " → ".join(chain)
-                        report.append(f"    {idx}. {chain_str}")
-
-                # Critical paths
-                critical_paths = attack_analysis.get("critical_paths", [])
-                report.append(
-                    f"\nCritical Attack Paths (2+ vulnerabilities): {len(critical_paths)}"
-                )
-                if critical_paths:
-                    report.append("  Top Critical Paths:")
-                    for idx, path in enumerate(critical_paths[:5], 1):
-                        path_str = " → ".join(path)
-                        report.append(f"    {idx}. {path_str}")
-
-                # Entry point vulnerabilities
-                entry_points = attack_analysis.get("entry_point_vulnerabilities", [])
-                report.append(
-                    f"\nEntry Point Vulnerabilities (no prior compromise needed): {len(entry_points)}"
-                )
-                if entry_points:
-                    report.append("  Entry Points:")
-                    for idx, cve in enumerate(entry_points[:10], 1):
-                        report.append(f"    {idx}. {cve}")
-
-                # Critical vulnerabilities
-                critical_vulns = attack_analysis.get("critical_vulnerabilities", [])
-                report.append(
-                    f"\nCritical Severity Vulnerabilities: {len(critical_vulns)}"
-                )
-                if critical_vulns:
-                    report.append("  Critical Vulnerabilities:")
-                    for idx, vuln in enumerate(critical_vulns[:5], 1):
-                        cve_id = vuln.get("cve_id", "unknown")
-                        reason = vuln.get("reassessment_reason", "N/A")
-                        report.append(f"    {idx}. {cve_id}")
-                        report.append(f"       Reason: {reason}")
-
-                # High severity vulnerabilities
-                high_vulns = attack_analysis.get("high_vulnerabilities", [])
-                report.append(f"\nHigh Severity Vulnerabilities: {len(high_vulns)}")
-                if high_vulns:
-                    report.append("  High Vulnerabilities:")
-                    for idx, vuln in enumerate(high_vulns[:5], 1):
-                        cve_id = vuln.get("cve_id", "unknown")
-                        report.append(f"    {idx}. {cve_id}")
+                # Note: Attack chains and critical paths from graph analysis
+                # are informational - prioritization is based on Bayesian risk
 
             report.append("")
 
-            # Top Vulnerabilities with Full Details
-            report.append("TOP VULNERABILITIES - DETAILED ASSESSMENT")
+            # Top Vulnerabilities by Bayesian Risk
+            report.append("TOP VULNERABILITIES BY BAYESIAN RISK")
             report.append("-" * 80)
 
             if not enriched_results.empty:
@@ -274,80 +216,50 @@ class ReportGenerator:
                         break
 
                 if cve_col:
-                    # Sort by CVSS score if available, otherwise by original severity
-                    if "cvss_score" in enriched_results.columns:
-                        enriched_results["cvss_score_sort"] = enriched_results[
+                    # Sort by Bayesian risk score (primary), fallback to CVSS
+                    if "bayesian_risk_score" in enriched_results.columns:
+                        enriched_results["risk_sort"] = enriched_results[
+                            "bayesian_risk_score"
+                        ].fillna(-1)
+                        top_vulns = enriched_results.nlargest(20, "risk_sort")
+                    elif "cvss_score" in enriched_results.columns:
+                        enriched_results["risk_sort"] = enriched_results[
                             "cvss_score"
                         ].fillna(-1)
-                        top_vulns = enriched_results.nlargest(20, "cvss_score_sort")
+                        top_vulns = enriched_results.nlargest(20, "risk_sort")
                     else:
-                        severity_order = {
-                            "Critical": 5,
-                            "High": 4,
-                            "Medium": 3,
-                            "Low": 2,
-                            "Negligible": 1,
-                            "Unknown": 0,
-                        }
-                        enriched_results["severity_rank"] = enriched_results.get(
-                            "severity", "Unknown"
-                        ).map(lambda x: severity_order.get(x, 0))
-                        top_vulns = enriched_results.nlargest(20, "severity_rank")
+                        top_vulns = enriched_results.head(20)
 
                     for idx, (_, row) in enumerate(top_vulns.iterrows(), 1):
                         img = row.get(image_col, "unknown") if image_col else "unknown"
                         service_name = row.get("service_name", "unknown")
                         cve_id = row[cve_col]
 
-                        report.append(f"{idx}. {cve_id} in {service_name} ({img})")
+                        # Bayesian risk info first
+                        bayes_risk = row.get("bayesian_risk_score", 0) or 0
+                        risk_cat = row.get("risk_category", "Unknown")
+                        ci_low = row.get("ci_low", 0) or 0
+                        ci_high = row.get("ci_high", 0) or 0
 
-                        # Original severity
-                        original_severity = row.get("severity", "Unknown")
-                        report.append(f"   Original Severity: {original_severity}")
+                        report.append(f"{idx}. {cve_id} in {service_name} ({img})")
+                        report.append(
+                            f"   Bayesian Risk: {risk_cat} - P(Exploit): {bayes_risk:.1%} [{ci_low:.1%}-{ci_high:.1%}]"
+                        )
+
+                        # EPSS (prior probability)
+                        if pd.notna(row.get("epss_score")):
+                            epss = row["epss_score"]
+                            report.append(f"   EPSS (Prior): {epss:.2%}")
 
                         # CVSS Details
                         if pd.notna(row.get("cvss_score")):
                             score = row["cvss_score"]
-                            version = row.get("cvss_version", "Unknown")
-                            report.append(f"   CVSS {version} Score: {score}")
-
-                            # Add vector if available
-                            if pd.notna(row.get("cvss_vector")):
-                                vector = row["cvss_vector"]
-                                report.append(f"   CVSS Vector: {vector}")
-
-                        # Reassessed severity with justification
-                        if pd.notna(row.get("severity_reassessed")):
-                            reassessed = row["severity_reassessed"]
-                            report.append(f"   Reassessed Severity: {reassessed}")
-
-                            # Add reassessment reason/criteria
-                            if pd.notna(row.get("reassessment_reason")):
-                                reason = row["reassessment_reason"]
-                                report.append(f"   Justification: {reason}")
-
-                        # Add EPSS if available
-                        if pd.notna(row.get("epss_score")):
-                            epss = row["epss_score"]
-                            report.append(f"   EPSS Score: {epss}")
+                            report.append(f"   CVSS Score: {score}")
 
                         # Add CWE if available
                         if pd.notna(row.get("cwe_id")):
                             cwe = row["cwe_id"]
                             report.append(f"   CWE: {cwe}")
-
-                            # Add CWE details if available
-                            if pd.notna(row.get("cwe_details")):
-                                cwe_details = row["cwe_details"]
-                                if isinstance(cwe_details, dict):
-                                    name = cwe_details.get("name", "")
-                                    description = cwe_details.get("description", "")
-                                    if name:
-                                        report.append(f"   CWE Name: {name}")
-                                    if description:
-                                        report.append(
-                                            f"   CWE Description: {description}"
-                                        )
 
                         # Add environment context if available
                         if pd.notna(row.get("exposure")):
@@ -375,27 +287,42 @@ class ReportGenerator:
 
             report.append("")
 
-            # Team-based Vulnerability Heatmap
-            report.append("TEAM-BASED VULNERABILITY HEATMAP")
+            # Team-based Bayesian Risk Heatmap
+            report.append("TEAM-BASED BAYESIAN RISK HEATMAP")
             report.append("-" * 80)
 
             if (
                 not enriched_results.empty
                 and "ownership" in enriched_results.columns
-                and "severity_reassessed" in enriched_results.columns
+                and "risk_category" in enriched_results.columns
             ):
                 try:
-                    # Create a cross-tabulation of ownership vs reassessed severity
+                    # Create a cross-tabulation of ownership vs Bayesian risk category
                     heatmap_data = pd.crosstab(
                         enriched_results["ownership"],
-                        enriched_results["severity_reassessed"],
+                        enriched_results["risk_category"],
                         margins=True,
                         margins_name="Total",
                     )
 
+                    # Reorder columns to show risk categories in order
+                    col_order = [
+                        c
+                        for c in [
+                            "Critical",
+                            "High",
+                            "Medium",
+                            "Low",
+                            "Negligible",
+                            "Total",
+                        ]
+                        if c in heatmap_data.columns
+                    ]
+                    heatmap_data = heatmap_data[col_order]
+
                     # Format and add to report
                     report.append(
-                        "Ownership\\\\Severity".ljust(20)
+                        "Ownership\\Risk".ljust(20)
                         + " ".join(str(col).ljust(10) for col in heatmap_data.columns)
                     )
                     for row_label in heatmap_data.index:
@@ -442,18 +369,22 @@ class ReportGenerator:
             report.append("No vulnerability data available")
             return report
 
-        # Calculate metrics
+        # Calculate metrics using Bayesian risk_category
         total_vulns = len(enriched_results)
-        critical_count = (
-            (enriched_results["severity_reassessed"] == "Critical").sum()
-            if "severity_reassessed" in enriched_results.columns
-            else 0
-        )
-        high_count = (
-            (enriched_results["severity_reassessed"] == "High").sum()
-            if "severity_reassessed" in enriched_results.columns
-            else 0
-        )
+
+        # Use Bayesian risk_category if available, fallback to severity_reassessed
+        if "risk_category" in enriched_results.columns:
+            critical_count = (enriched_results["risk_category"] == "Critical").sum()
+            high_count = (enriched_results["risk_category"] == "High").sum()
+        elif "severity_reassessed" in enriched_results.columns:
+            critical_count = (
+                enriched_results["severity_reassessed"] == "Critical"
+            ).sum()
+            high_count = (enriched_results["severity_reassessed"] == "High").sum()
+        else:
+            critical_count = 0
+            high_count = 0
+
         critical_high_count = critical_count + high_count
         critical_high_pct = (
             (critical_high_count / total_vulns * 100) if total_vulns > 0 else 0
@@ -494,25 +425,29 @@ class ReportGenerator:
         # Threat intelligence
         threat_summary = get_threat_summary(enriched_results)
 
-        # Format output
-        report.append(f"Total Vulnerabilities: {total_vulns}")
-        report.append(f"Critical Severity: {critical_count}")
-        report.append(f"High Severity: {high_count}")
-        report.append(f"Critical/High Percentage: {critical_high_pct:.1f}%")
-        report.append(f"Average Risk Score: {avg_risk_score:.2f}/10.0")
+        # Format output - Bayesian Risk focused
+        report.append(f"Total Vulnerabilities Scanned: {total_vulns}")
+        report.append(f"Average Exploitation Probability: {avg_risk_score:.2f}%")
         if avg_uncertainty > 0:
             report.append(f"Average Uncertainty: ±{avg_uncertainty:.2%}")
         report.append(f"Business Risk Level: {business_risk}")
 
-        # Add Bayesian risk distribution if available
+        # Bayesian risk distribution (primary metric)
         if "risk_category" in enriched_results.columns:
             report.append("")
-            report.append("Bayesian Risk Distribution:")
+            report.append("Bayesian Risk Assessment:")
             risk_dist = enriched_results["risk_category"].value_counts()
             for category in ["Critical", "High", "Medium", "Low", "Negligible"]:
                 count = risk_dist.get(category, 0)
                 pct = (count / total_vulns * 100) if total_vulns > 0 else 0
                 report.append(f"  {category}: {count} ({pct:.1f}%)")
+            report.append("")
+            report.append(
+                f"Actionable Vulnerabilities (Critical+High+Medium): {critical_high_count + (enriched_results['risk_category'] == 'Medium').sum()}"
+            )
+            report.append(
+                f"Critical/High Requiring Immediate Action: {critical_high_count} ({critical_high_pct:.1f}%)"
+            )
         report.append("")
         report.append(
             f"Estimated Remediation Effort: {estimated_hours:.0f} person-hours"
