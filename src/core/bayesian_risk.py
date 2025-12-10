@@ -429,14 +429,40 @@ class BayesianRiskAssessor:
         controls = self._normalize_controls(security_controls)
         threats = self._normalize_threats(threat_indicators)
 
-        # Determine if exploitation is plausible (for gating amplification factors)
-        # Exploitation is plausible if: high EPSS, known exploit, or KEV
-        has_known_exploit = (
-            threats.get("is_kev", False)
-            or threats.get("has_public_exploit", False)
-            or threats.get("has_metasploit_module", False)
-            or threats.get("is_weaponized", False)
+        # Check for known exploits (granular CVSS-BT indicators)
+        is_kev = threats.get("is_kev", False)
+        has_metasploit = threats.get("has_metasploit_module", False) or threats.get(
+            "has_metasploit", False
         )
+        has_exploitdb = threats.get("has_exploitdb", False)
+        has_nuclei = threats.get("has_nuclei", False)
+        has_poc = threats.get("has_poc_github", False)
+        has_public_exploit = threats.get("has_public_exploit", False)
+        is_weaponized = threats.get("is_weaponized", False)
+
+        has_known_exploit = (
+            is_kev
+            or has_public_exploit
+            or has_metasploit
+            or is_weaponized
+            or has_exploitdb
+            or has_nuclei
+            or has_poc
+        )
+
+        # Apply minimum prior floor based on exploit/KEV status
+        # KEV-listed or weaponized exploits should never have negligible prior
+        if is_kev or is_weaponized:
+            epss = max(epss, 0.15)  # Minimum 15% for KEV/weaponized
+        elif has_metasploit:
+            epss = max(epss, 0.10)  # Minimum 10% for Metasploit
+        elif has_exploitdb or has_public_exploit:
+            epss = max(epss, 0.05)  # Minimum 5% for public exploits
+        elif has_nuclei:
+            epss = max(epss, 0.03)  # Minimum 3% for Nuclei templates
+        elif has_poc:
+            epss = max(epss, 0.01)  # Minimum 1% for PoC
+
         # EPSS threshold: top 10% (~0.07) or top 5% (~0.15) indicates real threat
         exploitation_plausible = has_known_exploit or epss >= 0.05
 
@@ -520,6 +546,20 @@ class BayesianRiskAssessor:
         # Calculate posterior log-odds and convert to probability
         posterior_log_odds = prior_log_odds + total_log_lr
         posterior_prob = self._log_odds_to_prob(posterior_log_odds)
+
+        # Apply minimum posterior floor for KEV/exploit cases
+        # Security controls can reduce risk but shouldn't make actively exploited
+        # vulnerabilities appear negligible - that's misleading to defenders
+        if is_kev or is_weaponized:
+            posterior_prob = max(posterior_prob, 0.05)  # Minimum 5% for KEV
+        elif has_metasploit:
+            posterior_prob = max(posterior_prob, 0.03)  # Minimum 3% for Metasploit
+        elif has_exploitdb or has_public_exploit:
+            posterior_prob = max(posterior_prob, 0.02)  # Minimum 2% for public exploits
+        elif has_nuclei:
+            posterior_prob = max(posterior_prob, 0.015)  # Minimum 1.5% for Nuclei
+        elif has_poc:
+            posterior_prob = max(posterior_prob, 0.01)  # Minimum 1% for PoC
 
         # Calculate credible interval based on uncertainty
         ci_low, ci_high = self._calculate_credible_interval(
