@@ -11,6 +11,9 @@ from src.core.cvss_bt_processor import CVSSBTProcessor
 from src.core.cvss_vector_reassessment import reassess_vulnerabilities
 from src.core.cwe_processor import get_cwe_name_and_description
 from src.core.nlp_extractor import enrich_with_nlp_features
+from src.simulation.security_controls import (
+    ServiceSecurityControlsGenerator,
+)
 
 
 class DataEnricher:
@@ -93,14 +96,16 @@ class DataEnricher:
         if scan_results.empty or not scenario:
             return scan_results
 
-        # Get scenario-level security controls (new Bayesian format)
-        security_controls = scenario.get("security_controls", {})
+        # Get scenario-level info
         security_maturity = scenario.get("security_maturity", "developing")
+        industry = scenario.get("industry", "general")
+        environment = scenario.get("environment", "prod")
+        org_size = scenario.get("metadata", {}).get("size", "mid")
 
-        # Fallback to legacy security_posture if security_controls not present
-        if not security_controls:
-            security_posture = scenario.get("security_posture", {})
-            security_controls = self._convert_posture_to_controls(security_posture)
+        # Initialize per-service security controls generator
+        controls_generator = ServiceSecurityControlsGenerator(
+            base_maturity=security_maturity
+        )
 
         # Create a mapping of images to their environment context
         image_context = {}
@@ -109,21 +114,38 @@ class DataEnricher:
         for service in services:
             image_name = service.get("image")
             if image_name:
+                exposure = service.get("exposure", "internal")
+                service_role = service.get("role", "service")
+                asset_value = service.get("asset_value", "medium")
+
+                # Generate realistic security controls based on exposure
+                service_controls = controls_generator.generate_for_service(
+                    exposure=exposure,
+                    service_role=service_role,
+                    asset_value=asset_value,
+                    industry=industry,
+                    environment=environment,
+                    size=org_size,
+                )
+
                 # Store context information for this image
                 image_context[image_name] = {
                     "service_name": service.get("name", "unknown"),
-                    "service_role": service.get("role", "service"),
-                    "exposure": service.get("exposure", "internal"),
+                    "service_role": service_role,
+                    "exposure": exposure,
                     "zone": service.get("zone", "internal"),
-                    "asset_value": service.get("asset_value", "medium"),
+                    "asset_value": asset_value,
                     "ownership": service.get("ownership", "DEV"),
-                    "environment_type": scenario.get("environment", "unknown"),
-                    "industry": scenario.get("industry", "unknown"),
+                    "environment_type": environment,
+                    "industry": industry,
                     "is_segmented": scenario.get("is_segmented", False),
                     "security_posture": scenario.get("security_posture", {}),
-                    "security_controls": security_controls,
+                    "security_controls": service_controls,
                     "security_maturity": security_maturity,
                 }
+
+        # Log control distribution for debugging
+        self._log_control_distribution(image_context)
 
         # Add context columns to scan results
         if "image_name" in scan_results.columns:
@@ -187,10 +209,33 @@ class DataEnricher:
             vuln_count = len(scan_results)
             self.logger.info(f"Added environment context for {vuln_count} vulns")
             self.logger.info(f"Security maturity: {security_maturity}")
-            active_controls = [k for k, v in security_controls.items() if v]
-            self.logger.info(f"Active security controls: {active_controls}")
 
         return scan_results
+
+    def _log_control_distribution(self, image_context: dict[str, dict]) -> None:
+        """Log security control distribution by exposure type."""
+        exposure_controls: dict[str, list[str]] = {}
+
+        for _image_name, context in image_context.items():
+            exposure = context.get("exposure", "internal")
+            controls = context.get("security_controls", {})
+            active = [
+                k for k, v in controls.items() if v and not k.startswith("patch_")
+            ]
+
+            if exposure not in exposure_controls:
+                exposure_controls[exposure] = []
+            exposure_controls[exposure].extend(active)
+
+        self.logger.info("Security controls by exposure:")
+        for exposure, controls in exposure_controls.items():
+            # Count unique controls
+            control_counts = {}
+            for ctrl in controls:
+                control_counts[ctrl] = control_counts.get(ctrl, 0) + 1
+
+            active_list = list(control_counts.keys())
+            self.logger.info(f"  {exposure}: {active_list}")
 
     def _convert_posture_to_controls(self, posture: dict[str, Any]) -> dict[str, bool]:
         """Convert legacy security_posture dict to security_controls format."""

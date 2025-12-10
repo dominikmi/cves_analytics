@@ -596,6 +596,297 @@ class SecurityControlsGenerator:
         return modifiers.get(size, {})
 
 
+class ExposureBasedControlProbabilities:
+    """
+    Control probabilities adjusted by exposure type.
+
+    Rationale:
+    - Internet-facing: Maximum protection required (WAF mandatory, strong perimeter)
+    - DMZ: High protection (buffer zone, most controls active)
+    - Internal: Variable protection (often under-protected, basic controls)
+    - Restricted: High protection (sensitive data, strict access)
+    """
+
+    # Probability multipliers by exposure type
+    # Values > 1.0 increase probability, < 1.0 decrease
+    EXPOSURE_MODIFIERS: dict[str, dict[str, float]] = {
+        "internet-facing": {
+            "firewall": 1.0,  # Always (base prob already high)
+            "waf": 2.5,  # WAF is critical for internet-facing
+            "ids_ips": 1.5,  # Strong perimeter monitoring
+            "network_segmentation": 1.3,  # Isolate from internal
+            "mfa": 1.5,  # Mandatory for external access
+            "edr_xdr": 1.3,  # Enhanced endpoint protection
+            "antivirus": 1.0,  # Always
+            "privileged_access_mgmt": 1.2,  # Control admin access
+            "siem": 1.3,  # Monitor external threats
+            "soc_24x7": 1.2,  # 24/7 monitoring for external
+        },
+        "dmz": {
+            "firewall": 1.0,  # Always
+            "waf": 2.0,  # Likely for web services in DMZ
+            "ids_ips": 1.4,  # Strong monitoring
+            "network_segmentation": 1.5,  # DMZ is segmentation by definition
+            "mfa": 1.3,  # Required for DMZ access
+            "edr_xdr": 1.2,  # Enhanced protection
+            "antivirus": 1.0,  # Always
+            "privileged_access_mgmt": 1.1,  # Control access
+            "siem": 1.2,  # Monitor DMZ activity
+            "soc_24x7": 1.0,  # Normal monitoring
+        },
+        "internal": {
+            "firewall": 0.9,  # Usually present but may be relaxed
+            "waf": 0.3,  # Rarely needed for internal services
+            "ids_ips": 0.7,  # Often missing internally
+            "network_segmentation": 0.8,  # Often flat internal networks
+            "mfa": 0.7,  # Sometimes skipped internally
+            "edr_xdr": 0.8,  # May be present
+            "antivirus": 1.0,  # Always
+            "privileged_access_mgmt": 0.6,  # Often missing
+            "siem": 0.6,  # May not cover internal
+            "soc_24x7": 0.5,  # Less focus on internal
+        },
+        "restricted": {
+            "firewall": 1.0,  # Always
+            "waf": 0.5,  # Only if web-based
+            "ids_ips": 1.3,  # Enhanced monitoring
+            "network_segmentation": 1.5,  # Strict isolation
+            "mfa": 1.5,  # Mandatory
+            "edr_xdr": 1.4,  # Enhanced protection
+            "antivirus": 1.0,  # Always
+            "privileged_access_mgmt": 1.5,  # Strict access control
+            "siem": 1.3,  # Full monitoring
+            "soc_24x7": 1.2,  # Enhanced monitoring
+        },
+    }
+
+    # Minimum controls that MUST be present for each exposure type
+    # These override probability-based selection
+    MANDATORY_CONTROLS: dict[str, list[str]] = {
+        "internet-facing": ["firewall", "waf", "antivirus"],
+        "dmz": ["firewall", "antivirus", "network_segmentation"],
+        "internal": ["firewall", "antivirus"],
+        "restricted": ["firewall", "antivirus", "network_segmentation", "mfa"],
+    }
+
+    @classmethod
+    def get_modifier(cls, exposure: str, control: str) -> float:
+        """Get probability modifier for a control based on exposure."""
+        exposure_lower = exposure.lower()
+        if exposure_lower not in cls.EXPOSURE_MODIFIERS:
+            return 1.0
+        return cls.EXPOSURE_MODIFIERS[exposure_lower].get(control, 1.0)
+
+    @classmethod
+    def get_mandatory_controls(cls, exposure: str) -> list[str]:
+        """Get list of mandatory controls for an exposure type."""
+        exposure_lower = exposure.lower()
+        return cls.MANDATORY_CONTROLS.get(exposure_lower, ["firewall", "antivirus"])
+
+
+class ServiceSecurityControlsGenerator:
+    """
+    Generates security controls for individual services based on their exposure.
+
+    This provides more realistic control distributions where:
+    - Internet-facing services have WAF, strong MFA, enhanced monitoring
+    - Internal services have basic controls only
+    - Restricted services have strict access controls
+    """
+
+    def __init__(
+        self,
+        base_generator: SecurityControlsGenerator | None = None,
+        base_maturity: SecurityMaturityLevel | str = SecurityMaturityLevel.DEFINED,
+    ):
+        """
+        Initialize the service-level generator.
+
+        Args:
+            base_generator: Base generator for organization-wide controls
+            base_maturity: Base security maturity level
+        """
+        self.base_generator = base_generator or SecurityControlsGenerator()
+        if isinstance(base_maturity, str):
+            base_maturity = SecurityMaturityLevel(base_maturity.lower())
+        self.base_maturity = base_maturity
+
+    def generate_for_service(
+        self,
+        exposure: str,
+        service_role: str = "service",
+        asset_value: str = "medium",
+        industry: str = "general",
+        environment: str = "prod",
+        size: str = "mid",
+    ) -> dict[str, bool]:
+        """
+        Generate security controls for a specific service.
+
+        Args:
+            exposure: Service exposure (internet-facing, dmz, internal, restricted)
+            service_role: Role of the service (web_server, database, cache, etc.)
+            asset_value: Value of the asset (critical, high, medium, low)
+            industry: Industry type
+            environment: Environment type (dev, test, prod)
+            size: Organization size
+
+        Returns:
+            Dictionary of control name -> bool
+        """
+        maturity_key = self.base_maturity.value
+        probabilities = self.base_generator.probabilities
+
+        # Get base modifiers
+        industry_mods = self.base_generator._get_industry_modifiers(industry)
+        env_mods = self.base_generator._get_environment_modifiers(environment)
+        size_mods = self.base_generator._get_size_modifiers(size)
+
+        # Get exposure-based modifiers
+        exposure_mods = {
+            ctrl: ExposureBasedControlProbabilities.get_modifier(exposure, ctrl)
+            for ctrl in [
+                "firewall",
+                "waf",
+                "ids_ips",
+                "network_segmentation",
+                "mfa",
+                "edr_xdr",
+                "antivirus",
+                "privileged_access_mgmt",
+                "siem",
+                "soc_24x7",
+            ]
+        }
+
+        # Asset value modifiers (critical assets get more protection)
+        asset_mods = self._get_asset_value_modifiers(asset_value)
+
+        # Service role modifiers (databases get more access control, etc.)
+        role_mods = self._get_service_role_modifiers(service_role)
+
+        controls = {}
+
+        # Generate each control
+        control_configs = [
+            ("network_segmentation", probabilities.network_segmentation),
+            ("firewall", probabilities.firewall),
+            ("waf", probabilities.waf),
+            ("ids_ips", probabilities.ids_ips),
+            ("edr_xdr", probabilities.edr_xdr),
+            ("antivirus", probabilities.antivirus),
+            ("mfa", probabilities.mfa),
+            ("privileged_access_mgmt", probabilities.privileged_access_mgmt),
+            ("siem", probabilities.siem),
+            ("soc_24x7", probabilities.soc_24x7),
+        ]
+
+        for control_name, base_probs in control_configs:
+            base_prob = base_probs[maturity_key]
+
+            # Apply all modifiers
+            adjusted_prob = base_prob
+            adjusted_prob *= industry_mods.get(control_name, 1.0)
+            adjusted_prob *= env_mods.get(control_name, 1.0)
+            adjusted_prob *= size_mods.get(control_name, 1.0)
+            adjusted_prob *= exposure_mods.get(control_name, 1.0)
+            adjusted_prob *= asset_mods.get(control_name, 1.0)
+            adjusted_prob *= role_mods.get(control_name, 1.0)
+
+            # Cap at 99%
+            adjusted_prob = min(0.99, adjusted_prob)
+
+            controls[control_name] = random.random() < adjusted_prob
+
+        # Apply mandatory controls for exposure type
+        mandatory = ExposureBasedControlProbabilities.get_mandatory_controls(exposure)
+        for ctrl in mandatory:
+            if ctrl in controls:
+                controls[ctrl] = True
+
+        # Add other controls with fixed probabilities
+        controls["incident_response_plan"] = random.random() < (
+            0.3 if maturity_key == "initial" else 0.8
+        )
+        controls["security_training"] = random.random() < (
+            0.2 if maturity_key == "initial" else 0.6
+        )
+
+        # Patch management
+        patch_cadence = self.base_generator._select_patch_cadence(maturity_key)
+        controls["patch_daily"] = patch_cadence == "daily"
+        controls["patch_weekly"] = patch_cadence == "weekly"
+        controls["patch_monthly"] = patch_cadence == "monthly"
+        controls["patch_quarterly"] = patch_cadence == "quarterly"
+
+        # Air-gapped (only for restricted + critical infrastructure)
+        controls["air_gapped"] = (
+            exposure == "restricted"
+            and industry in ("critical-infrastructure", "defense")
+            and random.random() < 0.3
+        )
+
+        return controls
+
+    def _get_asset_value_modifiers(self, asset_value: str) -> dict[str, float]:
+        """Get modifiers based on asset criticality."""
+        modifiers = {
+            "critical": {
+                "network_segmentation": 1.5,
+                "mfa": 1.5,
+                "privileged_access_mgmt": 1.5,
+                "edr_xdr": 1.4,
+                "siem": 1.4,
+                "soc_24x7": 1.3,
+            },
+            "high": {
+                "network_segmentation": 1.3,
+                "mfa": 1.3,
+                "privileged_access_mgmt": 1.3,
+                "edr_xdr": 1.2,
+                "siem": 1.2,
+            },
+            "medium": {},  # No modification
+            "low": {
+                "siem": 0.7,
+                "soc_24x7": 0.5,
+                "privileged_access_mgmt": 0.7,
+            },
+        }
+        return modifiers.get(asset_value, {})
+
+    def _get_service_role_modifiers(self, service_role: str) -> dict[str, float]:
+        """Get modifiers based on service role."""
+        modifiers = {
+            "database": {
+                "network_segmentation": 1.3,
+                "privileged_access_mgmt": 1.4,
+                "mfa": 1.2,
+            },
+            "web_server": {
+                "waf": 1.5,
+                "ids_ips": 1.2,
+            },
+            "app_server": {
+                "edr_xdr": 1.2,
+            },
+            "cache": {
+                "network_segmentation": 1.1,
+            },
+            "secrets_management": {
+                "network_segmentation": 1.5,
+                "privileged_access_mgmt": 1.5,
+                "mfa": 1.5,
+                "siem": 1.3,
+            },
+            "load_balancer": {
+                "waf": 1.3,
+                "ids_ips": 1.2,
+            },
+        }
+        return modifiers.get(service_role, {})
+
+
 def estimate_maturity_from_posture(posture: dict[str, Any]) -> SecurityMaturityLevel:
     """
     Estimate security maturity level from existing security posture dict.
