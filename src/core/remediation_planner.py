@@ -32,13 +32,15 @@ class RemediationPlanner:
         self,
         enriched_results: pd.DataFrame,
         severity_column: str = "severity_reassessed",
+        use_bayesian: bool = True,
     ) -> dict[str, Any]:
         """
-        Create phased remediation plan.
+        Create phased remediation plan based on Bayesian risk assessment.
 
         Args:
             enriched_results: DataFrame with vulnerability data
-            severity_column: Column name for severity assessment
+            severity_column: Column name for severity assessment (fallback)
+            use_bayesian: If True, use risk_category from Bayesian assessment
 
         Returns:
             Dictionary with phases and effort estimates
@@ -62,46 +64,62 @@ class RemediationPlanner:
                 },
             }
 
-        # Ensure severity column exists
-        if severity_column not in enriched_results.columns:
-            severity_column = "severity"
+        # Prefer Bayesian risk_category over severity_reassessed
+        if use_bayesian and "risk_category" in enriched_results.columns:
+            category_column = "risk_category"
+            sort_column = (
+                "bayesian_risk_score"
+                if "bayesian_risk_score" in enriched_results.columns
+                else "risk_score"
+            )
+            self.logger.info("Using Bayesian risk_category for remediation planning")
+        else:
+            # Fallback to severity_reassessed
+            if severity_column not in enriched_results.columns:
+                category_column = "severity"
+            else:
+                category_column = severity_column
+            sort_column = (
+                "risk_score"
+                if "risk_score" in enriched_results.columns
+                else category_column
+            )
 
-        # Phase 1: Critical vulnerabilities (Week 1)
-        phase1 = enriched_results[
-            enriched_results[severity_column] == "Critical"
-        ].nlargest(
-            20,
-            "risk_score"
-            if "risk_score" in enriched_results.columns
-            else severity_column,
-        )
+        # Phase 1: Bayesian Critical vulnerabilities ONLY (Week 1)
+        phase1_vulns = enriched_results[enriched_results[category_column] == "Critical"]
+        if sort_column in enriched_results.columns:
+            phase1 = phase1_vulns.nlargest(20, sort_column)
+        else:
+            phase1 = phase1_vulns.head(20)
 
         phase1_effort = len(phase1) * self.EFFORT_ESTIMATES["Critical"]
-        phase1_weeks = ceil(phase1_effort / self.WORK_WEEK_HOURS)
-
-        # Phase 2: High vulnerabilities (Weeks 2-3)
-        phase2 = enriched_results[enriched_results[severity_column] == "High"].nlargest(
-            50,
-            "risk_score"
-            if "risk_score" in enriched_results.columns
-            else severity_column,
+        phase1_weeks = (
+            ceil(phase1_effort / self.WORK_WEEK_HOURS) if phase1_effort > 0 else 1
         )
+
+        # Phase 2: Bayesian High vulnerabilities (Weeks 2-3)
+        phase2_vulns = enriched_results[enriched_results[category_column] == "High"]
+        if sort_column in enriched_results.columns:
+            phase2 = phase2_vulns.nlargest(50, sort_column)
+        else:
+            phase2 = phase2_vulns.head(50)
 
         phase2_effort = len(phase2) * self.EFFORT_ESTIMATES["High"]
-        phase2_weeks = ceil(phase2_effort / self.WORK_WEEK_HOURS)
-
-        # Phase 3: Medium vulnerabilities (Weeks 4-6)
-        phase3 = enriched_results[
-            enriched_results[severity_column] == "Medium"
-        ].nlargest(
-            100,
-            "risk_score"
-            if "risk_score" in enriched_results.columns
-            else severity_column,
+        phase2_weeks = (
+            ceil(phase2_effort / self.WORK_WEEK_HOURS) if phase2_effort > 0 else 1
         )
 
+        # Phase 3: Bayesian Medium vulnerabilities (Weeks 4-6)
+        phase3_vulns = enriched_results[enriched_results[category_column] == "Medium"]
+        if sort_column in enriched_results.columns:
+            phase3 = phase3_vulns.nlargest(100, sort_column)
+        else:
+            phase3 = phase3_vulns.head(100)
+
         phase3_effort = len(phase3) * self.EFFORT_ESTIMATES["Medium"]
-        phase3_weeks = ceil(phase3_effort / self.WORK_WEEK_HOURS)
+        phase3_weeks = (
+            ceil(phase3_effort / self.WORK_WEEK_HOURS) if phase3_effort > 0 else 1
+        )
 
         roadmap = {
             "phase1": {
@@ -192,15 +210,18 @@ class RemediationPlanner:
 
         return quick_wins
 
-    def estimate_total_effort(self, enriched_results: pd.DataFrame) -> dict[str, Any]:
+    def estimate_total_effort(
+        self, enriched_results: pd.DataFrame, use_bayesian: bool = True
+    ) -> dict[str, Any]:
         """
-        Estimate total remediation effort.
+        Estimate total remediation effort based on Bayesian risk categories.
 
         Args:
             enriched_results: DataFrame with vulnerability data
+            use_bayesian: If True, use risk_category from Bayesian assessment
 
         Returns:
-            Dictionary with effort estimates
+            Dictionary with effort estimates (only for Bayesian Critical/High/Medium)
         """
         if enriched_results.empty:
             return {
@@ -210,23 +231,30 @@ class RemediationPlanner:
                 "breakdown": {},
             }
 
-        severity_column = (
-            "severity_reassessed"
-            if "severity_reassessed" in enriched_results.columns
-            else "severity"
-        )
+        # Prefer Bayesian risk_category over severity_reassessed
+        if use_bayesian and "risk_category" in enriched_results.columns:
+            category_column = "risk_category"
+        elif "severity_reassessed" in enriched_results.columns:
+            category_column = "severity_reassessed"
+        else:
+            category_column = "severity"
 
         breakdown = {}
         total_hours = 0
 
-        for severity, effort in self.EFFORT_ESTIMATES.items():
-            count = (enriched_results[severity_column] == severity).sum()
+        # Only count Critical, High, Medium for remediation effort
+        # Low and Negligible are not prioritized for remediation
+        for severity in ["Critical", "High", "Medium"]:
+            effort = self.EFFORT_ESTIMATES.get(severity, 1.0)
+            count = (enriched_results[category_column] == severity).sum()
             hours = count * effort
             total_hours += hours
-            breakdown[severity] = {"count": count, "effort_hours": hours}
+            breakdown[severity] = {"count": int(count), "effort_hours": hours}
 
-        total_weeks = ceil(total_hours / self.WORK_WEEK_HOURS)
-        total_people_weeks = ceil(total_hours / self.WORK_WEEK_HOURS)
+        total_weeks = ceil(total_hours / self.WORK_WEEK_HOURS) if total_hours > 0 else 0
+        total_people_weeks = (
+            ceil(total_hours / self.WORK_WEEK_HOURS) if total_hours > 0 else 0
+        )
 
         return {
             "total_hours": total_hours,

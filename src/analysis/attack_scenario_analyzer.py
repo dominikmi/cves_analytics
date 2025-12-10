@@ -137,11 +137,19 @@ class AttackScenarioAnalyzer:
         """Find attack paths starting from internet-facing services."""
         paths = []
 
-        # Filter for internet-facing services with high severity vulnerabilities
-        internet_vulns = enriched_results[
-            (enriched_results["exposure"] == "internet-facing")
-            & (enriched_results["severity_reassessed"].isin(["Critical", "High"]))
-        ]
+        # Filter for internet-facing services with Bayesian-critical risk
+        # Prefer risk_category (Bayesian) over severity_reassessed
+        if "risk_category" in enriched_results.columns:
+            internet_vulns = enriched_results[
+                (enriched_results["exposure"] == "internet-facing")
+                & (enriched_results["risk_category"] == "Critical")
+            ]
+        else:
+            # Fallback to severity_reassessed
+            internet_vulns = enriched_results[
+                (enriched_results["exposure"] == "internet-facing")
+                & (enriched_results["severity_reassessed"].isin(["Critical", "High"]))
+            ]
 
         for _, row in internet_vulns.iterrows():
             try:
@@ -214,14 +222,21 @@ class AttackScenarioAnalyzer:
         # Common CWEs for privilege escalation
         priv_esc_cwes = ["CWE-264", "CWE-269", "CWE-274", "CWE-284", "CWE-285"]
 
-        priv_esc_vulns = enriched_results[
-            (enriched_results["cwe_id"].isin(priv_esc_cwes))
-            & (
-                enriched_results["severity_reassessed"].isin(
-                    ["Critical", "High", "Medium"]
+        # Filter by Bayesian risk category (Critical only)
+        if "risk_category" in enriched_results.columns:
+            priv_esc_vulns = enriched_results[
+                (enriched_results["cwe_id"].isin(priv_esc_cwes))
+                & (enriched_results["risk_category"] == "Critical")
+            ]
+        else:
+            priv_esc_vulns = enriched_results[
+                (enriched_results["cwe_id"].isin(priv_esc_cwes))
+                & (
+                    enriched_results["severity_reassessed"].isin(
+                        ["Critical", "High", "Medium"]
+                    )
                 )
-            )
-        ]
+            ]
 
         for _, row in priv_esc_vulns.iterrows():
             try:
@@ -286,14 +301,21 @@ class AttackScenarioAnalyzer:
         # Look for vulnerabilities in network-facing services that could enable lateral movement
         network_services = ["load_balancer", "message_broker", "cache", "registry"]
 
-        lateral_vulns = enriched_results[
-            (enriched_results["service_role"].isin(network_services))
-            & (
-                enriched_results["severity_reassessed"].isin(
-                    ["Critical", "High", "Medium"]
+        # Filter by Bayesian risk category (Critical only)
+        if "risk_category" in enriched_results.columns:
+            lateral_vulns = enriched_results[
+                (enriched_results["service_role"].isin(network_services))
+                & (enriched_results["risk_category"] == "Critical")
+            ]
+        else:
+            lateral_vulns = enriched_results[
+                (enriched_results["service_role"].isin(network_services))
+                & (
+                    enriched_results["severity_reassessed"].isin(
+                        ["Critical", "High", "Medium"]
+                    )
                 )
-            )
-        ]
+            ]
 
         for _, row in lateral_vulns.iterrows():
             try:
@@ -350,13 +372,23 @@ class AttackScenarioAnalyzer:
         data_services = ["database"]
         critical_assets = ["critical", "high"]
 
-        data_vulns = enriched_results[
-            (
-                (enriched_results["service_role"].isin(data_services))
-                | (enriched_results["asset_value"].isin(critical_assets))
-            )
-            & (enriched_results["severity_reassessed"].isin(["Critical", "High"]))
-        ]
+        # Filter by Bayesian risk category (Critical only)
+        if "risk_category" in enriched_results.columns:
+            data_vulns = enriched_results[
+                (
+                    (enriched_results["service_role"].isin(data_services))
+                    | (enriched_results["asset_value"].isin(critical_assets))
+                )
+                & (enriched_results["risk_category"] == "Critical")
+            ]
+        else:
+            data_vulns = enriched_results[
+                (
+                    (enriched_results["service_role"].isin(data_services))
+                    | (enriched_results["asset_value"].isin(critical_assets))
+                )
+                & (enriched_results["severity_reassessed"].isin(["Critical", "High"]))
+            ]
 
         for _, row in data_vulns.iterrows():
             try:
