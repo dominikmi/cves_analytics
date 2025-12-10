@@ -9,73 +9,67 @@
 ================================================================================
 VULNERABILITY ASSESSMENT REPORT
 ================================================================================
-Generated: 2025-12-10 11:09:59
+Generated: 2025-12-10 11:35:32
 
 EXECUTIVE SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Scanned: 1461
-Average Exploitation Probability: 0.03%
-Average Uncertainty: ±5.26%
+Total Vulnerabilities Scanned: 1999
+Average Exploitation Probability: 0.01%
+Average Uncertainty: ±5.09%
 Business Risk Level: LOW
 
-Bayesian Risk Assessment:
-  Critical: 2 (0.1%)
-  High: 9 (0.6%)
-  Medium: 7 (0.5%)
-  Low: 32 (2.2%)
-  Negligible: 1411 (96.6%)
+Original Severity Distribution (Scanner Output):
+  Critical: 60 (3.0%)
+  High: 282 (14.1%)
+  Medium: 777 (38.9%)
+  Low: 389 (19.5%)
+  Negligible: 482 (24.1%)
+  Unknown: 9 (0.5%)
 
-Actionable Vulnerabilities (Critical+High+Medium): 18
-Critical/High Requiring Immediate Action: 11 (0.8%)
+Bayesian Risk Assessment (After Analysis):
+  Critical: 0 (0.0%)
+  High: 1 (0.1%)
+  Medium: 7 (0.4%)
+  Low: 19 (1.0%)
+  Negligible: 1972 (98.6%)
 
-Estimated Remediation Effort: 33 person-hours
+Actionable Vulnerabilities (Critical+High+Medium): 8
+Critical/High Requiring Immediate Action: 1 (0.1%)
+
+Estimated Remediation Effort: 9 person-hours
 Recommended Timeline: 1 weeks
 
 Known Exploited Vulnerabilities (KEV): 0
 Public Exploits Available: 0
 Metasploit Modules: 0
-High Exploitation Probability (EPSS>=0.5): 21
+High Exploitation Probability (EPSS>=0.5): 25
 
 RISK-BASED PRIORITIZATION (Bayesian)
 --------------------------------------------------------------------------------
-CRITICAL (Fix ASAP): 2 vulnerabilities
-  1. CVE-2021-40438 - P(Exploit): 52.9% [40.4%-65.3%] in apache-httpd
-      CVSS: 0.0, EPSS: 94.43%
-  2. CVE-2017-9798 - P(Exploit): 50.2% [37.7%-62.7%] in apache-httpd
-      CVSS: 0.0, EPSS: 93.84%
+CRITICAL (Fix ASAP): 0 vulnerabilities
 
-HIGH PRIORITY (This Sprint): 9 vulnerabilities
-  1. CVE-2021-44790 - P(Exploit): 30.9% in apache-httpd
-  2. CVE-2018-0732 - P(Exploit): 22.1% in apache-httpd
-  3. CVE-2023-44487 - P(Exploit): 21.2% in php-fpm
-  4. CVE-2024-2961 - P(Exploit): 17.2% in php-fpm
-  5. CVE-2024-2961 - P(Exploit): 17.2% in php-fpm
-  6. CVE-2024-2961 - P(Exploit): 17.2% in php-fpm
-  7. CVE-2024-2961 - P(Exploit): 17.2% in php-fpm
-  8. CVE-2023-2650 - P(Exploit): 15.3% in php-fpm
-  9. CVE-2023-2650 - P(Exploit): 15.3% in php-fpm
+HIGH PRIORITY (This Sprint): 1 vulnerabilities
+  1. CVE-2023-44487 - P(Exploit): 18.3% in postgres-db
 
 MEDIUM PRIORITY (Plan Fix): 7 vulnerabilities
-  1. CVE-2022-23943 - P(Exploit): 12.6%
-  2. CVE-2023-0286 - P(Exploit): 10.9%
-  3. CVE-2023-0286 - P(Exploit): 10.9%
-  4. CVE-2024-1874 - P(Exploit): 6.5%
-  5. CVE-2024-1874 - P(Exploit): 6.5%
+  1. CVE-2022-37434 - P(Exploit): 10.0%
+  2. CVE-2023-2650 - P(Exploit): 9.1%
+  3. CVE-2023-2650 - P(Exploit): 9.1%
+  4. CVE-2023-0286 - P(Exploit): 6.3%
+  5. CVE-2023-0286 - P(Exploit): 6.3%
 
-LOW PRIORITY (Backlog): 1443 vulnerabilities
+LOW PRIORITY (Backlog): 1991 vulnerabilities
 
 REMEDIATION ROADMAP
 --------------------------------------------------------------------------------
 PHASE 1: Emergency (Week 1 (ASAP))
-  Vulnerabilities: 2
-  Estimated Effort: 8 hours (1 weeks)
+  Vulnerabilities: 0
+  Estimated Effort: 0 hours (1 weeks)
   Severity: Critical
-    1. CVE-2021-40438 in apache-httpd
-    2. CVE-2017-9798 in apache-httpd
 
 PHASE 2: High Priority (Weeks 2-2)
-  Vulnerabilities: 9
-  Estimated Effort: 18 hours (1 weeks)
+  Vulnerabilities: 1
+  Estimated Effort: 2 hours (1 weeks)
   Severity: High
 
 PHASE 3: Medium Priority (Weeks 3-3)
@@ -83,268 +77,285 @@ PHASE 3: Medium Priority (Weeks 3-3)
   Estimated Effort: 7 hours (1 weeks)
   Severity: Medium
 
-ENVIRONMENT SUMMARY
+SCANNED ENVIRONMENT (Simulated)
 --------------------------------------------------------------------------------
 Organization Size: small
 Geographic Reach: local
 Industry: financial-services
-Environment: prod
-Total Services: 10
-Total Hosts: 0
+Environment Type: prod
+Security Maturity: defined
+
+Services Scanned: 7
+  - squid (forward_proxy): sameersbn/squid:3.5.27 [internal]
+  - apache-httpd (web_server): httpd:2.4 [internet-facing]
+  - java-spring (app_server): openjdk:17-slim [internal]
+  - postgres-db (database): postgres:10 [internal]
+  - snort-ids (ids): lsiio/snort:latest [internal]
+  - prometheus (monitoring): prom/prometheus:latest [internal]
+  - superset (bi_tool): apache/superset:latest [internal]
+
+Active Security Controls: 8
+  network_segmentation, firewall, ids_ips, antivirus, privileged_access_mgmt, patch_daily, incident_response_plan, security_training
 
 SCAN RESULTS SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Found: 1461
+Total Vulnerabilities Found: 1999
 
 Vulnerability Severity Distribution:
-  Negligible: 757
-  Medium: 309
-  High: 212
-  Low: 142
-  Critical: 35
-  Unknown: 6
+  Medium: 777
+  Negligible: 482
+  Low: 389
+  High: 282
+  Critical: 60
+  Unknown: 9
 
 Original Severity → Bayesian Risk Assessment:
-  Critical: Critical(1), High(1), Low(2), Medium(4), Negligible(27), Total(35)
-  High: Critical(1), High(5), Low(22), Medium(2), Negligible(182), Total(212)
-  Low: Critical(0), High(0), Low(0), Medium(0), Negligible(142), Total(142)
-  Medium: Critical(0), High(3), Low(7), Medium(0), Negligible(299), Total(309)
-  Negligible: Critical(0), High(0), Low(1), Medium(1), Negligible(755), Total(757)
-  Unknown: Critical(0), High(0), Low(0), Medium(0), Negligible(6), Total(6)
-  Total: Critical(2), High(9), Low(32), Medium(7), Negligible(1411), Total(1461)
+  Critical: High(0), Low(2), Medium(0), Negligible(58), Total(60)
+  High: High(1), Low(4), Medium(2), Negligible(275), Total(282)
+  Low: High(0), Low(0), Medium(0), Negligible(389), Total(389)
+  Medium: High(0), Low(12), Medium(5), Negligible(760), Total(777)
+  Negligible: High(0), Low(1), Medium(0), Negligible(481), Total(482)
+  Unknown: High(0), Low(0), Medium(0), Negligible(9), Total(9)
+  Total: High(1), Low(19), Medium(7), Negligible(1972), Total(1999)
 
 ATTACK SCENARIO & VULNERABILITY ANALYSIS
 --------------------------------------------------------------------------------
-Total Vulnerabilities: 1461
+Total Vulnerabilities: 1999
 
 Attack Graph Statistics:
   Nodes (CVEs): 200
-  Edges (Dependencies): 1191
-  Graph Density: 0.030
+  Edges (Dependencies): 1136
+  Graph Density: 0.029
   Is DAG: True
 
 Identified 10 potential attack paths:
-  1. Direct internet attack on nginx-proxy via CVE-2025-59375
-     Target Asset: nginx-proxy (Team: DEVOPS)
+  1. Direct internet attack on apache-httpd via CVE-2025-3891
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 0.02, Impact: 0.75
+  2. Direct internet attack on apache-httpd via CVE-2025-59375
+     Target Asset: apache-httpd (Team: DEV)
      Risk Score: 10.0, Likelihood: 0.01, Impact: 0.75
-  2. Direct internet attack on nginx-proxy via CVE-2025-7709
-     Target Asset: nginx-proxy (Team: DEVOPS)
+  3. Direct internet attack on apache-httpd via CVE-2025-7709
+     Target Asset: apache-httpd (Team: DEV)
      Risk Score: 10.0, Likelihood: 0.0, Impact: 0.69
-  3. Direct internet attack on nginx-proxy via CVE-2025-66293
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.71
-  4. Direct internet attack on nginx-proxy via CVE-2025-64720
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.71
-  5. Direct internet attack on nginx-proxy via CVE-2025-7425
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.78
-  6. Direct internet attack on nginx-proxy via CVE-2025-65018
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.71
-  7. Direct internet attack on apache-httpd via CVE-2021-40438
+  4. Direct internet attack on apache-httpd via CVE-2025-14104
      Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.0
-  8. Direct internet attack on apache-httpd via CVE-2021-44790
+     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.61
+  5. Data exfiltration from apache-httpd via CVE-2025-3891
      Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.0
-  9. Direct internet attack on apache-httpd via CVE-2017-9798
+     Risk Score: 10.0, Likelihood: 0.01, Impact: 0.9
+  6. Data exfiltration from apache-httpd via CVE-2025-59375
      Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.0
-  10. Direct internet attack on apache-httpd via CVE-2022-23943
+     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.9
+  7. Data exfiltration from apache-httpd via CVE-2025-7709
      Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.0
+     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.9
+  8. Data exfiltration from apache-httpd via CVE-2025-14104
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 0.0, Impact: 0.9
+  9. Data exfiltration from postgres-db via CVE-2020-6096
+     Target Asset: postgres-db (Team: DBTEAM)
+     Risk Score: 10.0, Likelihood: 0.1, Impact: 0.9
+  10. Data exfiltration from postgres-db via CVE-2020-1751
+     Target Asset: postgres-db (Team: DBTEAM)
+     Risk Score: 10.0, Likelihood: 0.01, Impact: 0.9
 
 TOP VULNERABILITIES BY BAYESIAN RISK
 --------------------------------------------------------------------------------
-1. CVE-2021-40438 in apache-httpd (httpd:2.2)
-   Bayesian Risk: Critical - P(Exploit): 52.9% [40.4%-65.3%]
-   EPSS (Prior): 94.43%
-   CWE: CWE-918
-   MITRE ATT&CK Tactic: Execution
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
-   Ownership: DEV
-
-2. CVE-2017-9798 in apache-httpd (httpd:2.2)
-   Bayesian Risk: Critical - P(Exploit): 50.2% [37.7%-62.7%]
-   EPSS (Prior): 93.84%
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
-   Ownership: DEV
-
-3. CVE-2021-44790 in apache-httpd (httpd:2.2)
-   Bayesian Risk: High - P(Exploit): 30.9% [19.5%-42.3%]
-   EPSS (Prior): 87.09%
-   Attack Category: buffer_overflow
-   CWE: CWE-787
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
-   Ownership: DEV
-
-4. CVE-2018-0732 in apache-httpd (httpd:2.2)
-   Bayesian Risk: High - P(Exploit): 22.1% [11.9%-32.3%]
-   EPSS (Prior): 81.09%
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
-   Ownership: DEV
-
-5. CVE-2023-44487 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: High - P(Exploit): 21.2% [11.2%-31.2%]
+1. CVE-2023-44487 in postgres-db (postgres:10)
+   Bayesian Risk: High - P(Exploit): 18.3% [8.8%-27.8%]
    EPSS (Prior): 94.42%
    Attack Category: denial_of_service
    Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
 
-6. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: High - P(Exploit): 17.2% [8.0%-26.5%]
-   EPSS (Prior): 92.92%
-   CWE: CWE-787
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-7. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: High - P(Exploit): 17.2% [8.0%-26.5%]
-   EPSS (Prior): 92.92%
-   CWE: CWE-787
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-8. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: High - P(Exploit): 17.2% [8.0%-26.5%]
-   EPSS (Prior): 92.92%
-   CWE: CWE-787
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-9. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: High - P(Exploit): 17.2% [8.0%-26.5%]
-   EPSS (Prior): 92.92%
-   CWE: CWE-787
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-10. CVE-2023-2650 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: High - P(Exploit): 15.3% [6.4%-24.2%]
-   EPSS (Prior): 91.91%
-   Attack Category: denial_of_service
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-11. CVE-2023-2650 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: High - P(Exploit): 15.3% [6.4%-24.2%]
-   EPSS (Prior): 91.91%
-   Attack Category: denial_of_service
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-12. CVE-2022-23943 in apache-httpd (httpd:2.2)
-   Bayesian Risk: Medium - P(Exploit): 12.6% [4.3%-20.9%]
-   EPSS (Prior): 68.55%
+2. CVE-2022-37434 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Medium - P(Exploit): 10.0% [2.1%-18.0%]
+   EPSS (Prior): 92.68%
    Attack Category: buffer_overflow
-   CWE: CWE-787
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-13. CVE-2023-0286 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 10.9% [3.0%-18.8%]
+3. CVE-2023-2650 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Medium - P(Exploit): 9.1% [1.4%-16.8%]
+   EPSS (Prior): 91.91%
+   Attack Category: denial_of_service
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+4. CVE-2023-2650 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Medium - P(Exploit): 9.1% [1.4%-16.8%]
+   EPSS (Prior): 91.91%
+   Attack Category: denial_of_service
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+5. CVE-2023-0286 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Medium - P(Exploit): 6.3% [0.0%-13.3%]
    EPSS (Prior): 88.47%
    Attack Category: denial_of_service, information_disclosure
    Exposure: internal
-   Asset Value: high
-   Service Role: app_server
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-14. CVE-2023-0286 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 10.9% [3.0%-18.8%]
+6. CVE-2023-0286 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Medium - P(Exploit): 6.3% [0.0%-13.3%]
    EPSS (Prior): 88.47%
    Attack Category: denial_of_service, information_disclosure
    Exposure: internal
-   Asset Value: high
-   Service Role: app_server
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-15. CVE-2024-1874 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 6.5% [0.1%-12.8%]
-   EPSS (Prior): 51.85%
-   Attack Category: command_injection
-   CVSS Score: 9.4
-   CWE: CWE-116
+7. CVE-2021-31806 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Medium - P(Exploit): 5.6% [0.0%-12.3%]
+   EPSS (Prior): 86.97%
+   Attack Category: denial_of_service
    Exposure: internal
-   Asset Value: high
-   Service Role: app_server
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-16. CVE-2024-1874 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 6.5% [0.1%-12.8%]
-   EPSS (Prior): 51.85%
-   Attack Category: command_injection
-   CVSS Score: 9.4
-   CWE: CWE-116
+8. CVE-2021-31806 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Medium - P(Exploit): 5.6% [0.0%-12.3%]
+   EPSS (Prior): 86.97%
+   Attack Category: denial_of_service
    Exposure: internal
-   Asset Value: high
-   Service Role: app_server
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-17. CVE-2019-18276 in apache-httpd (httpd:2.2)
-   Bayesian Risk: Medium - P(Exploit): 6.1% [0.0%-12.8%]
-   EPSS (Prior): 49.61%
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
+9. CVE-2019-13345 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 3.3% [0.0%-9.3%]
+   EPSS (Prior): 79.53%
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-18. CVE-2021-39275 in apache-httpd (httpd:2.2)
-   Bayesian Risk: Medium - P(Exploit): 5.5% [0.0%-12.1%]
-   EPSS (Prior): 46.97%
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
+10. CVE-2019-13345 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 3.3% [0.0%-9.3%]
+   EPSS (Prior): 79.53%
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-19. CVE-2018-1000001 in apache-httpd (httpd:2.2)
-   Bayesian Risk: Low - P(Exploit): 4.7% [0.0%-11.1%]
-   EPSS (Prior): 42.91%
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
+11. CVE-2023-46847 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 2.9% [0.0%-8.6%]
+   EPSS (Prior): 45.33%
+   Attack Category: denial_of_service, buffer_overflow
+   CVSS Score: 8.6
+   CWE: CWE-120
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
-20. CVE-2018-1000001 in apache-httpd (httpd:2.2)
-   Bayesian Risk: Low - P(Exploit): 4.7% [0.0%-11.1%]
-   EPSS (Prior): 42.91%
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
+12. CVE-2023-46847 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 2.9% [0.0%-8.6%]
+   EPSS (Prior): 45.33%
+   Attack Category: denial_of_service, buffer_overflow
+   CVSS Score: 8.6
+   CWE: CWE-120
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+13. CVE-2023-45288 in postgres-db (postgres:10)
+   Bayesian Risk: Low - P(Exploit): 2.6% [0.0%-8.3%]
+   EPSS (Prior): 66.64%
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+14. CVE-2023-4911 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 2.2% [0.0%-7.8%]
+   EPSS (Prior): 69.79%
+   Attack Category: buffer_overflow
+   CVSS Score: 7.8
+   CWE: CWE-122
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+15. CVE-2023-4911 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 2.2% [0.0%-7.8%]
+   EPSS (Prior): 69.79%
+   Attack Category: buffer_overflow
+   CVSS Score: 7.8
+   CWE: CWE-122
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+16. CVE-2023-4911 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 2.2% [0.0%-7.8%]
+   EPSS (Prior): 69.79%
+   Attack Category: buffer_overflow
+   CVSS Score: 7.8
+   CWE: CWE-122
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+17. CVE-2020-36227 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 2.0% [0.0%-7.6%]
+   EPSS (Prior): 69.44%
+   Attack Category: denial_of_service
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+18. CVE-2020-36227 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 2.0% [0.0%-7.6%]
+   EPSS (Prior): 69.44%
+   Attack Category: denial_of_service
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+19. CVE-2020-36228 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 1.8% [0.0%-7.3%]
+   EPSS (Prior): 66.92%
+   Attack Category: integer_overflow, denial_of_service
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
+   Ownership: DEV
+
+20. CVE-2020-36228 in squid (sameersbn/squid:3.5.27)
+   Bayesian Risk: Low - P(Exploit): 1.8% [0.0%-7.3%]
+   EPSS (Prior): 66.92%
+   Attack Category: integer_overflow, denial_of_service
+   Exposure: internal
+   Asset Value: medium
+   Service Role: forward_proxy
    Ownership: DEV
 
 
 TEAM-BASED BAYESIAN RISK HEATMAP
 --------------------------------------------------------------------------------
-Ownership\Risk      Critical   High       Medium     Low        Negligible Total     
-DEV                 2          9          7          32         1310       1360      
-DEVOPS              0          0          0          0          101        101       
-Total               2          9          7          32         1411       1461      
+Ownership\Risk      High       Medium     Low        Negligible Total     
+DBTEAM              1          0          4          442        447       
+DEV                 0          7          15         1515       1537      
+DEVOPS              0          0          0          15         15        
+Total               1          7          19         1972       1999      
 
-================================================================================
-```
+================================================================================```

@@ -62,16 +62,37 @@ class ReportGenerator:
             report.extend(self._generate_remediation_roadmap(enriched_results))
             report.append("")
 
-            # Environment Summary
-            report.append("ENVIRONMENT SUMMARY")
+            # Environment Summary (from simulation)
+            report.append("SCANNED ENVIRONMENT (Simulated)")
             report.append("-" * 80)
             metadata = scenario.get("metadata", {})
             report.append(f"Organization Size: {metadata.get('size', 'unknown')}")
             report.append(f"Geographic Reach: {metadata.get('reach', 'unknown')}")
             report.append(f"Industry: {metadata.get('industry', 'unknown')}")
-            report.append(f"Environment: {metadata.get('environment', 'unknown')}")
-            report.append(f"Total Services: {len(scenario.get('services', []))}")
-            report.append(f"Total Hosts: {len(scenario.get('hosts', []))}")
+            report.append(f"Environment Type: {metadata.get('environment', 'unknown')}")
+            report.append(
+                f"Security Maturity: {scenario.get('security_maturity', 'unknown')}"
+            )
+            report.append("")
+
+            # Services scanned
+            services = scenario.get("services", [])
+            report.append(f"Services Scanned: {len(services)}")
+            if services:
+                for svc in services:
+                    svc_name = svc.get("name", "unknown")
+                    svc_role = svc.get("role", "unknown")
+                    exposure = svc.get("exposure", "unknown")
+                    image = svc.get("image", "unknown")
+                    report.append(f"  - {svc_name} ({svc_role}): {image} [{exposure}]")
+            report.append("")
+
+            # Security controls in place
+            security_controls = scenario.get("security_controls", {})
+            active_controls = [k for k, v in security_controls.items() if v]
+            report.append(f"Active Security Controls: {len(active_controls)}")
+            if active_controls:
+                report.append(f"  {', '.join(active_controls)}")
             report.append("")
 
             # Scan Results Summary
@@ -460,10 +481,21 @@ class ReportGenerator:
             report.append(f"Average Uncertainty: ±{avg_uncertainty:.2%}")
         report.append(f"Business Risk Level: {business_risk}")
 
-        # Bayesian risk distribution (primary metric)
+        # Original severity distribution (before Bayesian assessment)
+        if "severity" in enriched_results.columns:
+            report.append("")
+            report.append("Original Severity Distribution (Scanner Output):")
+            orig_dist = enriched_results["severity"].value_counts()
+            for sev in ["Critical", "High", "Medium", "Low", "Negligible", "Unknown"]:
+                count = orig_dist.get(sev, 0)
+                if count > 0:
+                    pct = (count / total_vulns * 100) if total_vulns > 0 else 0
+                    report.append(f"  {sev}: {count} ({pct:.1f}%)")
+
+        # Bayesian risk distribution (after assessment)
         if "risk_category" in enriched_results.columns:
             report.append("")
-            report.append("Bayesian Risk Assessment:")
+            report.append("Bayesian Risk Assessment (After Analysis):")
             risk_dist = enriched_results["risk_category"].value_counts()
             for category in ["Critical", "High", "Medium", "Low", "Negligible"]:
                 count = risk_dist.get(category, 0)
