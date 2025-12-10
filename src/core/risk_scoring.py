@@ -88,12 +88,17 @@ def calculate_bayesian_risk(
     else:
         controls = None
 
-    # Extract threat indicators
+    # Extract threat indicators (including granular CVSS-BT exploit data)
     threat_indicators = ThreatIndicatorsInput(
         is_kev=bool(row.get("is_kev", False)),
         has_public_exploit=bool(row.get("has_public_exploit", False)),
         has_metasploit_module=bool(row.get("has_metasploit_module", False)),
         is_weaponized=bool(row.get("is_weaponized", False)),
+        # Granular exploit indicators from CVSS-BT
+        has_exploitdb=bool(row.get("has_exploitdb", False)),
+        has_metasploit=bool(row.get("has_metasploit", False)),
+        has_nuclei=bool(row.get("has_nuclei", False)),
+        has_poc_github=bool(row.get("has_poc_github", False)),
     )
 
     # Extract NLP features if available

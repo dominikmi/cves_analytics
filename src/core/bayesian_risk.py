@@ -211,6 +211,13 @@ class LikelihoodRatioConfig(BaseModel):
     metasploit_module: float = Field(default=2.5, ge=1.0, le=10.0)
     weaponized: float = Field(default=4.0, ge=1.0, le=10.0)
 
+    # Granular exploit indicators from CVSS-BT
+    exploitdb: float = Field(default=2.0, ge=1.0, le=10.0)  # ExploitDB entry
+    nuclei_template: float = Field(
+        default=1.8, ge=1.0, le=10.0
+    )  # Nuclei scanner template
+    poc_github: float = Field(default=1.5, ge=1.0, le=10.0)  # GitHub PoC
+
 
 class SecurityControlsInput(BaseModel):
     """Input model for security controls - binary presence/absence."""
@@ -262,6 +269,11 @@ class ThreatIndicatorsInput(BaseModel):
     is_weaponized: bool = False
     apt_interest: bool = False
     ransomware_associated: bool = False
+
+    # Granular exploit indicators from CVSS-BT
+    has_exploitdb: bool = False  # ExploitDB entry exists
+    has_nuclei: bool = False  # Nuclei scanner template exists
+    has_poc_github: bool = False  # GitHub PoC exists
 
 
 # =============================================================================
@@ -377,6 +389,10 @@ class BayesianRiskAssessor:
             "public_exploit": self.config.public_exploit,
             "metasploit": self.config.metasploit_module,
             "weaponized": self.config.weaponized,
+            # Granular exploit indicators from CVSS-BT
+            "exploitdb": self.config.exploitdb,
+            "nuclei": self.config.nuclei_template,
+            "poc_github": self.config.poc_github,
         }
 
     def assess(
@@ -868,11 +884,16 @@ class BayesianRiskAssessor:
             "has_metasploit_module": (
                 "metasploit",
                 "Metasploit Module",
-                "easy exploitation",
+                "weaponized exploit",
             ),
             "is_weaponized": ("weaponized", "Weaponized", "used in attacks"),
             "apt_interest": ("weaponized", "APT Interest", "APT targeted"),
             "ransomware_associated": ("weaponized", "Ransomware", "ransomware"),
+            # Granular exploit indicators from CVSS-BT
+            "has_exploitdb": ("exploitdb", "ExploitDB", "public exploit code"),
+            "has_metasploit": ("metasploit", "Metasploit", "weaponized exploit"),
+            "has_nuclei": ("nuclei", "Nuclei Template", "automated scanning"),
+            "has_poc_github": ("poc_github", "GitHub PoC", "proof of concept"),
         }
 
         for threat_key, present in threats.items():
