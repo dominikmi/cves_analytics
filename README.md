@@ -684,7 +684,9 @@ When adding new features:
 
 ## 📄 License
 
-[Add your license information here]
+MIT License - Copyright (c) 2025 Dominik Miklaszewski
+
+See [LICENSE](LICENSE) for full details.
 
 ## 📞 Support
 
