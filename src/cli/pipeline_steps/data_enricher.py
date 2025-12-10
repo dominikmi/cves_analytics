@@ -7,6 +7,7 @@ from typing import Any
 import pandas as pd
 
 from src.core.cvev5_loader import CVEv5Loader
+from src.core.cvss_bt_processor import CVSSBTProcessor
 from src.core.cvss_vector_reassessment import reassess_vulnerabilities
 from src.core.cwe_processor import get_cwe_name_and_description
 from src.core.nlp_extractor import enrich_with_nlp_features
@@ -42,60 +43,13 @@ class DataEnricher:
             # Add environment context to scan results
             enriched = self._add_environment_context(scan_results.copy(), scenario)
 
-            # Load CVE data using optimized loader with caching
-            current_year = datetime.now().year
-            loader = CVEv5Loader(cache_dir=f"{data_path}/.cache")
-            self.logger.info("Loading CVE v5 data with caching...")
-            cve_v5_data = loader.load_cvev5_cve_data(
-                current_year - 5, current_year, data_path, use_cache=True
-            )
+            # PRIMARY SOURCE: CVSS-BT dataset (includes CVSS, EPSS, KEV, exploits)
+            enriched = self._enrich_with_cvss_bt(enriched, data_path)
 
-            # Merge with CVE v5 data if available
-            if not cve_v5_data.empty and "cve_id" in enriched.columns:
-                scan_count = len(enriched)
-                cve_count = len(cve_v5_data)
-                self.logger.info(
-                    f"Merging {scan_count} scan results with {cve_count} CVE records"
-                )
-                sample_scan = enriched["cve_id"].head().tolist()
-                sample_cve = cve_v5_data["cve_id"].head().tolist()
-                self.logger.info(f"Sample scan CVE IDs: {sample_scan}")
-                self.logger.info(f"Sample CVE v5 IDs: {sample_cve}")
+            # FALLBACK: CVE v5 data for records not in CVSS-BT
+            enriched = self._enrich_with_cvev5_fallback(enriched, data_path)
 
-                enriched = pd.merge(
-                    enriched,
-                    cve_v5_data,
-                    left_on="cve_id",
-                    right_on="cve_id",
-                    how="left",
-                )
-                self.logger.info(
-                    f"Enriched {len(enriched)} vulnerabilities with CVE v5 data"
-                )
-
-                # Log how many records actually got CVE data
-                has_desc = "description" in enriched.columns
-                if has_desc:
-                    cve_enriched_count = enriched["description"].notna().sum()
-                else:
-                    cve_enriched_count = 0
-                self.logger.info(
-                    f"Successfully enriched {cve_enriched_count} records with CVE data"
-                )
-
-                # Extract CVSS vectors and scores
-                self.logger.info("Extracting CVSS vectors and scores...")
-                enriched = self._extract_cvss_data(enriched)
-
-                # Log missing CVSS data
-                missing_count = enriched["cvss_score"].isna().sum()
-                self.logger.info(f"{missing_count} records still missing CVSS scores")
-
-                # Fetch missing CVE data from NVD API
-                if missing_count > 0:
-                    enriched = self._fetch_missing_cve_data(enriched)
-
-            # Load and merge EPSS data
+            # FALLBACK: Load and merge EPSS data for any remaining gaps
             enriched = self._load_and_merge_epss_data(enriched, data_path)
 
             # Reassess severity using CVSS vectors, EPSS, and environment
@@ -358,5 +312,146 @@ class DataEnricher:
 
         cvss_count = enriched["cvss_score"].notna().sum()
         self.logger.info(f"Extracted CVSS data for {cvss_count} vulns from CVE v5")
+
+        return enriched
+
+    def _enrich_with_cvss_bt(
+        self, enriched: pd.DataFrame, data_path: str
+    ) -> pd.DataFrame:
+        """
+        Enrich scan results with CVSS-BT data as the primary source.
+
+        CVSS-BT includes:
+        - CVSS-BT adjusted scores (incorporates exploitability)
+        - EPSS scores
+        - KEV flags (CISA and VulnCheck)
+        - Exploit availability (ExploitDB, Metasploit, Nuclei, GitHub PoC)
+        """
+        try:
+            self.logger.info("Loading CVSS-BT data (primary source)...")
+            processor = CVSSBTProcessor(data_path)
+            enriched, enriched_count = processor.enrich_with_cvss_bt(enriched)
+
+            if enriched_count > 0:
+                # Map CVSS-BT columns to standard columns
+                # Use CVSS-BT score as primary, base score as fallback
+                if "cvss_bt_score" in enriched.columns:
+                    enriched["cvss_score"] = enriched["cvss_bt_score"]
+                    enriched["cvss_vector"] = enriched.get("cvss_bt_vector")
+
+                # Use EPSS from CVSS-BT
+                if "epss" in enriched.columns:
+                    enriched["epss_score"] = enriched["epss"]
+
+                self.logger.info(
+                    f"CVSS-BT enrichment complete: {enriched_count} records"
+                )
+            else:
+                self.logger.warning(
+                    "No CVSS-BT data available, will use fallback sources"
+                )
+
+        except Exception as e:
+            self.logger.warning(f"CVSS-BT enrichment failed: {e}, using fallback")
+
+        return enriched
+
+    def _enrich_with_cvev5_fallback(
+        self, enriched: pd.DataFrame, data_path: str
+    ) -> pd.DataFrame:
+        """
+        Enrich scan results with CVE v5 data for records not covered by CVSS-BT.
+
+        This is a fallback source for:
+        - CVEs not in CVSS-BT dataset
+        - Additional metadata (descriptions, CWE)
+        """
+        # Check how many records still need CVSS data
+        needs_cvss = (
+            enriched["cvss_score"].isna()
+            if "cvss_score" in enriched.columns
+            else pd.Series([True] * len(enriched))
+        )
+        missing_count = needs_cvss.sum()
+
+        if missing_count == 0:
+            self.logger.info(
+                "All records have CVSS data from CVSS-BT, skipping CVE v5 fallback"
+            )
+            return enriched
+
+        self.logger.info(f"{missing_count} records need CVE v5 fallback data")
+
+        try:
+            # Load CVE v5 data
+            current_year = datetime.now().year
+            loader = CVEv5Loader(cache_dir=f"{data_path}/.cache")
+            self.logger.info("Loading CVE v5 data with caching...")
+            cve_v5_data = loader.load_cvev5_cve_data(
+                current_year - 5, current_year, data_path, use_cache=True
+            )
+
+            if cve_v5_data.empty:
+                self.logger.warning("No CVE v5 data available")
+                return enriched
+
+            # Merge with CVE v5 data
+            scan_count = len(enriched)
+            cve_count = len(cve_v5_data)
+            self.logger.info(
+                f"Merging {scan_count} scan results with {cve_count} CVE v5 records"
+            )
+
+            # Columns to merge from CVE v5
+            cve_cols_to_merge = ["cve_id", "description", "cwe_id"]
+
+            # Add CVSS columns if we need them
+            cvss_cols = [
+                "cvss_v4_0_score",
+                "cvss_v4_0_vector",
+                "cvss_v3_1_score",
+                "cvss_v3_1_vector",
+                "cvss_v3_0_score",
+                "cvss_v3_0_vector",
+                "cvss_v2_0_score",
+                "cvss_v2_0_vector",
+            ]
+            for col in cvss_cols:
+                if col in cve_v5_data.columns:
+                    cve_cols_to_merge.append(col)
+
+            available_cols = [c for c in cve_cols_to_merge if c in cve_v5_data.columns]
+            cve_subset = cve_v5_data[available_cols].drop_duplicates(subset=["cve_id"])
+
+            enriched = pd.merge(
+                enriched,
+                cve_subset,
+                left_on="cve_id",
+                right_on="cve_id",
+                how="left",
+                suffixes=("", "_v5"),
+            )
+
+            self.logger.info(
+                f"Enriched {len(enriched)} vulnerabilities with CVE v5 data"
+            )
+
+            # Extract CVSS data for records that don't have it yet
+            if (
+                "cvss_score" not in enriched.columns
+                or enriched["cvss_score"].isna().any()
+            ):
+                self.logger.info("Extracting CVSS vectors and scores from CVE v5...")
+                enriched = self._extract_cvss_data(enriched)
+
+                # Log missing CVSS data
+                if "cvss_score" in enriched.columns:
+                    missing_count = enriched["cvss_score"].isna().sum()
+                    self.logger.info(
+                        f"{missing_count} records still missing CVSS scores"
+                    )
+
+        except Exception as e:
+            self.logger.warning(f"CVE v5 fallback enrichment failed: {e}")
 
         return enriched

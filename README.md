@@ -6,11 +6,13 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
 
 ### Core Functionality
 1. **CVE Data Management**
-   - Download CVE data from NVD (National Vulnerability Database)
-   - Parse and store CVSS v2 and v3 metrics
+   - **Primary: [CVSS-BT dataset](https://github.com/t0sche/cvss-bt)** - Pre-computed CVSS with exploitability
+   - Fallback: CVE v5 data from NVD (National Vulnerability Database)
+   - Parse and store CVSS v2, v3, and v4 metrics
    - Extract CWE (Common Weakness Enumeration) information
    - Merge with EPSS (Exploit Prediction Scoring System) scores
    - Integrate KEV (Known Exploited Vulnerabilities) data
+   - Exploit availability tracking (ExploitDB, Metasploit, Nuclei, GitHub PoC)
 
 2. **Vulnerability Analysis**
    - Attack chain analysis using graph-based approach
