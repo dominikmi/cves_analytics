@@ -1,6 +1,6 @@
 # Bayesian Risk Assessment
 
-This document explains how the CVEs Analytics pipeline calculates vulnerability risk using a principled Bayesian approach.
+This document explains how the CVEs Analytics pipeline calculates vulnerability risk using a principled Bayesian approach with **exposure-conditional likelihood ratios**.
 
 ## Overview
 
@@ -11,10 +11,13 @@ Traditional vulnerability scoring (CVSS alone) often leads to "alert fatigue" be
 
 Our Bayesian approach addresses this by:
 1. Starting with **EPSS** (Exploit Prediction Scoring System) as the prior probability
-2. Updating with **likelihood ratios** based on your environment
-3. Applying **floors** to ensure actively exploited vulnerabilities are never rated "Negligible"
+2. Updating with **exposure-conditional likelihood ratios** based on your environment
+3. Applying **exploitability gating** to prevent false risk inflation
+4. Applying **floors** to ensure actively exploited vulnerabilities are never rated "Negligible"
 
 ## Mathematical Foundation
+
+### Basic Bayes' Theorem
 
 ```
 Posterior Odds = Prior Odds × LR₁ × LR₂ × ... × LRₙ
@@ -26,7 +29,96 @@ Where:
 - **LR > 1** = Evidence that increases exploitation probability (exposure, exploits)
 - **LR = 1** = Uninformative evidence
 
-The posterior probability is then converted back from odds and categorized into risk levels.
+### The Independence Problem
+
+A naive Bayesian approach assumes all factors are **conditionally independent**:
+
+```
+P(Exploit | WAF, Internet, Metasploit) = P(Exploit) × LR_WAF × LR_Internet × LR_Metasploit
+```
+
+This assumption is often **violated** in practice:
+
+| Scenario | Independence Violation |
+|----------|----------------------|
+| WAF + Internet-facing | WAF only matters IF internet-facing (WAF on internal service is irrelevant) |
+| Metasploit + AC:L | Metasploit module implies low complexity (double-counting) |
+| KEV + High EPSS | KEV status is already baked into EPSS (correlation) |
+| Network segmentation + Internal | Segmentation matters more for internal lateral movement |
+
+### Our Solution: Exposure-Conditional Likelihood Ratios
+
+Instead of flat LRs, we use **exposure-conditional LRs**:
+
+```
+LR(WAF | internet-facing) = 0.3  (70% reduction - very effective)
+LR(WAF | internal) = 0.9         (10% reduction - minimal effect)
+```
+
+This is a practical approximation of full conditional Bayes:
+
+```
+Full conditional: P(Exploit | WAF, Internet) = P(Exploit | Internet) × P(WAF effective | Internet)
+Our approach:     P(Exploit | WAF, Internet) ≈ P(Exploit) × LR(WAF | Internet) × LR(Internet)
+```
+
+### Exploitability Gating
+
+We also implement **gating** for amplification factors:
+
+```python
+if exploitation_plausible:  # KEV, exploit, or high EPSS
+    exposure_lr = full_lr      # 2.5 for internet-facing
+else:
+    exposure_lr = capped_lr    # 1.2 max
+```
+
+This prevents scenarios like:
+- Low EPSS + No exploits + Internet-facing → falsely elevated risk
+
+### Why Not Full Bayesian Networks?
+
+A full Bayesian network would model all dependencies explicitly:
+
+```
+                    ┌─────────────┐
+                    │    EPSS     │
+                    │   (Prior)   │
+                    └──────┬──────┘
+                           │
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │ Exposure │ │ Exploits │ │   CVSS   │
+        └────┬─────┘ └────┬─────┘ └────┬─────┘
+             │            │            │
+             ▼            │            │
+        ┌──────────┐      │            │
+        │ Controls │◄─────┘            │
+        │(depends  │                   │
+        │on expose)│                   │
+        └────┬─────┘                   │
+             │                         │
+             └────────────┬────────────┘
+                          ▼
+                    ┌──────────┐
+                    │ Posterior│
+                    └──────────┘
+```
+
+**Pros of full Bayesian networks:**
+- More accurate modeling of real-world dependencies
+- Explicit conditional probability tables (CPTs)
+
+**Cons:**
+- Significantly more complex to implement and explain
+- Requires data to calibrate all CPTs
+- Diminishing returns for added complexity
+
+**Our approach** (exposure-conditional LRs + gating) provides:
+- 80% of the accuracy with 20% of the complexity
+- Interpretable factors for security teams
+- Easy to calibrate and adjust
 
 ---
 
@@ -92,34 +184,68 @@ This vulnerability gets a significant risk boost due to active exploitation.
 
 ---
 
-## Factor 3: Security Controls
+## Factor 3: Security Controls (Exposure-Conditional)
 
 **What it is:** Defensive measures that reduce the probability of successful exploitation.
 
-**Likelihood Ratios (all < 1.0, reducing risk):**
+**Key insight:** Control effectiveness depends on exposure context. A WAF is highly effective for internet-facing services but nearly useless for internal services.
 
-### Network Controls
+### Exposure-Conditional Likelihood Ratios
 
-| Control | LR | Risk Reduction |
-|---------|-----|----------------|
-| Network Segmentation | 0.3 | -70% |
-| Firewall | 0.5 | -50% |
-| WAF (Web Application Firewall) | 0.4 | -60% |
-| IDS/IPS | 0.5 | -50% |
+#### WAF (Web Application Firewall)
 
-### Endpoint Controls
+| Exposure | LR | Risk Reduction | Rationale |
+|----------|-----|----------------|-----------|
+| Internet-facing | 0.3 | -70% | WAF blocks web attacks at perimeter |
+| DMZ | 0.4 | -60% | Effective for DMZ web services |
+| Internal | 0.9 | -10% | WAF rarely deployed internally |
+| Restricted | 0.8 | -20% | Limited web traffic in restricted zones |
+
+#### Network Segmentation
+
+| Exposure | LR | Risk Reduction | Rationale |
+|----------|-----|----------------|-----------|
+| Internet-facing | 0.5 | -50% | Limits blast radius from perimeter |
+| DMZ | 0.4 | -60% | DMZ isolation by definition |
+| Internal | 0.3 | -70% | **Most effective** - prevents lateral movement |
+| Restricted | 0.2 | -80% | Critical for restricted zone isolation |
+
+#### MFA (Multi-Factor Authentication)
+
+| Exposure | LR | Risk Reduction | Rationale |
+|----------|-----|----------------|-----------|
+| Internet-facing | 0.2 | -80% | **Most effective** - blocks credential attacks |
+| DMZ | 0.25 | -75% | Required for DMZ access |
+| Internal | 0.5 | -50% | Internal auth often bypassed |
+| Restricted | 0.2 | -80% | Critical for restricted access |
+
+#### IDS/IPS
+
+| Exposure | LR | Risk Reduction | Rationale |
+|----------|-----|----------------|-----------|
+| Internet-facing | 0.4 | -60% | Catches inbound attacks |
+| DMZ | 0.45 | -55% | Strong monitoring |
+| Internal | 0.7 | -30% | Less visibility internally |
+| Restricted | 0.5 | -50% | Enhanced monitoring |
+
+#### Privileged Access Management (PAM)
+
+| Exposure | LR | Risk Reduction | Rationale |
+|----------|-----|----------------|-----------|
+| Internet-facing | 0.5 | -50% | Controls admin access |
+| DMZ | 0.45 | -55% | Important for DMZ |
+| Internal | 0.35 | -65% | **More effective** - admin access critical |
+| Restricted | 0.25 | -75% | **Most effective** - strict access control |
+
+#### Other Controls (Exposure-Independent)
 
 | Control | LR | Risk Reduction |
 |---------|-----|----------------|
 | EDR/XDR | 0.4 | -60% |
 | Antivirus | 0.7 | -30% |
-
-### Access Controls
-
-| Control | LR | Risk Reduction |
-|---------|-----|----------------|
-| MFA | 0.3 | -70% |
-| Privileged Access Management | 0.4 | -60% |
+| Incident Response Plan | 0.7 | -30% |
+| Security Training | 0.8 | -20% |
+| Air-gapped | 0.05 | -95% |
 
 ### Patch Management
 
@@ -130,18 +256,31 @@ This vulnerability gets a significant risk boost due to active exploitation.
 | Monthly | 0.7 | -30% |
 | Quarterly | 0.9 | -10% |
 
-### Example
+### Example: Same Controls, Different Exposure
 
-**Internal database server with:**
-- Firewall (LR = 0.5)
-- Network Segmentation (LR = 0.3)
-- MFA (LR = 0.3)
-- Monthly patching (LR = 0.7)
+**Internet-facing nginx with:**
+- Firewall (LR = 0.4 for internet-facing)
+- WAF (LR = 0.3 for internet-facing)
+- IDS/IPS (LR = 0.4 for internet-facing)
+- MFA (LR = 0.2 for internet-facing)
 
 ```
-Combined control LR: 0.5 × 0.3 × 0.3 × 0.7 = 0.0315
-Risk reduction: ~97%
+Combined control LR: 0.4 × 0.3 × 0.4 × 0.2 = 0.0096
+Risk reduction: ~99%
 ```
+
+**Internal redis with same controls:**
+- Firewall (LR = 0.6 for internal)
+- WAF (LR = 0.9 for internal)
+- IDS/IPS (LR = 0.7 for internal)
+- MFA (LR = 0.5 for internal)
+
+```
+Combined control LR: 0.6 × 0.9 × 0.7 × 0.5 = 0.189
+Risk reduction: ~81%
+```
+
+**Result:** The same controls provide **99% reduction for internet-facing** but only **81% for internal** because WAF and MFA are less relevant internally.
 
 ---
 

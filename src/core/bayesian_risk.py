@@ -172,6 +172,136 @@ class CVSSVectorLR:
     }
 
 
+class ExposureConditionalControlLR:
+    """
+    Exposure-conditional likelihood ratios for security controls.
+
+    This implements a simplified form of conditional Bayes where control
+    effectiveness depends on the exposure context. For example:
+    - WAF is highly effective for internet-facing services (LR=0.3)
+    - WAF has minimal effect on internal services (LR=0.9)
+
+    This avoids the independence assumption violation where we would
+    otherwise multiply WAF LR regardless of whether it's relevant.
+
+    Rationale:
+    - Full conditional Bayes would require P(Exploit | Control, Exposure)
+    - This approximation uses LR(Control | Exposure) as a practical middle ground
+    - More accurate than flat LRs, simpler than full Bayesian networks
+    """
+
+    # Format: control -> {exposure -> LR}
+    # LR < 1 means risk reduction, closer to 1 means less effective
+    CONDITIONAL_LRS: dict[str, dict[str, float]] = {
+        # WAF: Very effective for internet-facing, minimal for internal
+        "waf": {
+            "internet-facing": 0.3,  # 70% reduction - WAF blocks web attacks
+            "dmz": 0.4,  # 60% reduction
+            "internal": 0.9,  # 10% reduction - WAF rarely deployed internally
+            "restricted": 0.8,  # 20% reduction
+        },
+        # IDS/IPS: More effective at perimeter
+        "ids_ips": {
+            "internet-facing": 0.4,  # 60% reduction - catches inbound attacks
+            "dmz": 0.45,  # 55% reduction
+            "internal": 0.7,  # 30% reduction - less visibility internally
+            "restricted": 0.5,  # 50% reduction
+        },
+        # Network segmentation: More important for internal lateral movement
+        "network_segmentation": {
+            "internet-facing": 0.5,  # 50% reduction - limits blast radius
+            "dmz": 0.4,  # 60% reduction - DMZ isolation
+            "internal": 0.3,  # 70% reduction - prevents lateral movement
+            "restricted": 0.2,  # 80% reduction - critical for restricted zones
+        },
+        # MFA: Critical for external access, less so for internal
+        "mfa": {
+            "internet-facing": 0.2,  # 80% reduction - blocks credential attacks
+            "dmz": 0.25,  # 75% reduction
+            "internal": 0.5,  # 50% reduction - internal auth often bypassed
+            "restricted": 0.2,  # 80% reduction - critical for restricted
+        },
+        # EDR/XDR: Equally effective regardless of exposure
+        "edr_xdr": {
+            "internet-facing": 0.4,  # 60% reduction
+            "dmz": 0.4,  # 60% reduction
+            "internal": 0.4,  # 60% reduction
+            "restricted": 0.35,  # 65% reduction
+        },
+        # SIEM: More valuable for internet-facing (more attack surface)
+        "siem": {
+            "internet-facing": 0.5,  # 50% reduction - detects attacks
+            "dmz": 0.55,  # 45% reduction
+            "internal": 0.7,  # 30% reduction - less external threat
+            "restricted": 0.6,  # 40% reduction
+        },
+        # SOC 24x7: More valuable for internet-facing
+        "soc_24x7": {
+            "internet-facing": 0.4,  # 60% reduction - rapid response
+            "dmz": 0.45,  # 55% reduction
+            "internal": 0.6,  # 40% reduction
+            "restricted": 0.5,  # 50% reduction
+        },
+        # PAM: More important for internal/restricted (admin access)
+        "privileged_access_mgmt": {
+            "internet-facing": 0.5,  # 50% reduction
+            "dmz": 0.45,  # 55% reduction
+            "internal": 0.35,  # 65% reduction - admin access critical
+            "restricted": 0.25,  # 75% reduction - most critical here
+        },
+        # Firewall: Always important, slightly more for perimeter
+        "firewall": {
+            "internet-facing": 0.4,  # 60% reduction
+            "dmz": 0.45,  # 55% reduction
+            "internal": 0.6,  # 40% reduction - internal FW less strict
+            "restricted": 0.4,  # 60% reduction
+        },
+        # Antivirus: Equally effective regardless of exposure
+        "antivirus": {
+            "internet-facing": 0.7,  # 30% reduction
+            "dmz": 0.7,  # 30% reduction
+            "internal": 0.7,  # 30% reduction
+            "restricted": 0.7,  # 30% reduction
+        },
+    }
+
+    # Default LRs for controls not in the conditional table
+    DEFAULT_LRS: dict[str, float] = {
+        "incident_response_plan": 0.7,
+        "security_training": 0.8,
+        "air_gapped": 0.05,
+    }
+
+    @classmethod
+    def get_lr(cls, control: str, exposure: str) -> float:
+        """
+        Get the likelihood ratio for a control given exposure context.
+
+        Args:
+            control: Security control name
+            exposure: Exposure type (internet-facing, dmz, internal, restricted)
+
+        Returns:
+            Likelihood ratio (< 1 means risk reduction)
+        """
+        exposure_lower = exposure.lower()
+
+        # Check if control has conditional LRs
+        if control in cls.CONDITIONAL_LRS:
+            conditional = cls.CONDITIONAL_LRS[control]
+            # Try exact match, then fallback to internal
+            if exposure_lower in conditional:
+                return conditional[exposure_lower]
+            return conditional.get("internal", 0.5)
+
+        # Check default LRs
+        if control in cls.DEFAULT_LRS:
+            return cls.DEFAULT_LRS[control]
+
+        # Unknown control - no effect
+        return 1.0
+
+
 # =============================================================================
 # PYDANTIC MODELS FOR CONFIGURATION
 # =============================================================================
@@ -476,8 +606,9 @@ class BayesianRiskAssessor:
         # Accumulate log likelihood ratios
         total_log_lr = 0.0
 
-        # 1. Apply security control LRs (always apply - controls reduce risk)
-        control_log_lr, control_factors = self._apply_control_lrs(controls)
+        # 1. Apply security control LRs (exposure-conditional)
+        # Controls have different effectiveness based on exposure context
+        control_log_lr, control_factors = self._apply_control_lrs(controls, exposure)
         total_log_lr += control_log_lr
         factors.extend(control_factors)
 
@@ -631,9 +762,23 @@ class BayesianRiskAssessor:
         return 1 / (1 + math.exp(-log_odds))
 
     def _apply_control_lrs(
-        self, controls: dict[str, bool]
+        self, controls: dict[str, bool], exposure: str = "internal"
     ) -> tuple[float, list[tuple[str, float, str]]]:
-        """Apply likelihood ratios for security controls."""
+        """
+        Apply likelihood ratios for security controls with exposure conditioning.
+
+        This implements a simplified form of conditional Bayes where control
+        effectiveness depends on the exposure context. For example:
+        - WAF is highly effective for internet-facing (LR=0.3, 70% reduction)
+        - WAF has minimal effect on internal services (LR=0.9, 10% reduction)
+
+        Args:
+            controls: Dictionary of control name -> present (bool)
+            exposure: Exposure context (internet-facing, dmz, internal, restricted)
+
+        Returns:
+            Tuple of (total log LR, list of contributing factors)
+        """
         total_log_lr = 0.0
         factors = []
 
@@ -656,16 +801,17 @@ class BayesianRiskAssessor:
                     )
                 continue
 
-            # Regular security control
-            lr = self.control_lrs.get(control, 1.0)
+            # Use exposure-conditional LR for security controls
+            lr = ExposureConditionalControlLR.get_lr(control, exposure)
             if lr != 1.0:
                 total_log_lr += math.log(lr)
                 control_name = control.replace("_", " ").title()
+                reduction = (1 - lr) * 100
                 factors.append(
                     (
                         f"Control: {control_name}",
                         lr,
-                        f"reduces risk by {(1 - lr) * 100:.0f}%",
+                        f"reduces risk by {reduction:.0f}% (for {exposure})",
                     )
                 )
 

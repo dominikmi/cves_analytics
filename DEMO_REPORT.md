@@ -9,37 +9,37 @@
 ================================================================================
 VULNERABILITY ASSESSMENT REPORT
 ================================================================================
-Generated: 2025-12-10 19:20:34
+Generated: 2025-12-10 19:38:10
 
 EXECUTIVE SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Scanned: 1484
-Average Exploitation Probability: 0.03%
-Average Uncertainty: ±5.38%
+Total Vulnerabilities Scanned: 1142
+Average Exploitation Probability: 0.04%
+Average Uncertainty: ±5.44%
 Business Risk Level: LOW
 
 Original Severity Distribution (Scanner Output):
-  Critical: 57 (3.8%)
-  High: 284 (19.1%)
-  Medium: 330 (22.2%)
-  Low: 62 (4.2%)
-  Negligible: 742 (50.0%)
-  Unknown: 9 (0.6%)
+  Critical: 83 (7.3%)
+  High: 376 (32.9%)
+  Medium: 414 (36.3%)
+  Low: 75 (6.6%)
+  Negligible: 185 (16.2%)
+  Unknown: 9 (0.8%)
 
 Bayesian Risk Assessment (After Analysis):
   Critical: 0 (0.0%)
   High: 0 (0.0%)
-  Medium: 44 (3.0%)
-  Low: 97 (6.5%)
-  Negligible: 1343 (90.5%)
+  Medium: 30 (2.6%)
+  Low: 124 (10.9%)
+  Negligible: 988 (86.5%)
 
-Actionable Vulnerabilities (Critical+High+Medium): 44
+Actionable Vulnerabilities (Critical+High+Medium): 30
 Critical/High Requiring Immediate Action: 0 (0.0%)
 
-Estimated Remediation Effort: 44 person-hours
-Recommended Timeline: 2 weeks
+Estimated Remediation Effort: 30 person-hours
+Recommended Timeline: 1 weeks
 
-Known Exploited Vulnerabilities (KEV): 10
+Known Exploited Vulnerabilities (KEV): 14
 Public Exploits Available: 0
 Metasploit Modules: 0
 High Exploitation Probability (EPSS>=0.5): 0
@@ -50,14 +50,14 @@ CRITICAL (Fix ASAP): 0 vulnerabilities
 
 HIGH PRIORITY (This Sprint): 0 vulnerabilities
 
-MEDIUM PRIORITY (Plan Fix): 44 vulnerabilities
-  1. CVE-2022-3647 - P(Exploit): 7.0%
-  2. CVE-2023-4039 - P(Exploit): 5.9%
-  3. CVE-2023-4039 - P(Exploit): 5.9%
-  4. CVE-2023-4039 - P(Exploit): 5.9%
-  5. CVE-2023-4039 - P(Exploit): 5.9%
+MEDIUM PRIORITY (Plan Fix): 30 vulnerabilities
+  1. CVE-2023-4863 - P(Exploit): 5.0%
+  2. CVE-2023-44487 - P(Exploit): 5.0%
+  3. CVE-2025-24528 - P(Exploit): 5.0%
+  4. CVE-2025-24528 - P(Exploit): 5.0%
+  5. CVE-2025-24528 - P(Exploit): 5.0%
 
-LOW PRIORITY (Backlog): 1440 vulnerabilities
+LOW PRIORITY (Backlog): 1112 vulnerabilities
 
 REMEDIATION ROADMAP
 --------------------------------------------------------------------------------
@@ -71,9 +71,9 @@ PHASE 2: High Priority (Weeks 2-2)
   Estimated Effort: 0 hours (1 weeks)
   Severity: High
 
-PHASE 3: Medium Priority (Weeks 3-4)
-  Vulnerabilities: 44
-  Estimated Effort: 44 hours (2 weeks)
+PHASE 3: Medium Priority (Weeks 3-3)
+  Vulnerabilities: 30
+  Estimated Effort: 30 hours (1 weeks)
   Severity: Medium
 
 SCANNED ENVIRONMENT (Simulated)
@@ -85,180 +85,145 @@ Environment Type: prod
 Security Maturity: defined
 
 Services Scanned: 7
-  - haproxy (load_balancer): haproxy:2.2 [internet-facing]
-  - apache-httpd (web_server): httpd:2.4 [internet-facing]
-  - php-fpm (app_server): php:7.4-fpm [internal]
-  - redis-cache (cache): redis:6.0 [internal]
+  - nginx-proxy (load_balancer): nginx:1.18 [internet-facing]
+  - nginx-web (web_server): nginx:1.18-alpine [internet-facing]
+  - python-flask (app_server): python:3.7-slim [internal]
+  - mysql-db (database): mysql:5.7 [internal]
   - openvpn (vpn): kylemanna/openvpn:latest [internet-facing]
-  - elasticsearch (siem_storage): elasticsearch:6.8 [internal]
+  - elasticsearch (siem_storage): elasticsearch:7.17 [internal]
   - metabase (bi_tool): metabase/metabase:v0.41 [internal]
 
 Active Security Controls: 9
-  network_segmentation, firewall, waf, ids_ips, antivirus, mfa, patch_monthly, incident_response_plan, security_training
+  network_segmentation, firewall, waf, ids_ips, edr_xdr, antivirus, mfa, patch_quarterly, incident_response_plan
 
 SCAN RESULTS SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Found: 1484
+Total Vulnerabilities Found: 1142
 
 Vulnerability Severity Distribution:
-  Negligible: 742
-  Medium: 330
-  High: 284
-  Low: 62
-  Critical: 57
+  Medium: 414
+  High: 376
+  Negligible: 185
+  Critical: 83
+  Low: 75
   Unknown: 9
 
 Original Severity → Bayesian Risk Assessment:
-  Critical: Low(14), Medium(0), Negligible(43), Total(57)
-  High: Low(31), Medium(10), Negligible(243), Total(284)
-  Low: Low(15), Medium(1), Negligible(46), Total(62)
-  Medium: Low(32), Medium(0), Negligible(298), Total(330)
-  Negligible: Low(5), Medium(24), Negligible(713), Total(742)
-  Unknown: Low(0), Medium(9), Negligible(0), Total(9)
-  Total: Low(97), Medium(44), Negligible(1343), Total(1484)
+  Critical: Low(15), Medium(0), Negligible(68), Total(83)
+  High: Low(53), Medium(17), Negligible(306), Total(376)
+  Low: Low(21), Medium(0), Negligible(54), Total(75)
+  Medium: Low(29), Medium(5), Negligible(380), Total(414)
+  Negligible: Low(6), Medium(3), Negligible(176), Total(185)
+  Unknown: Low(0), Medium(5), Negligible(4), Total(9)
+  Total: Low(124), Medium(30), Negligible(988), Total(1142)
 
 ATTACK SCENARIO & VULNERABILITY ANALYSIS
 --------------------------------------------------------------------------------
-Total Vulnerabilities: 1484
+Total Vulnerabilities: 1142
 
 Attack Graph Statistics:
   Nodes (CVEs): 200
-  Edges (Dependencies): 1424
-  Graph Density: 0.036
+  Edges (Dependencies): 1594
+  Graph Density: 0.040
   Is DAG: True
 
 Identified 10 potential attack paths:
-  1. Direct internet attack on haproxy via CVE-2025-6020
-     Target Asset: haproxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.78
-  2. Direct internet attack on apache-httpd via CVE-2025-3891
-     Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
-  3. Direct internet attack on apache-httpd via CVE-2025-59375
-     Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
-  4. Direct internet attack on apache-httpd via CVE-2025-7709
-     Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.69
-  5. Direct internet attack on apache-httpd via CVE-2025-14104
-     Target Asset: apache-httpd (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.61
-  6. Direct internet attack on openvpn via CVE-2021-28831
-     Target Asset: openvpn (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
-  7. Direct internet attack on openvpn via CVE-2025-66293
-     Target Asset: openvpn (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.71
-  8. Direct internet attack on openvpn via CVE-2025-64720
-     Target Asset: openvpn (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.71
-  9. Direct internet attack on openvpn via CVE-2025-65018
-     Target Asset: openvpn (Team: DEV)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.71
-  10. Direct internet attack on openvpn via CVE-2025-26519
-     Target Asset: openvpn (Team: DEV)
+  1. Direct internet attack on nginx-proxy via CVE-2021-46143
+     Target Asset: nginx-proxy (Team: DEVOPS)
      Risk Score: 10.0, Likelihood: 0, Impact: 0.81
+  2. Direct internet attack on nginx-proxy via CVE-2020-6096
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.81
+  3. Direct internet attack on nginx-proxy via CVE-2024-0553
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
+  4. Direct internet attack on nginx-proxy via CVE-2023-52356
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
+  5. Direct internet attack on nginx-proxy via CVE-2020-1752
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.7
+  6. Direct internet attack on nginx-proxy via CVE-2023-52355
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
+  7. Direct internet attack on nginx-proxy via CVE-2023-43787
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.78
+  8. Direct internet attack on nginx-proxy via CVE-2022-0908
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.77
+  9. Direct internet attack on nginx-proxy via CVE-2023-0800
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.68
+  10. Direct internet attack on nginx-proxy via CVE-2023-0801
+     Target Asset: nginx-proxy (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 0, Impact: 0.68
 
 TOP VULNERABILITIES BY BAYESIAN RISK
 --------------------------------------------------------------------------------
-1. CVE-2022-3647 in redis-cache (redis:6.0)
-   Bayesian Risk: Medium - P(Exploit): 7.0% [0.6%-13.5%]
-   Attack Category: denial_of_service
-   CVSS Score: 3.1
-   CWE: CWE-404
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: medium
-   Service Role: cache
-   Ownership: DBTEAM
-
-2. CVE-2023-4039 in haproxy (haproxy:2.2)
-   Bayesian Risk: Medium - P(Exploit): 5.9% [0.1%-11.8%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-3. CVE-2023-4039 in haproxy (haproxy:2.2)
-   Bayesian Risk: Medium - P(Exploit): 5.9% [0.1%-11.8%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-4. CVE-2023-4039 in haproxy (haproxy:2.2)
-   Bayesian Risk: Medium - P(Exploit): 5.9% [0.1%-11.8%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-5. CVE-2023-4039 in haproxy (haproxy:2.2)
-   Bayesian Risk: Medium - P(Exploit): 5.9% [0.1%-11.8%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-6. CVE-2023-4039 in redis-cache (redis:6.0)
-   Bayesian Risk: Medium - P(Exploit): 5.9% [0.0%-12.3%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: medium
-   Service Role: cache
-   Ownership: DBTEAM
-
-7. CVE-2023-4039 in redis-cache (redis:6.0)
-   Bayesian Risk: Medium - P(Exploit): 5.9% [0.0%-12.3%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: medium
-   Service Role: cache
-   Ownership: DBTEAM
-
-8. CVE-2023-4039 in redis-cache (redis:6.0)
-   Bayesian Risk: Medium - P(Exploit): 5.9% [0.0%-12.3%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: medium
-   Service Role: cache
-   Ownership: DBTEAM
-
-9. CVE-2025-9820 in haproxy (haproxy:2.2)
+1. CVE-2023-4863 in nginx-proxy (nginx:1.18)
    Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
+   Attack Category: buffer_overflow
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+2. CVE-2023-44487 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
+   Attack Category: denial_of_service
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+3. CVE-2023-44487 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
+   Attack Category: denial_of_service
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+4. CVE-2024-2961 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
+   CWE: CWE-787
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+5. CVE-2024-2961 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
+   CWE: CWE-787
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+6. CVE-2022-40303 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+7. CVE-2023-4039 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
+   Attack Category: denial_of_service
+   CVSS Score: 4.8
+   CWE: CWE-693
    Exploits Available: ExploitDB, Nuclei, GitHub PoC
    CISA KEV: Actively Exploited
    Exposure: internet-facing
@@ -266,118 +231,134 @@ TOP VULNERABILITIES BY BAYESIAN RISK
    Service Role: load_balancer
    Ownership: DEVOPS
 
-10. CVE-2025-9820 in apache-httpd (httpd:2.4)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
+8. CVE-2023-4039 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
+   Attack Category: denial_of_service
+   CVSS Score: 4.8
+   CWE: CWE-693
    Exploits Available: ExploitDB, Nuclei, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+9. CVE-2023-4039 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
+   Attack Category: denial_of_service
+   CVSS Score: 4.8
+   CWE: CWE-693
+   Exploits Available: ExploitDB, Nuclei, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+10. CVE-2022-40304 in nginx-proxy (nginx:1.18)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
+   Attack Category: memory_corruption
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: load_balancer
+   Ownership: DEVOPS
+
+11. CVE-2025-27363 in nginx-web (nginx:1.18-alpine)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.6%]
+   Attack Category: remote_code_execution, buffer_overflow
+   CVSS Score: 8.1
+   Exploits Available: GitHub PoC
    CISA KEV: Actively Exploited
    Exposure: internet-facing
    Asset Value: high
    Service Role: web_server
    Ownership: DEV
 
-11. CVE-2023-4911 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.9%]
-   Attack Category: buffer_overflow
-   CVSS Score: 7.8
-   CWE: CWE-122
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-12. CVE-2023-4911 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.9%]
-   Attack Category: buffer_overflow
-   CVSS Score: 7.8
-   CWE: CWE-122
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-13. CVE-2023-4911 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.9%]
-   Attack Category: buffer_overflow
-   CVSS Score: 7.8
-   CWE: CWE-122
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-14. CVE-2023-4911 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.9%]
-   Attack Category: buffer_overflow
-   CVSS Score: 7.8
-   CWE: CWE-122
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-15. CVE-2023-44487 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
+12. CVE-2023-44487 in nginx-web (nginx:1.18-alpine)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
    Attack Category: denial_of_service
    Exploits Available: ExploitDB, GitHub PoC
    CISA KEV: Actively Exploited
-   Exposure: internal
+   Exposure: internet-facing
    Asset Value: high
-   Service Role: app_server
+   Service Role: web_server
    Ownership: DEV
 
-16. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
-   CWE: CWE-787
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-17. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
-   CWE: CWE-787
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-18. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
-   CWE: CWE-787
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-19. CVE-2024-2961 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
-   CWE: CWE-787
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-20. CVE-2023-4039 in php-fpm (php:7.4-fpm)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.9%]
+13. CVE-2023-44487 in nginx-web (nginx:1.18-alpine)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
    Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+14. CVE-2023-4911 in python-flask (python:3.7-slim)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
+   Attack Category: buffer_overflow
+   CVSS Score: 7.8
+   CWE: CWE-122
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: high
+   Service Role: app_server
+   Ownership: DEV
+
+15. CVE-2023-4911 in python-flask (python:3.7-slim)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
+   Attack Category: buffer_overflow
+   CVSS Score: 7.8
+   CWE: CWE-122
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: high
+   Service Role: app_server
+   Ownership: DEV
+
+16. CVE-2024-2961 in python-flask (python:3.7-slim)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
+   CWE: CWE-787
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: high
+   Service Role: app_server
+   Ownership: DEV
+
+17. CVE-2024-2961 in python-flask (python:3.7-slim)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
+   CWE: CWE-787
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: high
+   Service Role: app_server
+   Ownership: DEV
+
+18. GHSA-cx63-2mw6-8hw5 in python-flask (python:3.7-slim)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
+   Exploits Available: ExploitDB, Nuclei, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: high
+   Service Role: app_server
+   Ownership: DEV
+
+19. GHSA-r9hx-vwmv-q579 in python-flask (python:3.7-slim)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
+   Exploits Available: ExploitDB, Nuclei, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: high
+   Service Role: app_server
+   Ownership: DEV
+
+20. GHSA-5rjg-fvgr-3xxf in python-flask (python:3.7-slim)
+   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
    Exploits Available: ExploitDB, Nuclei, GitHub PoC
    CISA KEV: Actively Exploited
    Exposure: internal
@@ -389,9 +370,8 @@ TOP VULNERABILITIES BY BAYESIAN RISK
 TEAM-BASED BAYESIAN RISK HEATMAP
 --------------------------------------------------------------------------------
 Ownership\Risk      Medium     Low        Negligible Total     
-DBTEAM              6          21         189        216       
-DEV                 33         69         1037       1139      
-DEVOPS              5          7          117        129       
-Total               44         97         1343       1484      
+DEV                 20         68         504        592       
+DEVOPS              10         56         484        550       
+Total               30         124        988        1142      
 
 ================================================================================```
