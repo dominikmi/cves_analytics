@@ -18,8 +18,7 @@ logger = get_logger(__name__)
 
 @error_handler()
 def download_epss_scores(date: str, directory: str) -> str | None:
-    """
-    Download EPSS scores for a given date and ungzip it.
+    """Download EPSS scores for a given date and ungzip it.
 
     Args:
         date: Date string in format "YYYY-MM-DD"
@@ -27,6 +26,7 @@ def download_epss_scores(date: str, directory: str) -> str | None:
 
     Returns:
         Path to unzipped file or None if download failed
+
     """
     # Ensure directory ends with /EPSS
     dir_path = Path(directory)
@@ -37,7 +37,7 @@ def download_epss_scores(date: str, directory: str) -> str | None:
 
     # Download for yesterday (EPSS publishes data with 1-day delay)
     yesterday = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime(
-        "%Y-%m-%d"
+        "%Y-%m-%d",
     )
     file_path = dir_path / f"epss_scores-{yesterday}.csv.gz"
     unzipped_path = file_path.with_suffix("")
@@ -46,7 +46,7 @@ def download_epss_scores(date: str, directory: str) -> str | None:
         # Check if unzipped file already exists
         if unzipped_path.exists():
             logger.info(
-                f"EPSS scores already exist at {unzipped_path}, skipping download"
+                f"EPSS scores already exist at {unzipped_path}, skipping download",
             )
             return str(unzipped_path)
 
@@ -80,10 +80,11 @@ def download_epss_scores(date: str, directory: str) -> str | None:
 
 @error_handler()
 async def _download_epss_async(
-    session: aiohttp.ClientSession, date: str, directory: str
+    session: aiohttp.ClientSession,
+    date: str,
+    directory: str,
 ) -> str | None:
-    """
-    Async helper to download a single EPSS file.
+    """Async helper to download a single EPSS file.
 
     Args:
         session: aiohttp session
@@ -92,12 +93,13 @@ async def _download_epss_async(
 
     Returns:
         Path to downloaded file or None if failed
+
     """
     dir_path = Path(directory) / "EPSS"
     dir_path.mkdir(parents=True, exist_ok=True)
 
     yesterday = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime(
-        "%Y-%m-%d"
+        "%Y-%m-%d",
     )
     file_path = dir_path / f"epss_scores-{yesterday}.csv.gz"
     unzipped_path = file_path.with_suffix("")
@@ -128,8 +130,7 @@ async def _download_epss_async(
 
 @error_handler()
 def download_epss_scores_for_months(months: int, directory: str) -> list[str]:
-    """
-    Download EPSS scores for a given number of months back from today (async).
+    """Download EPSS scores for a given number of months back from today (async).
 
     Args:
         months: Number of months to go back
@@ -137,6 +138,7 @@ def download_epss_scores_for_months(months: int, directory: str) -> list[str]:
 
     Returns:
         List of downloaded file paths
+
     """
     today_date = datetime.now().strftime("%Y-%m-%d")
     dir_path = Path(directory) / "EPSS"
@@ -181,8 +183,7 @@ def download_epss_scores_for_months(months: int, directory: str) -> list[str]:
 
 @error_handler()
 def epss_time_machine(number: int, directory: str, unit: str = "months") -> list[str]:
-    """
-    Download EPSS scores for a given number of months or days back from today.
+    """Download EPSS scores for a given number of months or days back from today.
 
     Args:
         number: Number of time units to go back
@@ -191,6 +192,7 @@ def epss_time_machine(number: int, directory: str, unit: str = "months") -> list
 
     Returns:
         List of downloaded file paths
+
     """
     dir_path = Path(directory) / "EPSS"
     dir_path.mkdir(parents=True, exist_ok=True)

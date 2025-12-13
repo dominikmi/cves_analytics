@@ -19,28 +19,28 @@ CWE_SEMAPHORE = asyncio.Semaphore(4)
 
 
 def _get_cwe_cache_file(data_dir: str) -> Path:
-    """
-    Get the CWE baseline cache file path for today.
+    """Get the CWE baseline cache file path for today.
 
     Args:
         data_dir: Data directory path
 
     Returns:
         Path to CWE baseline cache file
+
     """
     today = datetime.now().strftime("%Y-%m-%d")
     return Path(data_dir) / f"CWE_baseline_{today}.json"
 
 
 def _load_cwe_cache(cache_file: Path) -> dict[str, Any]:
-    """
-    Load CWE cache from disk.
+    """Load CWE cache from disk.
 
     Args:
         cache_file: Path to cache file
 
     Returns:
         Dictionary with cached CWE data or empty dict if not found
+
     """
     if not cache_file.exists():
         return {}
@@ -56,12 +56,12 @@ def _load_cwe_cache(cache_file: Path) -> dict[str, Any]:
 
 
 def _save_cwe_cache(cache_file: Path, cache: dict[str, Any]) -> None:
-    """
-    Save CWE cache to disk.
+    """Save CWE cache to disk.
 
     Args:
         cache_file: Path to cache file
         cache: Dictionary with CWE data to save
+
     """
     try:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
@@ -73,14 +73,14 @@ def _save_cwe_cache(cache_file: Path, cache: dict[str, Any]) -> None:
 
 
 def _list_to_csv(items: list[str] | None) -> str:
-    """
-    Convert a list of strings to a comma-separated string.
+    """Convert a list of strings to a comma-separated string.
 
     Args:
         items: List of items to convert
 
     Returns:
         Comma-separated string or "not_found" if empty
+
     """
     if not items:
         return "not_found"
@@ -88,10 +88,10 @@ def _list_to_csv(items: list[str] | None) -> str:
 
 
 async def _fetch_cwe_async(
-    session: aiohttp.ClientSession, cwe_id: str
+    session: aiohttp.ClientSession,
+    cwe_id: str,
 ) -> dict[str, Any]:
-    """
-    Async fetch CWE data from MITRE API with semaphore.
+    """Async fetch CWE data from MITRE API with semaphore.
 
     Args:
         session: aiohttp session
@@ -99,6 +99,7 @@ async def _fetch_cwe_async(
 
     Returns:
         Dictionary with CWE metadata
+
     """
     # Handle special cases
     if cwe_id in ["not_found", "NVD-CWE-noinfo", "NVD-CWE-Other"] or not cwe_id:
@@ -180,14 +181,14 @@ async def _fetch_cwe_async(
 
 
 def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
-    """
-    Get CWE name and description from MITRE CWE API (sync wrapper).
+    """Get CWE name and description from MITRE CWE API (sync wrapper).
 
     Args:
         cwe_id: CWE identifier (e.g., "CWE-79")
 
     Returns:
         Dictionary with CWE metadata
+
     """
     # Handle special cases and NaN values
     import pandas as pd
@@ -286,10 +287,10 @@ def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
 
 @error_handler()
 async def enrich_cwe_data_async(
-    cwe_ids: list[str], data_dir: str
+    cwe_ids: list[str],
+    data_dir: str,
 ) -> dict[str, dict[str, Any]]:
-    """
-    Enrich CWE data asynchronously with disk caching.
+    """Enrich CWE data asynchronously with disk caching.
 
     Args:
         cwe_ids: List of unique CWE IDs to enrich
@@ -297,6 +298,7 @@ async def enrich_cwe_data_async(
 
     Returns:
         Dictionary mapping CWE ID to enriched data
+
     """
     cache_file = _get_cwe_cache_file(data_dir)
     cache = _load_cwe_cache(cache_file)
@@ -305,7 +307,7 @@ async def enrich_cwe_data_async(
     cwe_ids_to_fetch = [cwe_id for cwe_id in cwe_ids if cwe_id not in cache]
 
     logger.info(
-        f"CWE enrichment: {len(cache)} cached, {len(cwe_ids_to_fetch)} to fetch"
+        f"CWE enrichment: {len(cache)} cached, {len(cwe_ids_to_fetch)} to fetch",
     )
 
     # Fetch missing CWEs asynchronously

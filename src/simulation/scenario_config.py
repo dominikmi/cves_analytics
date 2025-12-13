@@ -91,7 +91,7 @@ class ScenarioConfig:
                 "test": -2,
                 "dev": -2,
             },
-        }
+        },
     )
 
     def __post_init__(self) -> None:
@@ -121,8 +121,7 @@ class ScenarioConfig:
         industry: str,
         environment: str,
     ) -> str:
-        """
-        Calculate security maturity level based on organization characteristics.
+        """Calculate security maturity level based on organization characteristics.
 
         Args:
             size: Organization size (small, mid, large)
@@ -132,6 +131,7 @@ class ScenarioConfig:
 
         Returns:
             Maturity level string (initial, developing, defined, managed, optimizing)
+
         """
         maturity_levels = ["initial", "developing", "defined", "managed", "optimizing"]
 

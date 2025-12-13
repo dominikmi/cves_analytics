@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-CVSS Vector and EPSS Score-based Vulnerability Reassessment Module.
+"""CVSS Vector and EPSS Score-based Vulnerability Reassessment Module.
 
 This module provides comprehensive criteria for reassessing vulnerability severity
 based on CVSS vectors and EPSS scores, moving beyond simple score thresholds to
@@ -54,8 +53,7 @@ class CVSSValue(str, Enum):
 
 
 def validate_risk_factor(factor: float | None, name: str = "risk_factor") -> float:
-    """
-    Validate and normalize risk factor.
+    """Validate and normalize risk factor.
 
     Args:
         factor: Risk factor value
@@ -63,6 +61,7 @@ def validate_risk_factor(factor: float | None, name: str = "risk_factor") -> flo
 
     Returns:
         Validated factor in range [0.5, 3.0], or 1.0 if invalid
+
     """
     if factor is None or pd.isna(factor):
         return 1.0
@@ -75,7 +74,7 @@ def validate_risk_factor(factor: float | None, name: str = "risk_factor") -> flo
 
     if not (0.5 <= factor <= 3.0):
         logger.warning(
-            f"{name} out of valid range [0.5, 3.0]: {factor}, clamping to 1.0"
+            f"{name} out of valid range [0.5, 3.0]: {factor}, clamping to 1.0",
         )
         return 1.0
 
@@ -83,14 +82,14 @@ def validate_risk_factor(factor: float | None, name: str = "risk_factor") -> flo
 
 
 def normalize_epss(epss: float | None) -> float:
-    """
-    Validate and normalize EPSS score.
+    """Validate and normalize EPSS score.
 
     Args:
         epss: EPSS score (should be 0-1, but may be 0-100 percentage)
 
     Returns:
         Normalized EPSS in range [0, 1], or 0.0 if invalid
+
     """
     if epss is None or pd.isna(epss):
         return 0.0
@@ -104,7 +103,7 @@ def normalize_epss(epss: float | None) -> float:
     # If EPSS > 1, assume it's a percentage and normalize
     if epss > 1.0:
         logger.debug(
-            f"EPSS appears to be percentage: {epss}, normalizing to {epss / 100.0}"
+            f"EPSS appears to be percentage: {epss}, normalizing to {epss / 100.0}",
         )
         epss = epss / 100.0
 
@@ -116,14 +115,14 @@ def normalize_epss(epss: float | None) -> float:
 
 
 def validate_cvss_vector(vector: str | None) -> bool:
-    """
-    Validate CVSS vector string format and components.
+    """Validate CVSS vector string format and components.
 
     Args:
         vector: CVSS vector string (e.g., "CVSS:3.1/AV:N/AC:L/...")
 
     Returns:
         True if vector is valid, False otherwise
+
     """
     if not vector or not isinstance(vector, str):
         return False
@@ -165,8 +164,7 @@ def validate_cvss_vector(vector: str | None) -> bool:
 
 
 class CVSSEPSSReassessment:
-    """
-    Reassess vulnerability severity using CVSS vectors and EPSS scores.
+    """Reassess vulnerability severity using CVSS vectors and EPSS scores.
 
     Criteria for Critical Classification:
     =====================================
@@ -223,8 +221,7 @@ class CVSSEPSSReassessment:
         exposure_risk_factor: float = 1.0,
         asset_value_risk_factor: float = 1.0,
     ) -> tuple[str, str]:
-        """
-        Reassess vulnerability severity based on CVSS, EPSS, and environment context criteria.
+        """Reassess vulnerability severity based on CVSS, EPSS, and environment context criteria.
 
         Args:
             cvss_score: CVSS base score (0-10)
@@ -236,6 +233,7 @@ class CVSSEPSSReassessment:
 
         Returns:
             Tuple of (severity_level, justification)
+
         """
         # Handle missing data
         if cvss_score is None or pd.isna(cvss_score):
@@ -263,15 +261,18 @@ class CVSSEPSSReassessment:
 
         # Validate and normalize risk factors
         exposure_risk_factor = validate_risk_factor(
-            exposure_risk_factor, "exposure_risk_factor"
+            exposure_risk_factor,
+            "exposure_risk_factor",
         )
         asset_value_risk_factor = validate_risk_factor(
-            asset_value_risk_factor, "asset_value_risk_factor"
+            asset_value_risk_factor,
+            "asset_value_risk_factor",
         )
 
         # Apply environment context factors to adjust the effective CVSS score
         adjusted_cvss_score = min(
-            10.0, cvss_score * exposure_risk_factor * asset_value_risk_factor
+            10.0,
+            cvss_score * exposure_risk_factor * asset_value_risk_factor,
         )
 
         # Add justification for environment factors if they're significant
@@ -281,7 +282,10 @@ class CVSSEPSSReassessment:
 
         # Apply reassessment criteria with adjusted score
         severity, justification = self._apply_critical_criteria(
-            adjusted_cvss_score, components, epss, is_kev
+            adjusted_cvss_score,
+            components,
+            epss,
+            is_kev,
         )
 
         if severity == "Critical":
@@ -289,7 +293,10 @@ class CVSSEPSSReassessment:
 
         # Apply high severity criteria
         severity, justification = self._apply_high_criteria(
-            adjusted_cvss_score, components, epss, is_kev
+            adjusted_cvss_score,
+            components,
+            epss,
+            is_kev,
         )
 
         if severity == "High":
@@ -297,7 +304,9 @@ class CVSSEPSSReassessment:
 
         # Apply medium severity criteria
         severity, justification = self._apply_medium_criteria(
-            adjusted_cvss_score, components, epss
+            adjusted_cvss_score,
+            components,
+            epss,
         )
 
         if severity == "Medium":
@@ -305,7 +314,9 @@ class CVSSEPSSReassessment:
 
         # Apply low severity criteria
         severity, justification = self._apply_low_criteria(
-            adjusted_cvss_score, components, epss
+            adjusted_cvss_score,
+            components,
+            epss,
         )
 
         return severity, justification + environment_justification
@@ -318,7 +329,6 @@ class CVSSEPSSReassessment:
         is_kev: bool,
     ) -> tuple[str, str]:
         """Apply CRITICAL severity criteria."""
-
         # Criterion 1: High CVSS + High EPSS
         if cvss_score >= 9.0 and epss_score >= 0.5:
             return (
@@ -408,7 +418,6 @@ class CVSSEPSSReassessment:
         is_kev: bool,
     ) -> tuple[str, str]:
         """Apply HIGH severity criteria."""
-
         # High CVSS score (standard CVSS-based assessment)
         if cvss_score >= 7.0:
             if epss_score >= 0.5:
@@ -461,7 +470,6 @@ class CVSSEPSSReassessment:
         epss_score: float,
     ) -> tuple[str, str]:
         """Apply MEDIUM severity criteria."""
-
         # Moderate CVSS (standard CVSS-based assessment)
         if cvss_score >= 4.0:
             if epss_score >= 0.4:
@@ -490,7 +498,6 @@ class CVSSEPSSReassessment:
         epss_score: float,
     ) -> tuple[str, str]:
         """Apply LOW severity criteria."""
-
         # Low CVSS with Low EPSS
         if cvss_score < 4.0 and epss_score < 0.3:
             return (
@@ -523,14 +530,13 @@ class CVSSEPSSReassessment:
         """Get default severity based on CVSS score."""
         if cvss_score >= 9.0:
             return "Critical"
-        elif cvss_score >= 7.0:
+        if cvss_score >= 7.0:
             return "High"
-        elif cvss_score >= 4.0:
+        if cvss_score >= 4.0:
             return "Medium"
-        elif cvss_score >= 0.1:
+        if cvss_score >= 0.1:
             return "Low"
-        else:
-            return "Negligible"
+        return "Negligible"
 
 
 def reassess_vulnerabilities(
@@ -543,8 +549,7 @@ def reassess_vulnerabilities(
     asset_value_risk_factor_col: str | None = None,
     original_severity_col: str | None = None,
 ) -> pd.DataFrame:
-    """
-    Reassess all vulnerabilities in a DataFrame.
+    """Reassess all vulnerabilities in a DataFrame.
 
     Args:
         df: DataFrame with vulnerability data
@@ -557,6 +562,7 @@ def reassess_vulnerabilities(
 
     Returns:
         DataFrame with added 'severity_reassessed' and 'reassessment_reason' columns
+
     """
     reassessor = CVSSEPSSReassessment()
 
@@ -605,13 +611,13 @@ def reassess_vulnerabilities(
     logger.info("Reassessing vulnerabilities based on CVSS vectors and EPSS scores...")
     logger.info(f"  Available columns: {list(df.columns)}")
     logger.info(
-        f"  CVSS score column: {cvss_score_col} (exists: {cvss_score_col in df.columns})"
+        f"  CVSS score column: {cvss_score_col} (exists: {cvss_score_col in df.columns})",
     )
     logger.info(
-        f"  CVSS vector column: {cvss_vector_col} (exists: {cvss_vector_col in df.columns})"
+        f"  CVSS vector column: {cvss_vector_col} (exists: {cvss_vector_col in df.columns})",
     )
     logger.info(
-        f"  EPSS score column: {epss_score_col} (exists: {epss_score_col in df.columns})"
+        f"  EPSS score column: {epss_score_col} (exists: {epss_score_col in df.columns})",
     )
 
     results = df.apply(reassess_row, axis=1, result_type="expand")
@@ -625,7 +631,7 @@ def reassess_vulnerabilities(
 
     logger.info(
         f"Reassessment complete. Critical: {critical_count}, High: {high_count}, "
-        f"Medium: {medium_count}, Unknown: {unknown_count}"
+        f"Medium: {medium_count}, Unknown: {unknown_count}",
     )
 
     return df

@@ -234,14 +234,14 @@ class SimSystem:
         win_svs: dict[str, float] | None = None,
         lin_svs: dict[str, float] | None = None,
     ):
-        """
-        Initialize the system simulator.
+        """Initialize the system simulator.
 
         Args:
             os_p_weights: OS probability weights
             sys_p_weights: System posture probability weights
             win_svs: Windows server versions and weights
             lin_svs: Linux server versions and weights
+
         """
         self.os_p_weights = os_p_weights or OS_P_WEIGHTS
         self.sys_p_weights = sys_p_weights or SYSTEM_POSTURE_P_WEIGHTS
@@ -262,11 +262,11 @@ class SimSystem:
         return f"System: {self.hostname} - Group: {self.group} - OS: {self.os}"
 
     def generate_random_system(self) -> dict[str, Any]:
-        """
-        Randomly generate a system configuration.
+        """Randomly generate a system configuration.
 
         Returns:
             Dictionary with system configuration
+
         """
         fake = Faker()
 

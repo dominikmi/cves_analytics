@@ -1,5 +1,4 @@
-"""
-Risk scoring module for vulnerability prioritization.
+"""Risk scoring module for vulnerability prioritization.
 
 This module provides Bayesian risk assessment for vulnerabilities, replacing
 the previous multiplicative weight approach with a principled probabilistic
@@ -43,8 +42,7 @@ def calculate_bayesian_risk(
     row: dict[str, Any],
     assessor: BayesianRiskAssessor | None = None,
 ) -> BayesianRiskResult:
-    """
-    Calculate Bayesian risk score for a vulnerability.
+    """Calculate Bayesian risk score for a vulnerability.
 
     This is the new primary risk scoring function that uses a principled
     Bayesian approach instead of arbitrary multiplicative weights.
@@ -63,6 +61,7 @@ def calculate_bayesian_risk(
 
     Returns:
         BayesianRiskResult with posterior probability and uncertainty
+
     """
     if assessor is None:
         assessor = BayesianRiskAssessor()
@@ -83,7 +82,7 @@ def calculate_bayesian_risk(
                 k: bool(v)
                 for k, v in security_controls.items()
                 if k in SecurityControlsInput.model_fields
-            }
+            },
         )
     else:
         controls = None
@@ -131,8 +130,7 @@ def add_bayesian_risk_scores(
     security_controls_col: str | None = "security_controls",
     config: LikelihoodRatioConfig | None = None,
 ) -> pd.DataFrame:
-    """
-    Add Bayesian risk scores to enriched results DataFrame.
+    """Add Bayesian risk scores to enriched results DataFrame.
 
     This is the new primary function for adding risk scores. It adds:
     - bayesian_risk_score: P(Exploitation | Evidence) - main risk metric
@@ -149,6 +147,7 @@ def add_bayesian_risk_scores(
 
     Returns:
         DataFrame with added Bayesian risk columns
+
     """
     if enriched_results.empty:
         return enriched_results
@@ -173,8 +172,7 @@ def add_bayesian_risk_scores(
 def categorize_by_bayesian_risk(
     enriched_results: pd.DataFrame,
 ) -> dict[str, pd.DataFrame]:
-    """
-    Categorize vulnerabilities by Bayesian risk category.
+    """Categorize vulnerabilities by Bayesian risk category.
 
     Uses the risk_category column from Bayesian assessment.
 
@@ -183,6 +181,7 @@ def categorize_by_bayesian_risk(
 
     Returns:
         Dictionary with keys 'critical', 'high', 'medium', 'low', 'negligible'
+
     """
     if enriched_results.empty:
         return {
@@ -211,7 +210,8 @@ def categorize_by_bayesian_risk(
             enriched_results["risk_category"] == "Medium"
         ].sort_values(sort_col, ascending=False),
         "low": enriched_results[enriched_results["risk_category"] == "Low"].sort_values(
-            sort_col, ascending=False
+            sort_col,
+            ascending=False,
         ),
         "negligible": enriched_results[
             enriched_results["risk_category"] == "Negligible"
@@ -227,8 +227,7 @@ def categorize_by_bayesian_risk(
 
 
 def calculate_risk_score(row: dict[str, Any]) -> float:
-    """
-    Calculate risk score for a vulnerability (legacy interface).
+    """Calculate risk score for a vulnerability (legacy interface).
 
     DEPRECATED: Use calculate_bayesian_risk() for the new Bayesian approach.
 
@@ -240,6 +239,7 @@ def calculate_risk_score(row: dict[str, Any]) -> float:
 
     Returns:
         Risk score (0-10) - scaled from Bayesian posterior probability
+
     """
     try:
         result = calculate_bayesian_risk(row)
@@ -252,8 +252,7 @@ def calculate_risk_score(row: dict[str, Any]) -> float:
 
 
 def _legacy_calculate_risk_score(row: dict[str, Any]) -> float:
-    """
-    Legacy risk score calculation (fallback only).
+    """Legacy risk score calculation (fallback only).
 
     This is the original multiplicative weight approach, kept as fallback.
     """
@@ -307,8 +306,7 @@ def _legacy_calculate_risk_score(row: dict[str, Any]) -> float:
 
 
 def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add risk scores to enriched results DataFrame (legacy interface).
+    """Add risk scores to enriched results DataFrame (legacy interface).
 
     This function now uses the Bayesian approach and adds both:
     - risk_score: Legacy 0-10 scale (for backward compatibility)
@@ -320,6 +318,7 @@ def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         DataFrame with added risk score columns
+
     """
     if enriched_results.empty:
         return enriched_results
@@ -335,7 +334,7 @@ def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
             ).round(2)
 
         logger.info(
-            f"Added Bayesian risk scores to {len(enriched_results)} vulnerabilities"
+            f"Added Bayesian risk scores to {len(enriched_results)} vulnerabilities",
         )
 
         # Log risk distribution
@@ -347,7 +346,8 @@ def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
         logger.error(f"Failed to calculate Bayesian risk scores: {e}")
         # Fallback to legacy calculation
         enriched_results["risk_score"] = enriched_results.apply(
-            _legacy_calculate_risk_score, axis=1
+            _legacy_calculate_risk_score,
+            axis=1,
         )
         enriched_results["risk_category"] = pd.cut(
             enriched_results["risk_score"],
@@ -359,8 +359,7 @@ def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
 
 
 def categorize_by_risk(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """
-    Categorize vulnerabilities by risk level (legacy interface).
+    """Categorize vulnerabilities by risk level (legacy interface).
 
     This function now uses Bayesian risk categories but maps them to the
     legacy category names for backward compatibility.
@@ -370,6 +369,7 @@ def categorize_by_risk(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame
 
     Returns:
         Dictionary with keys 'critical', 'important', 'monitor', 'low'
+
     """
     if enriched_results.empty:
         return {
@@ -410,7 +410,8 @@ def categorize_by_risk(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame
 
     return {
         "critical": enriched_results[enriched_results["risk_score"] >= 8.0].sort_values(
-            "risk_score", ascending=False
+            "risk_score",
+            ascending=False,
         ),
         "important": enriched_results[
             (enriched_results["risk_score"] >= 6.0)
@@ -421,6 +422,7 @@ def categorize_by_risk(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame
             & (enriched_results["risk_score"] < 6.0)
         ].sort_values("risk_score", ascending=False),
         "low": enriched_results[enriched_results["risk_score"] < 4.0].sort_values(
-            "risk_score", ascending=False
+            "risk_score",
+            ascending=False,
         ),
     }

@@ -10,8 +10,7 @@ def setup_logger(
     log_dir: str = "logs",
     level: int = logging.DEBUG,
 ) -> logging.Logger:
-    """
-    Set up a logger with both console and file handlers.
+    """Set up a logger with both console and file handlers.
 
     Args:
         name: Logger name (typically __name__)
@@ -20,6 +19,7 @@ def setup_logger(
 
     Returns:
         Configured logger instance
+
     """
     # Create log directory if it doesn't exist
     log_path = Path(log_dir)
@@ -35,7 +35,7 @@ def setup_logger(
 
     # Create formatters
     formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     # Console handler (INFO level)
@@ -58,13 +58,13 @@ def setup_logger(
 
 
 def get_logger(name: str) -> logging.Logger:
-    """
-    Get or create a logger with the given name.
+    """Get or create a logger with the given name.
 
     Args:
         name: Logger name (typically __name__)
 
     Returns:
         Logger instance
+
     """
     return logging.getLogger(name)

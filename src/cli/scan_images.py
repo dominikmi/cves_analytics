@@ -22,7 +22,7 @@ load_dotenv(dotenv_path=env_path)
 def main() -> None:
     """Main entry point for Docker image scanning."""
     parser = argparse.ArgumentParser(
-        description="Scan Docker images for vulnerabilities with Grype"
+        description="Scan Docker images for vulnerabilities with Grype",
     )
     parser.add_argument("-r", "--registry", required=False, help="Docker registry URL")
     parser.add_argument("-i", "--image", required=False, help="Docker image name")
@@ -57,7 +57,8 @@ def main() -> None:
 
     # Initialize scanner
     scanner = DockerImageScanner(
-        registry_url=args.registry, grype_binary_path=grype_binary_path
+        registry_url=args.registry,
+        grype_binary_path=grype_binary_path,
     )
 
     results = []

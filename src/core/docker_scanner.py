@@ -22,37 +22,37 @@ class DockerImageScanner:
         registry_url: str | None = None,
         grype_binary_path: str | None = None,
     ):
-        """
-        Initialize the Docker image scanner.
+        """Initialize the Docker image scanner.
 
         Args:
             registry_url: URL of the Docker registry
             grype_binary_path: Path to Grype binary
+
         """
         self.registry_url = registry_url
         self.grype_binary_path = grype_binary_path
         try:
             if self.registry_url:
                 logger.info(
-                    f"Initialized DockerImageScanner with registry URL: {self.registry_url}"
+                    f"Initialized DockerImageScanner with registry URL: {self.registry_url}",
                 )
             else:
                 logger.info(
-                    f"Initialized DockerImageScanner for local images with Grype path: {self.grype_binary_path}"
+                    f"Initialized DockerImageScanner for local images with Grype path: {self.grype_binary_path}",
                 )
         except Exception as e:
             logger.error(f"Failed to initialize DockerImageScanner: {e}")
 
     @error_handler()
     def list_images_and_tags(self, tls_verify: bool = False) -> dict[str, list[str]]:
-        """
-        Get images and tags from a Docker registry.
+        """Get images and tags from a Docker registry.
 
         Args:
             tls_verify: Whether to verify TLS certificates
 
         Returns:
             Dictionary mapping repository names to tag lists
+
         """
         if not self.registry_url:
             logger.error("Registry URL not provided")
@@ -84,27 +84,30 @@ class DockerImageScanner:
             return {}
 
     def scan_image_with_grype(self, image_name: str) -> pd.DataFrame:
-        """
-        Scan a Docker image with Grype and return results as DataFrame.
+        """Scan a Docker image with Grype and return results as DataFrame.
 
         Args:
             image_name: Name of the Docker image to scan
 
         Returns:
             DataFrame with vulnerability scan results
+
         """
         try:
             cmd = [self.grype_binary_path, image_name, "--output", "json"]
             logging.debug(f"Running: {cmd}")
 
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=300
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,
             )  # 5 minute timeout
 
             if result.returncode != 0:
                 logging.warning(
                     f"Grype returned non-zero exit code {result.returncode} "
-                    f"for {image_name}: {result.stderr}"
+                    f"for {image_name}: {result.stderr}",
                 )
                 return pd.DataFrame()
 
@@ -158,14 +161,14 @@ class DockerImageScanner:
             return pd.DataFrame()
 
     async def scan_images_concurrently(self, image_names: list[str]) -> pd.DataFrame:
-        """
-        Scan multiple Docker images concurrently with rate limiting.
+        """Scan multiple Docker images concurrently with rate limiting.
 
         Args:
             image_names: List of Docker image names to scan
 
         Returns:
             DataFrame with all vulnerability scan results
+
         """
         try:
             config = get_config()
@@ -179,7 +182,9 @@ class DockerImageScanner:
             async with semaphore:
                 loop = asyncio.get_event_loop()
                 return await loop.run_in_executor(
-                    None, self.scan_image_with_grype, image_name
+                    None,
+                    self.scan_image_with_grype,
+                    image_name,
                 )
 
         # Create tasks for all images

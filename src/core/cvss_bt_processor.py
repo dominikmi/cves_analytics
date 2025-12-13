@@ -26,12 +26,12 @@ class CVSSBTProcessor:
     """Processor for CVSS-BT dataset."""
 
     def __init__(self, data_dir: str | Path, cache_days: int = 1):
-        """
-        Initialize the CVSS-BT processor.
+        """Initialize the CVSS-BT processor.
 
         Args:
             data_dir: Directory to store downloaded data
             cache_days: Number of days to cache the data before re-downloading
+
         """
         self.data_dir = Path(data_dir)
         self.cache_days = cache_days
@@ -54,14 +54,14 @@ class CVSSBTProcessor:
         return age_days < self.cache_days
 
     def download(self, force: bool = False) -> Path | None:
-        """
-        Download the CVSS-BT dataset.
+        """Download the CVSS-BT dataset.
 
         Args:
             force: Force download even if cache is valid
 
         Returns:
             Path to the downloaded file, or None if download failed
+
         """
         cache_path = self._get_cache_path()
 
@@ -90,14 +90,14 @@ class CVSSBTProcessor:
             return None
 
     def load(self, force_download: bool = False) -> pd.DataFrame:
-        """
-        Load the CVSS-BT dataset.
+        """Load the CVSS-BT dataset.
 
         Args:
             force_download: Force re-download of the data
 
         Returns:
             DataFrame with CVSS-BT data
+
         """
         file_path = self.download(force=force_download)
 
@@ -125,7 +125,7 @@ class CVSSBTProcessor:
                     "metasploit": "has_metasploit",
                     "nuclei": "has_nuclei",
                     "poc_github": "has_poc_github",
-                }
+                },
             )
 
             # Convert boolean columns
@@ -169,8 +169,7 @@ class CVSSBTProcessor:
         scan_results: pd.DataFrame,
         cve_id_col: str = "cve_id",
     ) -> tuple[pd.DataFrame, int]:
-        """
-        Enrich scan results with CVSS-BT data.
+        """Enrich scan results with CVSS-BT data.
 
         Args:
             scan_results: DataFrame with vulnerability scan results
@@ -178,6 +177,7 @@ class CVSSBTProcessor:
 
         Returns:
             Tuple of (enriched DataFrame, count of enriched records)
+
         """
         if scan_results.empty:
             return scan_results, 0
@@ -226,35 +226,35 @@ class CVSSBTProcessor:
         # Count how many records were enriched
         enriched_count = enriched["cvss_bt_score"].notna().sum()
         logger.info(
-            f"Enriched {enriched_count}/{before_count} records with CVSS-BT data"
+            f"Enriched {enriched_count}/{before_count} records with CVSS-BT data",
         )
 
         return enriched, enriched_count
 
 
 def download_cvss_bt_data(data_dir: str | Path) -> Path | None:
-    """
-    Convenience function to download CVSS-BT data.
+    """Convenience function to download CVSS-BT data.
 
     Args:
         data_dir: Directory to store downloaded data
 
     Returns:
         Path to the downloaded file, or None if download failed
+
     """
     processor = CVSSBTProcessor(data_dir)
     return processor.download()
 
 
 def load_cvss_bt_data(data_dir: str | Path) -> pd.DataFrame:
-    """
-    Convenience function to load CVSS-BT data.
+    """Convenience function to load CVSS-BT data.
 
     Args:
         data_dir: Directory containing CVSS-BT data
 
     Returns:
         DataFrame with CVSS-BT data
+
     """
     processor = CVSSBTProcessor(data_dir)
     return processor.load()

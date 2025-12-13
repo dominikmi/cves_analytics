@@ -1,5 +1,4 @@
-"""
-NLP-based vulnerability feature extraction from CVE descriptions.
+"""NLP-based vulnerability feature extraction from CVE descriptions.
 
 Uses rule-based pattern matching to extract:
 - Attack types (RCE, SQLi, XSS, etc.)
@@ -262,8 +261,7 @@ IMPACT_PATTERNS = {
 
 @dataclass
 class NLPVulnFeatures:
-    """
-    Extracted vulnerability features from description.
+    """Extracted vulnerability features from description.
 
     Attributes:
         attack_types: List of detected attack types with confidence
@@ -275,6 +273,7 @@ class NLPVulnFeatures:
         mentioned_components: Software/components mentioned
         confidence: Overall extraction confidence (0-1)
         raw_matches: Raw pattern matches for debugging
+
     """
 
     attack_types: list[tuple[AttackType, float]] = field(default_factory=list)
@@ -313,8 +312,7 @@ class NLPVulnFeatures:
 
 
 class VulnDescriptionExtractor:
-    """
-    Extract vulnerability features from CVE descriptions using regex patterns.
+    """Extract vulnerability features from CVE descriptions using regex patterns.
 
     This is a rule-based approach optimized for speed and interpretability.
     """
@@ -341,14 +339,14 @@ class VulnDescriptionExtractor:
             ]
 
     def extract(self, description: str | None) -> NLPVulnFeatures:
-        """
-        Extract vulnerability features from a CVE description.
+        """Extract vulnerability features from a CVE description.
 
         Args:
             description: CVE description text
 
         Returns:
             NLPVulnFeatures with extracted information
+
         """
         if not description or not isinstance(description, str):
             return NLPVulnFeatures(confidence=0.0)
@@ -381,15 +379,17 @@ class VulnDescriptionExtractor:
                 if "attack_types" not in features.raw_matches:
                     features.raw_matches["attack_types"] = []
                 features.raw_matches["attack_types"].append(
-                    f"{attack_type.value}: {match_text}"
+                    f"{attack_type.value}: {match_text}",
                 )
 
         # Extract authentication context
         auth_required = self._check_patterns(
-            description, self._context_patterns.get("requires_authentication", [])
+            description,
+            self._context_patterns.get("requires_authentication", []),
         )
         no_auth = self._check_patterns(
-            description, self._context_patterns.get("no_authentication_required", [])
+            description,
+            self._context_patterns.get("no_authentication_required", []),
         )
 
         if auth_required and not no_auth:
@@ -400,10 +400,12 @@ class VulnDescriptionExtractor:
 
         # Extract user interaction context
         ui_required = self._check_patterns(
-            description, self._context_patterns.get("requires_user_interaction", [])
+            description,
+            self._context_patterns.get("requires_user_interaction", []),
         )
         no_ui = self._check_patterns(
-            description, self._context_patterns.get("no_user_interaction", [])
+            description,
+            self._context_patterns.get("no_user_interaction", []),
         )
 
         if ui_required and not no_ui:
@@ -413,10 +415,12 @@ class VulnDescriptionExtractor:
 
         # Extract network accessibility
         network = self._check_patterns(
-            description, self._context_patterns.get("network_accessible", [])
+            description,
+            self._context_patterns.get("network_accessible", []),
         )
         local = self._check_patterns(
-            description, self._context_patterns.get("local_access_required", [])
+            description,
+            self._context_patterns.get("local_access_required", []),
         )
 
         if network and not local:
@@ -426,7 +430,8 @@ class VulnDescriptionExtractor:
 
         # Check default configuration
         features.affects_default_config = self._check_patterns(
-            description, self._context_patterns.get("default_configuration", [])
+            description,
+            self._context_patterns.get("default_configuration", []),
         )
 
         # Extract impacts
@@ -446,10 +451,11 @@ class VulnDescriptionExtractor:
         return False
 
     def _calculate_confidence(
-        self, features: NLPVulnFeatures, description: str
+        self,
+        features: NLPVulnFeatures,
+        description: str,
     ) -> float:
-        """
-        Calculate overall extraction confidence.
+        """Calculate overall extraction confidence.
 
         Higher confidence when:
         - More features extracted
@@ -471,7 +477,7 @@ class VulnDescriptionExtractor:
         if features.attack_types:
             # Average confidence of detected attack types
             avg_attack_conf = sum(c for _, c in features.attack_types) / len(
-                features.attack_types
+                features.attack_types,
             )
             confidence += avg_attack_conf * 0.4
 
@@ -482,7 +488,7 @@ class VulnDescriptionExtractor:
                 features.requires_user_interaction is not None,
                 features.is_network_accessible is not None,
                 features.affects_default_config,
-            ]
+            ],
         )
         confidence += context_count * 0.1
 
@@ -495,8 +501,7 @@ class VulnDescriptionExtractor:
 
 # Likelihood ratios for NLP-extracted features
 class NLPFeatureLR:
-    """
-    Likelihood ratios for NLP-extracted features.
+    """Likelihood ratios for NLP-extracted features.
 
     These are intentionally conservative (close to 1.0) since NLP extraction
     is less reliable than structured data like CVSS vectors.
@@ -536,22 +541,21 @@ class NLPFeatureLR:
 
 
 def extract_nlp_features(description: str | None) -> NLPVulnFeatures:
-    """
-    Convenience function to extract NLP features from a description.
+    """Convenience function to extract NLP features from a description.
 
     Args:
         description: CVE description text
 
     Returns:
         NLPVulnFeatures with extracted information
+
     """
     extractor = VulnDescriptionExtractor()
     return extractor.extract(description)
 
 
 def enrich_with_nlp_features(df, description_col: str = "description"):
-    """
-    Add NLP-extracted features to a DataFrame.
+    """Add NLP-extracted features to a DataFrame.
 
     Args:
         df: DataFrame with vulnerability data
@@ -559,6 +563,7 @@ def enrich_with_nlp_features(df, description_col: str = "description"):
 
     Returns:
         DataFrame with added NLP feature columns
+
     """
     import pandas as pd
 
@@ -591,7 +596,7 @@ def enrich_with_nlp_features(df, description_col: str = "description"):
     logger.info(
         f"NLP extraction complete: {attack_count} attack types detected, "
         f"{auth_known} auth requirements identified, "
-        f"avg confidence: {avg_confidence:.2f}"
+        f"avg confidence: {avg_confidence:.2f}",
     )
 
     return df

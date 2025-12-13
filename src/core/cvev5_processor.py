@@ -20,13 +20,13 @@ GITHUB_RELEASES_URL = "https://github.com/CVEProject/cvelistV5/releases/download
 
 @error_handler()
 def download_cvev5_cve_data(start_year: int, end_year: int, directory: str) -> None:
-    """
-    Download CVE v5 data from GitHub for a given range of years.
+    """Download CVE v5 data from GitHub for a given range of years.
 
     Args:
         start_year: Starting year (inclusive)
         end_year: Ending year (inclusive)
         directory: Directory to save downloaded files
+
     """
     base_path = Path(directory)
     cve_dir = base_path / "CVEV5"
@@ -38,7 +38,7 @@ def download_cvev5_cve_data(start_year: int, end_year: int, directory: str) -> N
 
     if today_zip.exists():
         logger.info(
-            f"CVE v5 data for today already exists at {today_zip}, skipping download."
+            f"CVE v5 data for today already exists at {today_zip}, skipping download.",
         )
         return
 
@@ -90,11 +90,11 @@ def download_cvev5_cve_data(start_year: int, end_year: int, directory: str) -> N
 
 @error_handler()
 def unzip_files(directory: str) -> None:
-    """
-    Unzip all found files in the CVEV5 directory.
+    """Unzip all found files in the CVEV5 directory.
 
     Args:
         directory: Base directory containing CVEV5 folder
+
     """
     import zipfile
 
@@ -112,10 +112,12 @@ def unzip_files(directory: str) -> None:
 
 @error_handler()
 def load_cvev5_cve_data(
-    start_year: int, end_year: int, directory: str, cve_ids: list[str] = None
+    start_year: int,
+    end_year: int,
+    directory: str,
+    cve_ids: list[str] = None,
 ) -> pd.DataFrame:
-    """
-    Load CVE v5 data into a DataFrame with optimized filtering.
+    """Load CVE v5 data into a DataFrame with optimized filtering.
 
     Args:
         start_year: Start year for CVE data
@@ -125,6 +127,7 @@ def load_cvev5_cve_data(
 
     Returns:
         DataFrame with CVE data
+
     """
     # Import config here to avoid circular imports
     try:
@@ -155,7 +158,7 @@ def load_cvev5_cve_data(
             json_files.extend(year_dir.rglob("CVE-*.json"))
 
     logger.info(
-        f"Found {len(json_files)} CVE JSON files for years {start_year}-{end_year}"
+        f"Found {len(json_files)} CVE JSON files for years {start_year}-{end_year}",
     )
 
     if not json_files:
@@ -188,7 +191,7 @@ def load_cvev5_cve_data(
             skipped_count += 1
 
     logger.info(
-        f"CVE loading complete: {processed_count} processed, {skipped_count} skipped, {total_files} total"
+        f"CVE loading complete: {processed_count} processed, {skipped_count} skipped, {total_files} total",
     )
 
     if data:
@@ -238,14 +241,14 @@ def _load_specific_cves(cve_dir: Path, cve_ids: list[str]) -> pd.DataFrame:
 
 
 def _process_cve_file(file_path: Path) -> dict[str, Any] | None:
-    """
-    Process a single CVE JSON file.
+    """Process a single CVE JSON file.
 
     Args:
         file_path: Path to CVE JSON file
 
     Returns:
         Parsed CVE data or None if parsing fails
+
     """
     try:
         with open(file_path) as f:
@@ -258,14 +261,14 @@ def _process_cve_file(file_path: Path) -> dict[str, Any] | None:
 
 
 def _parse_cve_v5_record(cve_record: dict[str, Any]) -> dict[str, Any] | None:
-    """
-    Parse a single CVE record from CVE v5 JSON format.
+    """Parse a single CVE record from CVE v5 JSON format.
 
     Args:
         cve_record: CVE record from CVE v5 JSON
 
     Returns:
         Parsed CVE data or None if parsing fails
+
     """
     try:
         cve_id = cve_record.get("cveMetadata", {}).get("cveId", "")
@@ -318,7 +321,7 @@ def _parse_cve_v5_record(cve_record: dict[str, Any]) -> dict[str, Any] | None:
                                 f"{prefix}_score": cvss_data.get("baseScore"),
                                 f"{prefix}_severity": cvss_data.get("baseSeverity"),
                                 f"{prefix}_vector": cvss_data.get("vectorString"),
-                            }
+                            },
                         )
                         break  # Move to next version after finding this one
 
