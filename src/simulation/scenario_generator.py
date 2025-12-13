@@ -29,12 +29,12 @@ class ScenarioGenerator:
         config_path: str = "config/services.yaml",
         scenario_config: ScenarioConfig | None = None,
     ):
-        """
-        Initialize the scenario generator.
+        """Initialize the scenario generator.
 
         Args:
             config_path: Path to YAML configuration file
             scenario_config: Optional ScenarioConfig instance
+
         """
         self.fake = Faker()
         self.service_catalog = self._load_config(config_path)
@@ -42,14 +42,14 @@ class ScenarioGenerator:
         self.security_controls_generator = SecurityControlsGenerator()
 
     def _load_config(self, path: str) -> dict[str, Any]:
-        """
-        Load configuration from YAML file.
+        """Load configuration from YAML file.
 
         Args:
             path: Path to YAML configuration file
 
         Returns:
             Dictionary with configuration data
+
         """
         config_path = Path(path)
 
@@ -79,8 +79,7 @@ class ScenarioGenerator:
         environment_type: str = "prod",
         output_format: str = "json",
     ) -> dict[str, Any] | str:
-        """
-        Generate a simulation scenario based on input criteria.
+        """Generate a simulation scenario based on input criteria.
 
         Args:
             size: Organization size ('small' or 'mid')
@@ -93,6 +92,7 @@ class ScenarioGenerator:
 
         Returns:
             Dictionary or CSV string describing the generated environment
+
         """
         scenario_id = str(uuid.uuid4())
         company_name = self.fake.company().split()[0].replace(",", "").strip()
@@ -144,7 +144,11 @@ class ScenarioGenerator:
 
         # Generate services
         services = self._design_architecture(
-            industry, complexity, reach, environment_type, is_segmented
+            industry,
+            complexity,
+            reach,
+            environment_type,
+            is_segmented,
         )
 
         # Add sidecars if monitoring present
@@ -161,20 +165,31 @@ class ScenarioGenerator:
 
         environment["services"] = services
         environment["network_policies"] = self._generate_network_policies(
-            services, is_segmented, environment_type
+            services,
+            is_segmented,
+            environment_type,
         )
 
         # Generate security posture (legacy format for backward compatibility)
         environment["security_posture"] = self._generate_posture(
-            size, reach, industry, environment_type
+            size,
+            reach,
+            industry,
+            environment_type,
         )
 
         # Generate security controls (new Bayesian risk assessment format)
         maturity_level = self.scenario_config.get_maturity_level(
-            size, reach, industry, environment_type
+            size,
+            reach,
+            industry,
+            environment_type,
         )
         security_controls = self._generate_security_controls(
-            maturity_level, industry, environment_type, size
+            maturity_level,
+            industry,
+            environment_type,
+            size,
         )
         environment["security_controls"] = security_controls.to_dict()
         environment["security_maturity"] = maturity_level
@@ -191,14 +206,14 @@ class ScenarioGenerator:
         return environment
 
     def export_to_csv(self, scenario: dict[str, Any]) -> str:
-        """
-        Flatten scenario JSON into CSV format.
+        """Flatten scenario JSON into CSV format.
 
         Args:
             scenario: Scenario dictionary
 
         Returns:
             CSV string representation
+
         """
         output = io.StringIO()
         writer = csv.writer(output)
@@ -247,10 +262,10 @@ class ScenarioGenerator:
                 [
                     f"{m['key']}={m['value']}"
                     for m in service.get("misconfigurations", [])
-                ]
+                ],
             )
             secrets = "; ".join(
-                [s["type"] for s in service.get("hardcoded_secrets", [])]
+                [s["type"] for s in service.get("hardcoded_secrets", [])],
             )
             data_class = "; ".join(service.get("data_classification", []))
 
@@ -277,8 +292,7 @@ class ScenarioGenerator:
         is_segmented: bool,
         environment_type: str,
     ) -> list[dict[str, Any]]:
-        """
-        Generate network communication policies.
+        """Generate network communication policies.
 
         Args:
             services: List of services
@@ -287,6 +301,7 @@ class ScenarioGenerator:
 
         Returns:
             List of network policies
+
         """
         policies = []
 
@@ -298,7 +313,7 @@ class ScenarioGenerator:
                     "port": "*",
                     "action": "allow",
                     "description": "Flat network allows all traffic by default",
-                }
+                },
             )
             return policies
 
@@ -310,7 +325,7 @@ class ScenarioGenerator:
                 "port": "443, 80",
                 "action": "allow",
                 "description": "Public ingress",
-            }
+            },
         )
 
         policies.append(
@@ -320,7 +335,7 @@ class ScenarioGenerator:
                 "port": "8080, 8443",
                 "action": "allow",
                 "description": "Frontend to Backend communication",
-            }
+            },
         )
 
         policies.append(
@@ -330,7 +345,7 @@ class ScenarioGenerator:
                 "port": "5432, 3306, 6379",
                 "action": "allow",
                 "description": "Backend to Database/Cache communication",
-            }
+            },
         )
 
         # Bastion access
@@ -342,7 +357,7 @@ class ScenarioGenerator:
                     "port": "22, 3389",
                     "action": "allow",
                     "description": "Bastion administrative access",
-                }
+                },
             )
 
         # Monitoring
@@ -354,7 +369,7 @@ class ScenarioGenerator:
                     "port": "9090, 9100, 9323",
                     "action": "allow",
                     "description": "Prometheus scraping",
-                }
+                },
             )
 
         # Misconfigurations
@@ -366,7 +381,7 @@ class ScenarioGenerator:
                     "port": "*",
                     "action": "allow",
                     "description": "MISCONFIGURATION: App tier unrestricted",
-                }
+                },
             )
 
         if random.random() < self.scenario_config.DB_EXPOSED_PROB:
@@ -377,7 +392,7 @@ class ScenarioGenerator:
                     "port": "5432",
                     "action": "allow",
                     "description": "MISCONFIGURATION: Database exposed",
-                }
+                },
             )
 
         return policies
@@ -389,8 +404,7 @@ class ScenarioGenerator:
         environment_type: str,
         size: str,
     ) -> SecurityControlsConfig:
-        """
-        Generate security controls configuration based on maturity level.
+        """Generate security controls configuration based on maturity level.
 
         Args:
             maturity_level: Security maturity level (initial, developing, etc.)
@@ -400,6 +414,7 @@ class ScenarioGenerator:
 
         Returns:
             SecurityControlsConfig with generated controls
+
         """
         try:
             maturity = SecurityMaturityLevel(maturity_level)
@@ -420,8 +435,7 @@ class ScenarioGenerator:
         industry: str,
         environment_type: str,
     ) -> dict[str, Any]:
-        """
-        Generate security posture profile.
+        """Generate security posture profile.
 
         Args:
             size: Organization size
@@ -431,6 +445,7 @@ class ScenarioGenerator:
 
         Returns:
             Security posture dictionary
+
         """
         base_score = 0
         if size == "mid":
@@ -496,8 +511,7 @@ class ScenarioGenerator:
         environment_type: str,
         is_segmented: bool,
     ) -> list[dict[str, Any]]:
-        """
-        Design architecture based on industry and complexity using service catalog.
+        """Design architecture based on industry and complexity using service catalog.
 
         Args:
             industry: Industry type
@@ -508,6 +522,7 @@ class ScenarioGenerator:
 
         Returns:
             List of services
+
         """
         services = []
 
@@ -543,7 +558,8 @@ class ScenarioGenerator:
 
         # Get services for this industry
         service_categories = industry_services.get(
-            industry, ["proxy", "web_server", "app_server", "database"]
+            industry,
+            ["proxy", "web_server", "app_server", "database"],
         )
 
         # Add complexity-based services
@@ -572,23 +588,27 @@ class ScenarioGenerator:
                     "role": service_def.get("role", "service"),
                     "image": random.choice(
                         service_def.get(
-                            "versions", [service_def.get("image", "unknown")]
-                        )
+                            "versions",
+                            [service_def.get("image", "unknown")],
+                        ),
                     ),
                     "zone": self._get_zone(
-                        service_def.get("exposure", "internal"), is_segmented
+                        service_def.get("exposure", "internal"),
+                        is_segmented,
                     ),
                     "exposure": service_def.get("exposure", "internal"),
                     "asset_value": self._calculate_asset_value(
-                        service_def.get("role", "service"), industry
+                        service_def.get("role", "service"),
+                        industry,
                     ),
                     "ownership": self._determine_ownership(
-                        service_def.get("role", "service"), industry
+                        service_def.get("role", "service"),
+                        industry,
                     ),
                     "ip_address": self.fake.ipv4_private(),
                     "port": random.randint(1024, 65535),
                     "data_classification": self._get_data_classification(
-                        service_def.get("role", "service")
+                        service_def.get("role", "service"),
                     ),
                 }
 
@@ -598,7 +618,7 @@ class ScenarioGenerator:
                         {
                             "key": random.choice(self.scenario_config.MISCONFIG_TYPES),
                             "value": self.fake.word(),
-                        }
+                        },
                     ]
                 else:
                     service["misconfigurations"] = []
@@ -609,7 +629,7 @@ class ScenarioGenerator:
                         {
                             "type": random.choice(self.scenario_config.SECRET_TYPES),
                             "location": f"/app/{self.fake.word()}.py",
-                        }
+                        },
                     ]
                 else:
                     service["hardcoded_secrets"] = []
@@ -625,7 +645,7 @@ class ScenarioGenerator:
 
         if exposure == "internet-facing":
             return "dmz"
-        elif exposure == "internal":
+        if exposure == "internal":
             return random.choice(["app_tier", "data_tier", "internal"])
         return "internal"
 
@@ -642,7 +662,7 @@ class ScenarioGenerator:
 
         if role in critical_roles:
             return "critical"
-        elif role in high_value_roles:
+        if role in high_value_roles:
             return "high"
         return "medium"
 
@@ -664,24 +684,24 @@ class ScenarioGenerator:
         if industry == "financial-services":
             if role in dbteam_roles:
                 return "DBTEAM"
-            elif role in security_roles:
+            if role in security_roles:
                 return "SECURITY"
         elif industry == "consulting":
             if role in dbteam_roles:
                 return "DBTEAM"
-            elif role in devops_roles:
+            if role in devops_roles:
                 return "DEVOPS"
 
         # Default ownership based on role
         if role in dev_roles:
             return "DEV"
-        elif role in devops_roles:
+        if role in devops_roles:
             return "DEVOPS"
-        elif role in cloudnet_roles:
+        if role in cloudnet_roles:
             return "CLOUDNET"
-        elif role in dbteam_roles:
+        if role in dbteam_roles:
             return "DBTEAM"
-        elif role in security_roles:
+        if role in security_roles:
             return "SECURITY"
 
         # Default ownership
@@ -700,16 +720,17 @@ class ScenarioGenerator:
         return classifications.get(role, [])
 
     def _add_sidecar_exporters(
-        self, services: list[dict[str, Any]]
+        self,
+        services: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        """
-        Add monitoring exporters as sidecars to services.
+        """Add monitoring exporters as sidecars to services.
 
         Args:
             services: List of services
 
         Returns:
             Services with sidecars added
+
         """
         for service in services:
             if random.random() < self.scenario_config.SIDECAR_PROBABILITY:
@@ -727,8 +748,7 @@ class ScenarioGenerator:
         environment_type: str,
         is_segmented: bool,
     ) -> list[dict[str, Any]]:
-        """
-        Add CI/CD services to the scenario.
+        """Add CI/CD services to the scenario.
 
         Args:
             services: List of services
@@ -737,6 +757,7 @@ class ScenarioGenerator:
 
         Returns:
             Services with CI/CD added
+
         """
         cicd_services = [
             {
@@ -785,14 +806,14 @@ class ScenarioGenerator:
                     {
                         "key": random.choice(self.scenario_config.MISCONFIG_TYPES),
                         "value": self.fake.word(),
-                    }
+                    },
                 ]
             if random.random() < self.scenario_config.SECRETS_PROBABILITY:
                 service["hardcoded_secrets"] = [
                     {
                         "type": random.choice(self.scenario_config.SECRET_TYPES),
                         "location": f"/app/{self.fake.word()}.py",
-                    }
+                    },
                 ]
 
         return services + cicd_services

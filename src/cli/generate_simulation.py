@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 def main() -> None:
     """Main entry point for scenario generation."""
     parser = argparse.ArgumentParser(
-        description="Generate vulnerability scanning simulation scenarios"
+        description="Generate vulnerability scanning simulation scenarios",
     )
     parser.add_argument(
         "--size",
@@ -56,7 +56,7 @@ def main() -> None:
 
     logger.info(
         f"Generating scenario: size={args.size}, reach={args.reach}, "
-        f"industry={args.industry}, environment={args.environment}"
+        f"industry={args.industry}, environment={args.environment}",
     )
 
     # Create scenario generator

@@ -1,5 +1,4 @@
-"""
-Bayesian Risk Assessment Module.
+"""Bayesian Risk Assessment Module.
 
 This module implements a principled Bayesian approach to vulnerability risk
 assessment, replacing arbitrary multiplicative weights with likelihood ratios
@@ -24,6 +23,7 @@ References:
     - FIRST EPSS: https://www.first.org/epss/
     - CVSS v3.1: https://www.first.org/cvss/v3.1/specification-document
     - Bayesian inference: https://en.wikipedia.org/wiki/Bayes%27_theorem
+
 """
 
 from __future__ import annotations
@@ -50,8 +50,7 @@ logger = get_logger(__name__)
 
 
 class SecurityControlLR(float, Enum):
-    """
-    Likelihood ratios for security controls.
+    """Likelihood ratios for security controls.
 
     LR < 1 means the control REDUCES exploitation probability.
     Values derived from:
@@ -103,8 +102,7 @@ class SecurityControlLR(float, Enum):
 
 
 class ExposureLR(float, Enum):
-    """
-    Likelihood ratios for exposure context.
+    """Likelihood ratios for exposure context.
 
     LR > 1 means exposure INCREASES exploitation probability.
     """
@@ -117,8 +115,7 @@ class ExposureLR(float, Enum):
 
 
 class ThreatIndicatorLR(float, Enum):
-    """
-    Likelihood ratios for threat indicators.
+    """Likelihood ratios for threat indicators.
 
     LR > 1 means indicator INCREASES exploitation probability.
     """
@@ -132,8 +129,7 @@ class ThreatIndicatorLR(float, Enum):
 
 
 class CVSSVectorLR:
-    """
-    Likelihood ratios derived from CVSS vector components.
+    """Likelihood ratios derived from CVSS vector components.
 
     These adjust the prior based on attack characteristics.
     """
@@ -173,8 +169,7 @@ class CVSSVectorLR:
 
 
 class ExposureConditionalControlLR:
-    """
-    Exposure-conditional likelihood ratios for security controls.
+    """Exposure-conditional likelihood ratios for security controls.
 
     This implements a simplified form of conditional Bayes where control
     effectiveness depends on the exposure context. For example:
@@ -274,8 +269,7 @@ class ExposureConditionalControlLR:
 
     @classmethod
     def get_lr(cls, control: str, exposure: str) -> float:
-        """
-        Get the likelihood ratio for a control given exposure context.
+        """Get the likelihood ratio for a control given exposure context.
 
         Args:
             control: Security control name
@@ -283,6 +277,7 @@ class ExposureConditionalControlLR:
 
         Returns:
             Likelihood ratio (< 1 means risk reduction)
+
         """
         exposure_lower = exposure.lower()
 
@@ -344,7 +339,9 @@ class LikelihoodRatioConfig(BaseModel):
     # Granular exploit indicators from CVSS-BT
     exploitdb: float = Field(default=2.0, ge=1.0, le=10.0)  # ExploitDB entry
     nuclei_template: float = Field(
-        default=1.8, ge=1.0, le=10.0
+        default=1.8,
+        ge=1.0,
+        le=10.0,
     )  # Nuclei scanner template
     poc_github: float = Field(default=1.5, ge=1.0, le=10.0)  # GitHub PoC
 
@@ -413,8 +410,7 @@ class ThreatIndicatorsInput(BaseModel):
 
 @dataclass
 class BayesianRiskResult:
-    """
-    Result of Bayesian risk assessment with uncertainty quantification.
+    """Result of Bayesian risk assessment with uncertainty quantification.
 
     Attributes:
         posterior_probability: P(Exploitation | Evidence) - main risk metric
@@ -426,6 +422,7 @@ class BayesianRiskResult:
         risk_category: Categorical risk level (Critical/High/Medium/Low)
         contributing_factors: List of factors that influenced the assessment
         explanation: Human-readable explanation of the assessment
+
     """
 
     posterior_probability: float
@@ -458,8 +455,7 @@ class BayesianRiskResult:
 
 
 class BayesianRiskAssessor:
-    """
-    Bayesian risk assessment engine.
+    """Bayesian risk assessment engine.
 
     Uses likelihood ratios to update EPSS prior probability based on:
     - Security controls in place
@@ -471,12 +467,12 @@ class BayesianRiskAssessor:
     """
 
     def __init__(self, config: LikelihoodRatioConfig | None = None):
-        """
-        Initialize the assessor with optional custom likelihood ratios.
+        """Initialize the assessor with optional custom likelihood ratios.
 
         Args:
             config: Optional custom likelihood ratio configuration.
                    If None, uses research-derived defaults.
+
         """
         self.config = config or LikelihoodRatioConfig()
         self._build_lr_tables()
@@ -537,8 +533,7 @@ class BayesianRiskAssessor:
         asset_criticality: str = "medium",
         nlp_features: dict[str, Any] | None = None,
     ) -> BayesianRiskResult:
-        """
-        Perform Bayesian risk assessment.
+        """Perform Bayesian risk assessment.
 
         Args:
             epss_score: EPSS probability (0-1) - serves as prior
@@ -553,6 +548,7 @@ class BayesianRiskAssessor:
 
         Returns:
             BayesianRiskResult with posterior probability and uncertainty
+
         """
         # Normalize inputs
         epss = self._normalize_epss(epss_score)
@@ -562,7 +558,8 @@ class BayesianRiskAssessor:
         # Check for known exploits (granular CVSS-BT indicators)
         is_kev = threats.get("is_kev", False)
         has_metasploit = threats.get("has_metasploit_module", False) or threats.get(
-            "has_metasploit", False
+            "has_metasploit",
+            False,
         )
         has_exploitdb = threats.get("has_exploitdb", False)
         has_nuclei = threats.get("has_nuclei", False)
@@ -614,7 +611,9 @@ class BayesianRiskAssessor:
 
         # 2. Apply exposure LR (gated by exploitability)
         exposure_lr = self._get_gated_exposure_lr(
-            exposure, epss, exploitation_plausible
+            exposure,
+            epss,
+            exploitation_plausible,
         )
         if exposure_lr != 1.0:
             total_log_lr += math.log(exposure_lr)
@@ -626,7 +625,7 @@ class BayesianRiskAssessor:
                         f"Exposure: {exposure} (capped)",
                         exposure_lr,
                         f"{direction} risk (capped due to low exploitability)",
-                    )
+                    ),
                 )
             else:
                 factors.append(
@@ -634,13 +633,15 @@ class BayesianRiskAssessor:
                         f"Exposure: {exposure}",
                         exposure_lr,
                         f"{direction} risk by {abs(1 - exposure_lr) * 100:.0f}%",
-                    )
+                    ),
                 )
 
         # 3. Apply CVSS vector LRs (gated by exploitability for amplification)
         if cvss_vector:
             cvss_log_lr, cvss_factors = self._apply_cvss_vector_lrs(
-                cvss_vector, exposure, exploitation_plausible
+                cvss_vector,
+                exposure,
+                exploitation_plausible,
             )
             total_log_lr += cvss_log_lr
             factors.extend(cvss_factors)
@@ -653,7 +654,8 @@ class BayesianRiskAssessor:
         # 5. Apply asset criticality modifier (gated by exploitability)
         # High-value assets are more attractive targets, but only if exploitable
         criticality_lr = self._get_gated_criticality_lr(
-            asset_criticality, exploitation_plausible
+            asset_criticality,
+            exploitation_plausible,
         )
         if criticality_lr != 1.0:
             total_log_lr += math.log(criticality_lr)
@@ -663,13 +665,14 @@ class BayesianRiskAssessor:
                     f"Asset criticality: {asset_criticality}",
                     criticality_lr,
                     f"{direction} risk by {abs(1 - criticality_lr) * 100:.0f}%",
-                )
+                ),
             )
 
         # 6. Apply NLP-extracted features (weak signals, gated by confidence)
         if nlp_features:
             nlp_log_lr, nlp_factors = self._apply_nlp_features(
-                nlp_features, exploitation_plausible
+                nlp_features,
+                exploitation_plausible,
             )
             total_log_lr += nlp_log_lr
             factors.extend(nlp_factors)
@@ -694,7 +697,9 @@ class BayesianRiskAssessor:
 
         # Calculate credible interval based on uncertainty
         ci_low, ci_high = self._calculate_credible_interval(
-            posterior_prob, epss_percentile, len(factors)
+            posterior_prob,
+            epss_percentile,
+            len(factors),
         )
 
         # Determine risk category
@@ -702,7 +707,10 @@ class BayesianRiskAssessor:
 
         # Generate explanation
         explanation = self._generate_explanation(
-            epss, posterior_prob, factors, risk_category
+            epss,
+            posterior_prob,
+            factors,
+            risk_category,
         )
 
         return BayesianRiskResult(
@@ -732,7 +740,8 @@ class BayesianRiskAssessor:
         return max(0.001, min(0.999, epss))
 
     def _normalize_controls(
-        self, controls: SecurityControlsInput | dict[str, bool] | None
+        self,
+        controls: SecurityControlsInput | dict[str, bool] | None,
     ) -> dict[str, bool]:
         """Normalize security controls input."""
         if controls is None:
@@ -742,7 +751,8 @@ class BayesianRiskAssessor:
         return {k: bool(v) for k, v in controls.items()}
 
     def _normalize_threats(
-        self, threats: ThreatIndicatorsInput | dict[str, bool] | None
+        self,
+        threats: ThreatIndicatorsInput | dict[str, bool] | None,
     ) -> dict[str, bool]:
         """Normalize threat indicators input."""
         if threats is None:
@@ -762,10 +772,11 @@ class BayesianRiskAssessor:
         return 1 / (1 + math.exp(-log_odds))
 
     def _apply_control_lrs(
-        self, controls: dict[str, bool], exposure: str = "internal"
+        self,
+        controls: dict[str, bool],
+        exposure: str = "internal",
     ) -> tuple[float, list[tuple[str, float, str]]]:
-        """
-        Apply likelihood ratios for security controls with exposure conditioning.
+        """Apply likelihood ratios for security controls with exposure conditioning.
 
         This implements a simplified form of conditional Bayes where control
         effectiveness depends on the exposure context. For example:
@@ -778,6 +789,7 @@ class BayesianRiskAssessor:
 
         Returns:
             Tuple of (total log LR, list of contributing factors)
+
         """
         total_log_lr = 0.0
         factors = []
@@ -797,7 +809,7 @@ class BayesianRiskAssessor:
                             f"Patch management: {patch_level}",
                             lr,
                             f"reduces risk by {(1 - lr) * 100:.0f}%",
-                        )
+                        ),
                     )
                 continue
 
@@ -812,16 +824,18 @@ class BayesianRiskAssessor:
                         f"Control: {control_name}",
                         lr,
                         f"reduces risk by {reduction:.0f}% (for {exposure})",
-                    )
+                    ),
                 )
 
         return total_log_lr, factors
 
     def _get_gated_exposure_lr(
-        self, exposure: str, epss: float, exploitation_plausible: bool
+        self,
+        exposure: str,
+        epss: float,
+        exploitation_plausible: bool,
     ) -> float:
-        """
-        Get exposure likelihood ratio, gated by exploitability.
+        """Get exposure likelihood ratio, gated by exploitability.
 
         Exposure only amplifies risk if exploitation is actually plausible.
         Without a known exploit or high EPSS, being internet-facing doesn't
@@ -834,6 +848,7 @@ class BayesianRiskAssessor:
 
         Returns:
             Gated likelihood ratio for exposure
+
         """
         base_lr = self.exposure_lrs.get(exposure.lower(), 1.0)
 
@@ -854,10 +869,11 @@ class BayesianRiskAssessor:
         return min(base_lr, max_amplification)
 
     def _get_gated_criticality_lr(
-        self, criticality: str, exploitation_plausible: bool
+        self,
+        criticality: str,
+        exploitation_plausible: bool,
     ) -> float:
-        """
-        Get asset criticality likelihood ratio, gated by exploitability.
+        """Get asset criticality likelihood ratio, gated by exploitability.
 
         High-value assets are more attractive targets, but only if the
         vulnerability is actually exploitable.
@@ -868,6 +884,7 @@ class BayesianRiskAssessor:
 
         Returns:
             Gated likelihood ratio for asset criticality
+
         """
         base_lr = self._get_criticality_lr(criticality)
 
@@ -885,10 +902,12 @@ class BayesianRiskAssessor:
         return 1.0
 
     def _apply_cvss_vector_lrs(
-        self, cvss_vector: str, exposure: str, exploitation_plausible: bool = True
+        self,
+        cvss_vector: str,
+        exposure: str,
+        exploitation_plausible: bool = True,
     ) -> tuple[float, list[tuple[str, float, str]]]:
-        """
-        Apply likelihood ratios based on CVSS vector components.
+        """Apply likelihood ratios based on CVSS vector components.
 
         Amplification factors (LR > 1) are gated by exploitability.
         Reduction factors (LR < 1) always apply.
@@ -900,6 +919,7 @@ class BayesianRiskAssessor:
 
         Returns:
             Tuple of (total log LR, list of contributing factors)
+
         """
         total_log_lr = 0.0
         factors = []
@@ -936,7 +956,7 @@ class BayesianRiskAssessor:
                         f"Attack Vector: {av_names.get(av, av)}{capped}",
                         lr,
                         f"{direction} risk given {exposure} exposure",
-                    )
+                    ),
                 )
 
         # Attack Complexity (AC)
@@ -954,7 +974,7 @@ class BayesianRiskAssessor:
                         f"Attack Complexity: {ac_names.get(ac, ac)}{capped}",
                         lr,
                         f"{direction} risk - {'easy' if ac == 'L' else 'hard'}",
-                    )
+                    ),
                 )
 
         # Privileges Required (PR)
@@ -972,7 +992,7 @@ class BayesianRiskAssessor:
                         f"Privileges Required: {pr_names.get(pr, pr)}{capped}",
                         lr,
                         f"{direction} risk - {'no auth' if pr == 'N' else 'auth needed'}",
-                    )
+                    ),
                 )
 
         # User Interaction (UI)
@@ -990,7 +1010,7 @@ class BayesianRiskAssessor:
                         f"User Interaction: {ui_names.get(ui, ui)}{capped}",
                         lr,
                         f"{direction} risk - {'automated' if ui == 'N' else 'user action'}",
-                    )
+                    ),
                 )
 
         # Scope (S)
@@ -1009,16 +1029,18 @@ class BayesianRiskAssessor:
                         "can affect other components"
                         if scope == "C"
                         else "limited scope",
-                    )
+                    ),
                 )
 
         return total_log_lr, factors
 
     def _gate_amplification(
-        self, lr: float, exploitation_plausible: bool, max_cap: float = 1.1
+        self,
+        lr: float,
+        exploitation_plausible: bool,
+        max_cap: float = 1.1,
     ) -> float:
-        """
-        Gate amplification factors by exploitability.
+        """Gate amplification factors by exploitability.
 
         Args:
             lr: Raw likelihood ratio
@@ -1027,6 +1049,7 @@ class BayesianRiskAssessor:
 
         Returns:
             Gated likelihood ratio
+
         """
         if exploitation_plausible:
             return lr
@@ -1054,7 +1077,8 @@ class BayesianRiskAssessor:
         return components
 
     def _apply_threat_lrs(
-        self, threats: dict[str, bool]
+        self,
+        threats: dict[str, bool],
     ) -> tuple[float, list[tuple[str, float, str]]]:
         """Apply likelihood ratios for threat indicators."""
         total_log_lr = 0.0
@@ -1096,7 +1120,7 @@ class BayesianRiskAssessor:
             if lr != 1.0:
                 total_log_lr += math.log(lr)
                 factors.append(
-                    (f"Threat: {name}", lr, f"increases risk - {description}")
+                    (f"Threat: {name}", lr, f"increases risk - {description}"),
                 )
 
         return total_log_lr, factors
@@ -1106,8 +1130,7 @@ class BayesianRiskAssessor:
         nlp_features: dict[str, Any],
         exploitation_plausible: bool,
     ) -> tuple[float, list[tuple[str, float, str]]]:
-        """
-        Apply NLP-extracted features as weak signals.
+        """Apply NLP-extracted features as weak signals.
 
         NLP features are intentionally conservative (LRs close to 1.0) since
         regex-based extraction is less reliable than structured data.
@@ -1151,7 +1174,7 @@ class BayesianRiskAssessor:
                         f"NLP: {attack_name}",
                         lr,
                         f"{direction} risk (from description)",
-                    )
+                    ),
                 )
 
         # Authentication context
@@ -1160,13 +1183,13 @@ class BayesianRiskAssessor:
             lr = 0.9  # Auth required reduces risk
             total_log_lr += math.log(lr)
             factors.append(
-                ("NLP: Auth required", lr, "reduces risk - authentication needed")
+                ("NLP: Auth required", lr, "reduces risk - authentication needed"),
             )
         elif requires_auth is False:
             lr = 1.08 if exploitation_plausible else 1.02
             total_log_lr += math.log(lr)
             factors.append(
-                ("NLP: No auth required", lr, "increases risk - unauthenticated")
+                ("NLP: No auth required", lr, "increases risk - unauthenticated"),
             )
 
         # User interaction context
@@ -1175,7 +1198,7 @@ class BayesianRiskAssessor:
             lr = 0.92  # User interaction reduces exploitability
             total_log_lr += math.log(lr)
             factors.append(
-                ("NLP: User interaction", lr, "reduces risk - needs victim action")
+                ("NLP: User interaction", lr, "reduces risk - needs victim action"),
             )
 
         # Default configuration
@@ -1183,7 +1206,7 @@ class BayesianRiskAssessor:
             lr = 1.08 if exploitation_plausible else 1.02
             total_log_lr += math.log(lr)
             factors.append(
-                ("NLP: Default config", lr, "increases risk - affects defaults")
+                ("NLP: Default config", lr, "increases risk - affects defaults"),
             )
 
         return total_log_lr, factors
@@ -1204,8 +1227,7 @@ class BayesianRiskAssessor:
         epss_percentile: float | None,
         num_factors: int,
     ) -> tuple[float, float]:
-        """
-        Calculate 95% credible interval for the posterior probability.
+        """Calculate 95% credible interval for the posterior probability.
 
         Uncertainty is higher when:
         - EPSS percentile is low (less confidence in prior)
@@ -1238,8 +1260,7 @@ class BayesianRiskAssessor:
         return ci_low, ci_high
 
     def _categorize_risk(self, posterior: float, cvss_score: float | None) -> str:
-        """
-        Categorize risk level based on posterior probability.
+        """Categorize risk level based on posterior probability.
 
         Thresholds are based on EPSS research showing:
         - Top 1% EPSS (~0.37) captures most exploited vulns
@@ -1248,14 +1269,13 @@ class BayesianRiskAssessor:
         # Primary categorization by posterior probability
         if posterior >= 0.4:
             return "Critical"
-        elif posterior >= 0.15:
+        if posterior >= 0.15:
             return "High"
-        elif posterior >= 0.05:
+        if posterior >= 0.05:
             return "Medium"
-        elif posterior >= 0.01:
+        if posterior >= 0.01:
             return "Low"
-        else:
-            return "Negligible"
+        return "Negligible"
 
     def _generate_explanation(
         self,
@@ -1276,7 +1296,9 @@ class BayesianRiskAssessor:
 
         # Top 3 most impactful factors
         sorted_factors = sorted(
-            factors, key=lambda x: abs(math.log(x[1])), reverse=True
+            factors,
+            key=lambda x: abs(math.log(x[1])),
+            reverse=True,
         )
         top_factors = sorted_factors[:3]
 
@@ -1310,8 +1332,7 @@ def assess_vulnerabilities_bayesian(
     kev_col: str | None = "is_kev",
     config: LikelihoodRatioConfig | None = None,
 ) -> pd.DataFrame:
-    """
-    Assess all vulnerabilities in a DataFrame using Bayesian risk assessment.
+    """Assess all vulnerabilities in a DataFrame using Bayesian risk assessment.
 
     Args:
         df: DataFrame with vulnerability data
@@ -1327,6 +1348,7 @@ def assess_vulnerabilities_bayesian(
 
     Returns:
         DataFrame with added Bayesian risk columns
+
     """
     assessor = BayesianRiskAssessor(config)
 
@@ -1392,7 +1414,7 @@ def assess_vulnerabilities_bayesian(
     logger.info(
         f"Bayesian assessment complete. "
         f"Critical: {critical_count}, High: {high_count}, "
-        f"Medium: {medium_count}, Low: {low_count}"
+        f"Medium: {medium_count}, Low: {low_count}",
     )
 
     avg_risk = df["bayesian_risk_score"].mean()

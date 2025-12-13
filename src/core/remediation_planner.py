@@ -34,8 +34,7 @@ class RemediationPlanner:
         severity_column: str = "severity_reassessed",
         use_bayesian: bool = True,
     ) -> dict[str, Any]:
-        """
-        Create phased remediation plan based on Bayesian risk assessment.
+        """Create phased remediation plan based on Bayesian risk assessment.
 
         Args:
             enriched_results: DataFrame with vulnerability data
@@ -44,6 +43,7 @@ class RemediationPlanner:
 
         Returns:
             Dictionary with phases and effort estimates
+
         """
         if enriched_results.empty:
             return {
@@ -152,19 +152,20 @@ class RemediationPlanner:
         total_weeks = phase1_weeks + phase2_weeks + phase3_weeks
 
         self.logger.info(
-            f"Remediation roadmap: {len(phase1)} critical, {len(phase2)} high, {len(phase3)} medium"
+            f"Remediation roadmap: {len(phase1)} critical, {len(phase2)} high, {len(phase3)} medium",
         )
         self.logger.info(
-            f"Total effort: {total_effort:.1f} hours ({total_weeks} weeks)"
+            f"Total effort: {total_effort:.1f} hours ({total_weeks} weeks)",
         )
 
         return roadmap
 
     def identify_quick_wins(
-        self, enriched_results: pd.DataFrame, max_effort_hours: float = 4.0
+        self,
+        enriched_results: pd.DataFrame,
+        max_effort_hours: float = 4.0,
     ) -> pd.DataFrame:
-        """
-        Identify vulnerabilities that can be fixed quickly.
+        """Identify vulnerabilities that can be fixed quickly.
 
         Quick wins are high-impact vulnerabilities with low complexity.
 
@@ -174,6 +175,7 @@ class RemediationPlanner:
 
         Returns:
             DataFrame with quick win vulnerabilities
+
         """
         if enriched_results.empty:
             return pd.DataFrame()
@@ -184,7 +186,7 @@ class RemediationPlanner:
             (enriched_results.get("risk_score", 5.0) >= 6.0)
             & (
                 enriched_results.get("severity_reassessed", "Unknown").isin(
-                    ["Critical", "High"]
+                    ["Critical", "High"],
                 )
             )
         ].copy()
@@ -205,16 +207,17 @@ class RemediationPlanner:
             quick_wins = quick_wins.sort_values("risk_score", ascending=False)
 
         self.logger.info(
-            f"Identified {len(quick_wins)} quick wins (effort <= {max_effort_hours}h)"
+            f"Identified {len(quick_wins)} quick wins (effort <= {max_effort_hours}h)",
         )
 
         return quick_wins
 
     def estimate_total_effort(
-        self, enriched_results: pd.DataFrame, use_bayesian: bool = True
+        self,
+        enriched_results: pd.DataFrame,
+        use_bayesian: bool = True,
     ) -> dict[str, Any]:
-        """
-        Estimate total remediation effort based on Bayesian risk categories.
+        """Estimate total remediation effort based on Bayesian risk categories.
 
         Args:
             enriched_results: DataFrame with vulnerability data
@@ -222,6 +225,7 @@ class RemediationPlanner:
 
         Returns:
             Dictionary with effort estimates (only for Bayesian Critical/High/Medium)
+
         """
         if enriched_results.empty:
             return {

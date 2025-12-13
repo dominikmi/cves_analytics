@@ -16,7 +16,8 @@ class AppConfig(BaseSettings):
 
     # Paths
     grype_binary_path: str = Field(
-        default="/opt/homebrew/bin/grype", description="Path to Grype binary"
+        default="/opt/homebrew/bin/grype",
+        description="Path to Grype binary",
     )
     data_path: str = Field(default="./data", description="Path to data directory")
     output_path: str = Field(default="./output", description="Path to output directory")
@@ -26,12 +27,14 @@ class AppConfig(BaseSettings):
 
     # Processing limits
     max_cve_files: int = Field(
-        default=5000, description="Maximum number of CVE files to process"
+        default=5000,
+        description="Maximum number of CVE files to process",
     )
 
     # Docker scanning
     max_concurrent_scans: int = Field(
-        default=5, description="Maximum concurrent Docker image scans"
+        default=5,
+        description="Maximum concurrent Docker image scans",
     )
 
     # Pydantic v2 compatible config
@@ -47,11 +50,11 @@ config: AppConfig | None = None
 
 
 def get_config() -> AppConfig:
-    """
-    Get the global configuration instance.
+    """Get the global configuration instance.
 
     Returns:
         AppConfig: Configuration instance
+
     """
     global config
     if config is None:
@@ -60,14 +63,14 @@ def get_config() -> AppConfig:
 
 
 def initialize_config(config_path: Path | None = None) -> AppConfig:
-    """
-    Initialize configuration from file or environment.
+    """Initialize configuration from file or environment.
 
     Args:
         config_path: Path to configuration file
 
     Returns:
         AppConfig: Initialized configuration
+
     """
     global config
 

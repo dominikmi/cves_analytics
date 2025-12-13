@@ -72,7 +72,7 @@ class DataEnricher:
             if "cwe_id" in enriched.columns:
                 self.logger.info("Enriching with CWE data...")
                 enriched["cwe_details"] = enriched["cwe_id"].apply(
-                    get_cwe_name_and_description
+                    get_cwe_name_and_description,
                 )
 
             # Extract NLP features from descriptions
@@ -86,11 +86,13 @@ class DataEnricher:
             return enriched
 
         except Exception as e:
-            self.logger.error(f"Failed to enrich data: {str(e)}", exc_info=True)
+            self.logger.error(f"Failed to enrich data: {e!s}", exc_info=True)
             raise
 
     def _add_environment_context(
-        self, scan_results: pd.DataFrame, scenario: dict[str, Any]
+        self,
+        scan_results: pd.DataFrame,
+        scenario: dict[str, Any],
     ) -> pd.DataFrame:
         """Add environment context to scan results."""
         if scan_results.empty or not scenario:
@@ -104,7 +106,7 @@ class DataEnricher:
 
         # Initialize per-service security controls generator
         controls_generator = ServiceSecurityControlsGenerator(
-            base_maturity=security_maturity
+            base_maturity=security_maturity,
         )
 
         # Create a mapping of images to their environment context
@@ -151,35 +153,36 @@ class DataEnricher:
         if "image_name" in scan_results.columns:
             # Add environment context columns
             scan_results["service_name"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("service_name", "unknown")
+                lambda x: image_context.get(x, {}).get("service_name", "unknown"),
             )
             scan_results["service_role"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("service_role", "service")
+                lambda x: image_context.get(x, {}).get("service_role", "service"),
             )
             scan_results["exposure"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("exposure", "internal")
+                lambda x: image_context.get(x, {}).get("exposure", "internal"),
             )
             scan_results["zone"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("zone", "internal")
+                lambda x: image_context.get(x, {}).get("zone", "internal"),
             )
             scan_results["asset_value"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("asset_value", "medium")
+                lambda x: image_context.get(x, {}).get("asset_value", "medium"),
             )
             scan_results["ownership"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("ownership", "DEV")
+                lambda x: image_context.get(x, {}).get("ownership", "DEV"),
             )
             scan_results["environment_type"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("environment_type", "unknown")
+                lambda x: image_context.get(x, {}).get("environment_type", "unknown"),
             )
 
             # Add security controls column for Bayesian risk assessment
             scan_results["security_controls"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("security_controls", {})
+                lambda x: image_context.get(x, {}).get("security_controls", {}),
             )
             scan_results["security_maturity"] = scan_results["image_name"].map(
                 lambda x: image_context.get(x, {}).get(
-                    "security_maturity", "developing"
-                )
+                    "security_maturity",
+                    "developing",
+                ),
             )
 
             # Add exposure risk factor (legacy - kept for backward compatibility)
@@ -191,7 +194,7 @@ class DataEnricher:
                 "unknown": 1.0,
             }
             scan_results["exposure_risk_factor"] = scan_results["exposure"].map(
-                exposure_risk_map
+                exposure_risk_map,
             )
 
             # Add asset value risk factor (legacy - kept for backward compatibility)
@@ -203,7 +206,7 @@ class DataEnricher:
                 "unknown": 1.0,
             }
             scan_results["asset_value_risk_factor"] = scan_results["asset_value"].map(
-                asset_value_risk_map
+                asset_value_risk_map,
             )
 
             vuln_count = len(scan_results)
@@ -258,7 +261,9 @@ class DataEnricher:
         return controls
 
     def _load_and_merge_epss_data(
-        self, enriched: pd.DataFrame, data_path: str
+        self,
+        enriched: pd.DataFrame,
+        data_path: str,
     ) -> pd.DataFrame:
         """Load EPSS data and merge it with enriched vulnerability data."""
         try:
@@ -315,7 +320,7 @@ class DataEnricher:
                 self.logger.warning("No cve_id column found, skipping EPSS merge")
 
         except Exception as e:
-            self.logger.warning(f"Failed to load EPSS data: {str(e)}")
+            self.logger.warning(f"Failed to load EPSS data: {e!s}")
 
         return enriched
 
@@ -327,7 +332,7 @@ class DataEnricher:
 
         missing_cves = enriched[missing_mask]["cve_id"].unique()
         self.logger.info(
-            f"Skipping NVD API for {len(missing_cves)} CVEs (rate limited)"
+            f"Skipping NVD API for {len(missing_cves)} CVEs (rate limited)",
         )
 
         return enriched
@@ -361,10 +366,11 @@ class DataEnricher:
         return enriched
 
     def _enrich_with_cvss_bt(
-        self, enriched: pd.DataFrame, data_path: str
+        self,
+        enriched: pd.DataFrame,
+        data_path: str,
     ) -> pd.DataFrame:
-        """
-        Enrich scan results with CVSS-BT data as the primary source.
+        """Enrich scan results with CVSS-BT data as the primary source.
 
         CVSS-BT includes:
         - CVSS-BT adjusted scores (incorporates exploitability)
@@ -389,11 +395,11 @@ class DataEnricher:
                     enriched["epss_score"] = enriched["epss"]
 
                 self.logger.info(
-                    f"CVSS-BT enrichment complete: {enriched_count} records"
+                    f"CVSS-BT enrichment complete: {enriched_count} records",
                 )
             else:
                 self.logger.warning(
-                    "No CVSS-BT data available, will use fallback sources"
+                    "No CVSS-BT data available, will use fallback sources",
                 )
 
         except Exception as e:
@@ -402,10 +408,11 @@ class DataEnricher:
         return enriched
 
     def _enrich_with_cvev5_fallback(
-        self, enriched: pd.DataFrame, data_path: str
+        self,
+        enriched: pd.DataFrame,
+        data_path: str,
     ) -> pd.DataFrame:
-        """
-        Enrich scan results with CVE v5 data for records not covered by CVSS-BT.
+        """Enrich scan results with CVE v5 data for records not covered by CVSS-BT.
 
         This is a fallback source for:
         - CVEs not in CVSS-BT dataset
@@ -421,7 +428,7 @@ class DataEnricher:
 
         if missing_count == 0:
             self.logger.info(
-                "All records have CVSS data from CVSS-BT, skipping CVE v5 fallback"
+                "All records have CVSS data from CVSS-BT, skipping CVE v5 fallback",
             )
             return enriched
 
@@ -433,7 +440,10 @@ class DataEnricher:
             loader = CVEv5Loader(cache_dir=f"{data_path}/.cache")
             self.logger.info("Loading CVE v5 data with caching...")
             cve_v5_data = loader.load_cvev5_cve_data(
-                current_year - 5, current_year, data_path, use_cache=True
+                current_year - 5,
+                current_year,
+                data_path,
+                use_cache=True,
             )
 
             if cve_v5_data.empty:
@@ -444,7 +454,7 @@ class DataEnricher:
             scan_count = len(enriched)
             cve_count = len(cve_v5_data)
             self.logger.info(
-                f"Merging {scan_count} scan results with {cve_count} CVE v5 records"
+                f"Merging {scan_count} scan results with {cve_count} CVE v5 records",
             )
 
             # Columns to merge from CVE v5
@@ -478,7 +488,7 @@ class DataEnricher:
             )
 
             self.logger.info(
-                f"Enriched {len(enriched)} vulnerabilities with CVE v5 data"
+                f"Enriched {len(enriched)} vulnerabilities with CVE v5 data",
             )
 
             # Extract CVSS data for records that don't have it yet
@@ -493,7 +503,7 @@ class DataEnricher:
                 if "cvss_score" in enriched.columns:
                     missing_count = enriched["cvss_score"].isna().sum()
                     self.logger.info(
-                        f"{missing_count} records still missing CVSS scores"
+                        f"{missing_count} records still missing CVSS scores",
                     )
 
         except Exception as e:

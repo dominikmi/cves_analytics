@@ -32,7 +32,7 @@ class DockerScanner:
                 return pd.DataFrame()
 
             self.logger.info(
-                f"Found {len(images)} Docker images to scan: {', '.join(images[:5])}{'...' if len(images) > 5 else ''}"
+                f"Found {len(images)} Docker images to scan: {', '.join(images[:5])}{'...' if len(images) > 5 else ''}",
             )
 
             # Initialize scanner with Grype
@@ -47,12 +47,12 @@ class DockerScanner:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 scan_results = loop.run_until_complete(
-                    scanner.scan_images_concurrently(images)
+                    scanner.scan_images_concurrently(images),
                 )
                 loop.close()
             except Exception as e:
                 self.logger.warning(
-                    f"Concurrent scanning failed, falling back to sequential: {str(e)}"
+                    f"Concurrent scanning failed, falling back to sequential: {e!s}",
                 )
                 # Fallback to sequential scanning
                 results = []
@@ -66,7 +66,7 @@ class DockerScanner:
                         else:
                             self.logger.info("  No vulnerabilities found")
                     except Exception as e:
-                        self.logger.warning(f"  Could not scan {image}: {str(e)}")
+                        self.logger.warning(f"  Could not scan {image}: {e!s}")
 
                 if results:
                     scan_results = pd.concat(results, ignore_index=True)
@@ -80,5 +80,5 @@ class DockerScanner:
             return scan_results
 
         except Exception as e:
-            self.logger.error(f"Failed to scan Docker images: {str(e)}", exc_info=True)
+            self.logger.error(f"Failed to scan Docker images: {e!s}", exc_info=True)
             raise

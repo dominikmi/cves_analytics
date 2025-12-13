@@ -45,12 +45,12 @@ class ReportGenerator:
             report.append("VULNERABILITY ASSESSMENT REPORT")
             report.append("=" * 80)
             report.append(
-                f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
             )
 
             # PHASE 1: Executive Summary
             report.extend(
-                self._generate_executive_summary(enriched_results, attack_analysis)
+                self._generate_executive_summary(enriched_results, attack_analysis),
             )
             report.append("")
 
@@ -71,7 +71,7 @@ class ReportGenerator:
             report.append(f"Industry: {metadata.get('industry', 'unknown')}")
             report.append(f"Environment Type: {metadata.get('environment', 'unknown')}")
             report.append(
-                f"Security Maturity: {scenario.get('security_maturity', 'unknown')}"
+                f"Security Maturity: {scenario.get('security_maturity', 'unknown')}",
             )
             report.append("")
 
@@ -125,7 +125,7 @@ class ReportGenerator:
                     for row_label in transition_matrix.index:
                         row_data = transition_matrix.loc[row_label]
                         row_str = f"  {row_label}: " + ", ".join(
-                            [f"{col}({val})" for col, val in row_data.items()]
+                            [f"{col}({val})" for col, val in row_data.items()],
                         )
                         report.append(row_str)
 
@@ -145,7 +145,7 @@ class ReportGenerator:
 
             if attack_analysis:
                 report.append(
-                    f"Total Vulnerabilities: {attack_analysis.get('total_vulnerabilities', 0)}\n"
+                    f"Total Vulnerabilities: {attack_analysis.get('total_vulnerabilities', 0)}\n",
                 )
 
                 # Graph statistics
@@ -153,13 +153,13 @@ class ReportGenerator:
                 if graph_stats:
                     report.append("Attack Graph Statistics:")
                     report.append(
-                        f"  Nodes (CVEs): {graph_stats.get('total_nodes', 0)}"
+                        f"  Nodes (CVEs): {graph_stats.get('total_nodes', 0)}",
                     )
                     report.append(
-                        f"  Edges (Dependencies): {graph_stats.get('total_edges', 0)}"
+                        f"  Edges (Dependencies): {graph_stats.get('total_edges', 0)}",
                     )
                     report.append(
-                        f"  Graph Density: {graph_stats.get('density', 0):.3f}"
+                        f"  Graph Density: {graph_stats.get('density', 0):.3f}",
                     )
                     report.append(f"  Is DAG: {graph_stats.get('is_dag', False)}\n")
 
@@ -172,11 +172,11 @@ class ReportGenerator:
                 )
                 if attack_paths:
                     report.append(
-                        f"Identified {len(attack_paths)} potential attack paths:"
+                        f"Identified {len(attack_paths)} potential attack paths:",
                     )
                     for idx, path in enumerate(attack_paths[:10], 1):
                         report.append(
-                            f"  {idx}. {path.get('description', 'Unknown attack path')}"
+                            f"  {idx}. {path.get('description', 'Unknown attack path')}",
                         )
 
                         # Add team and asset context if available
@@ -204,14 +204,14 @@ class ReportGenerator:
                                     ownership = ownership_match
 
                             report.append(
-                                f"     Target Asset: {service_name} (Team: {ownership})"
+                                f"     Target Asset: {service_name} (Team: {ownership})",
                             )
 
                         risk_score = path.get("risk_score", "N/A")
                         likelihood = path.get("likelihood", "N/A")
                         impact = path.get("impact", "N/A")
                         report.append(
-                            f"     Risk Score: {risk_score}, Likelihood: {likelihood}, Impact: {impact}"
+                            f"     Risk Score: {risk_score}, Likelihood: {likelihood}, Impact: {impact}",
                         )
 
                 # Note: Attack chains and critical paths from graph analysis
@@ -265,7 +265,7 @@ class ReportGenerator:
 
                         report.append(f"{idx}. {cve_id} in {service_name} ({img})")
                         report.append(
-                            f"   Bayesian Risk: {risk_cat} - P(Exploit): {bayes_risk:.1%} [{ci_low:.1%}-{ci_high:.1%}]"
+                            f"   Bayesian Risk: {risk_cat} - P(Exploit): {bayes_risk:.1%} [{ci_low:.1%}-{ci_high:.1%}]",
                         )
 
                         # EPSS (prior probability)
@@ -322,7 +322,7 @@ class ReportGenerator:
                             exploits.append("GitHub PoC")
                         if exploits:
                             report.append(
-                                f"   Exploits Available: {', '.join(exploits)}"
+                                f"   Exploits Available: {', '.join(exploits)}",
                             )
 
                         # KEV status
@@ -391,7 +391,7 @@ class ReportGenerator:
                     # Format and add to report
                     report.append(
                         "Ownership\\Risk".ljust(20)
-                        + " ".join(str(col).ljust(10) for col in heatmap_data.columns)
+                        + " ".join(str(col).ljust(10) for col in heatmap_data.columns),
                     )
                     for row_label in heatmap_data.index:
                         row_data = heatmap_data.loc[row_label]
@@ -400,7 +400,7 @@ class ReportGenerator:
                         )
                         report.append(row_str)
                 except Exception as e:
-                    report.append(f"Error generating heatmap: {str(e)}")
+                    report.append(f"Error generating heatmap: {e!s}")
             else:
                 report.append("Team-based vulnerability data not available")
 
@@ -422,11 +422,13 @@ class ReportGenerator:
             return str(report_path)
 
         except Exception as e:
-            self.logger.error(f"Failed to generate report: {str(e)}", exc_info=True)
+            self.logger.error(f"Failed to generate report: {e!s}", exc_info=True)
             raise
 
     def _generate_executive_summary(
-        self, enriched_results: pd.DataFrame, attack_analysis: dict[str, Any]
+        self,
+        enriched_results: pd.DataFrame,
+        attack_analysis: dict[str, Any],
     ) -> list[str]:
         """Generate executive summary section."""
         report = []
@@ -522,32 +524,33 @@ class ReportGenerator:
                 report.append(f"  {category}: {count} ({pct:.1f}%)")
             report.append("")
             report.append(
-                f"Actionable Vulnerabilities (Critical+High+Medium): {critical_high_count + (enriched_results['risk_category'] == 'Medium').sum()}"
+                f"Actionable Vulnerabilities (Critical+High+Medium): {critical_high_count + (enriched_results['risk_category'] == 'Medium').sum()}",
             )
             report.append(
-                f"Critical/High Requiring Immediate Action: {critical_high_count} ({critical_high_pct:.1f}%)"
+                f"Critical/High Requiring Immediate Action: {critical_high_count} ({critical_high_pct:.1f}%)",
             )
         report.append("")
         report.append(
-            f"Estimated Remediation Effort: {estimated_hours:.0f} person-hours"
+            f"Estimated Remediation Effort: {estimated_hours:.0f} person-hours",
         )
         report.append(f"Recommended Timeline: {estimated_weeks} weeks")
         report.append("")
         report.append(
-            f"Known Exploited Vulnerabilities (KEV): {threat_summary['kev_count']}"
+            f"Known Exploited Vulnerabilities (KEV): {threat_summary['kev_count']}",
         )
         report.append(
-            f"Public Exploits Available: {threat_summary['exploit_poc_count']}"
+            f"Public Exploits Available: {threat_summary['exploit_poc_count']}",
         )
         report.append(f"Metasploit Modules: {threat_summary['metasploit_count']}")
         report.append(
-            f"High Exploitation Probability (EPSS>=0.5): {threat_summary['high_epss_count']}"
+            f"High Exploitation Probability (EPSS>=0.5): {threat_summary['high_epss_count']}",
         )
 
         return report
 
     def _generate_risk_prioritization(
-        self, enriched_results: pd.DataFrame
+        self,
+        enriched_results: pd.DataFrame,
     ) -> list[str]:
         """Generate risk-based prioritization section using Bayesian risk assessment."""
         report = []
@@ -567,7 +570,7 @@ class ReportGenerator:
         # Critical vulnerabilities
         critical = risk_categories["critical"].head(10)
         report.append(
-            f"CRITICAL (Fix ASAP): {len(risk_categories['critical'])} vulnerabilities"
+            f"CRITICAL (Fix ASAP): {len(risk_categories['critical'])} vulnerabilities",
         )
         if not critical.empty:
             for idx, (_, row) in enumerate(critical.iterrows(), 1):
@@ -581,20 +584,20 @@ class ReportGenerator:
                     ci_low = row.get("ci_low", 0) or 0
                     ci_high = row.get("ci_high", 0) or 0
                     report.append(
-                        f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%} [{ci_low:.1%}-{ci_high:.1%}] in {service}"
+                        f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%} [{ci_low:.1%}-{ci_high:.1%}] in {service}",
                     )
                     report.append(f"      CVSS: {cvss:.1f}, EPSS: {epss:.2%}")
                 else:
                     risk_score = row.get("risk_score", 0) or 0
                     report.append(
-                        f"  {idx}. {cve_id} - Risk: {risk_score:.1f} (CVSS:{cvss:.1f} EPSS:{epss:.2f}) in {service}"
+                        f"  {idx}. {cve_id} - Risk: {risk_score:.1f} (CVSS:{cvss:.1f} EPSS:{epss:.2f}) in {service}",
                     )
         report.append("")
 
         # Important/High vulnerabilities
         important = risk_categories["important"].head(10)
         report.append(
-            f"HIGH PRIORITY (This Sprint): {len(risk_categories['important'])} vulnerabilities"
+            f"HIGH PRIORITY (This Sprint): {len(risk_categories['important'])} vulnerabilities",
         )
         if not important.empty:
             for idx, (_, row) in enumerate(important.iterrows(), 1):
@@ -604,19 +607,19 @@ class ReportGenerator:
                 if has_bayesian:
                     bayes_risk = row.get("bayesian_risk_score", 0) or 0
                     report.append(
-                        f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%} in {service}"
+                        f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%} in {service}",
                     )
                 else:
                     risk_score = row.get("risk_score", 0) or 0
                     report.append(
-                        f"  {idx}. {cve_id} - Risk: {risk_score:.1f} in {service}"
+                        f"  {idx}. {cve_id} - Risk: {risk_score:.1f} in {service}",
                     )
         report.append("")
 
         # Monitor/Medium vulnerabilities
         monitor = risk_categories["monitor"].head(5)
         report.append(
-            f"MEDIUM PRIORITY (Plan Fix): {len(risk_categories['monitor'])} vulnerabilities"
+            f"MEDIUM PRIORITY (Plan Fix): {len(risk_categories['monitor'])} vulnerabilities",
         )
         if not monitor.empty:
             for idx, (_, row) in enumerate(monitor.iterrows(), 1):
@@ -631,13 +634,14 @@ class ReportGenerator:
 
         # Low priority
         report.append(
-            f"LOW PRIORITY (Backlog): {len(risk_categories['low'])} vulnerabilities"
+            f"LOW PRIORITY (Backlog): {len(risk_categories['low'])} vulnerabilities",
         )
 
         return report
 
     def _generate_remediation_roadmap(
-        self, enriched_results: pd.DataFrame
+        self,
+        enriched_results: pd.DataFrame,
     ) -> list[str]:
         """Generate remediation roadmap section."""
         report = []
@@ -656,7 +660,7 @@ class ReportGenerator:
         report.append(f"PHASE 1: Emergency ({phase1['timeline']})")
         report.append(f"  Vulnerabilities: {phase1['count']}")
         report.append(
-            f"  Estimated Effort: {phase1['effort_hours']:.0f} hours ({phase1['timeline_weeks']} weeks)"
+            f"  Estimated Effort: {phase1['effort_hours']:.0f} hours ({phase1['timeline_weeks']} weeks)",
         )
         report.append(f"  Severity: {phase1['severity']}")
         if not phase1["vulns"].empty:
@@ -673,7 +677,7 @@ class ReportGenerator:
         report.append(f"PHASE 2: High Priority ({phase2['timeline']})")
         report.append(f"  Vulnerabilities: {phase2['count']}")
         report.append(
-            f"  Estimated Effort: {phase2['effort_hours']:.0f} hours ({phase2['timeline_weeks']} weeks)"
+            f"  Estimated Effort: {phase2['effort_hours']:.0f} hours ({phase2['timeline_weeks']} weeks)",
         )
         report.append(f"  Severity: {phase2['severity']}")
         report.append("")
@@ -683,7 +687,7 @@ class ReportGenerator:
         report.append(f"PHASE 3: Medium Priority ({phase3['timeline']})")
         report.append(f"  Vulnerabilities: {phase3['count']}")
         report.append(
-            f"  Estimated Effort: {phase3['effort_hours']:.0f} hours ({phase3['timeline_weeks']} weeks)"
+            f"  Estimated Effort: {phase3['effort_hours']:.0f} hours ({phase3['timeline_weeks']} weeks)",
         )
         report.append(f"  Severity: {phase3['severity']}")
 
@@ -724,7 +728,8 @@ class ReportGenerator:
 
             # Function to generate team-based vulnerability heatmap
             def generate_team_heatmap(
-                enriched_results: pd.DataFrame, plots_dir: str
+                enriched_results: pd.DataFrame,
+                plots_dir: str,
             ) -> str:
                 """Generate a heatmap showing reassessed severities per team."""
                 if (
@@ -794,14 +799,15 @@ class ReportGenerator:
 
                         # Save the plot
                         heatmap_path = os.path.join(
-                            plots_dir, "team_vulnerability_heatmap.png"
+                            plots_dir,
+                            "team_vulnerability_heatmap.png",
                         )
                         plt.savefig(heatmap_path, dpi=300, bbox_inches="tight")
                         plt.close()
 
                         return heatmap_path
                     except Exception as e:
-                        print(f"Error generating heatmap: {str(e)}")
+                        print(f"Error generating heatmap: {e!s}")
                         return None
                 return None
 
@@ -836,7 +842,10 @@ class ReportGenerator:
                 spaceBefore=15,
             )
             normal_style = ParagraphStyle(
-                "CustomNormal", parent=styles["Normal"], fontSize=10, spaceAfter=6
+                "CustomNormal",
+                parent=styles["Normal"],
+                fontSize=10,
+                spaceAfter=6,
             )
             code_style = ParagraphStyle(
                 "CustomCode",
@@ -855,7 +864,7 @@ class ReportGenerator:
                 Paragraph(
                     f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                     normal_style,
-                )
+                ),
             )
             story.append(Spacer(1, 0.2 * inch))
 
@@ -879,8 +888,8 @@ class ReportGenerator:
                         ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
                         ("FONTSIZE", (0, 0), (-1, -1), 10),
                         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                    ]
-                )
+                    ],
+                ),
             )
             story.append(env_table)
             story.append(Spacer(1, 0.2 * inch))
@@ -896,8 +905,9 @@ class ReportGenerator:
                 )
                 story.append(
                     Paragraph(
-                        f"Total Vulnerabilities Found: {total_vulns}", normal_style
-                    )
+                        f"Total Vulnerabilities Found: {total_vulns}",
+                        normal_style,
+                    ),
                 )
 
                 # Severity distribution table
@@ -914,8 +924,8 @@ class ReportGenerator:
                             ("FONTSIZE", (0, 0), (-1, -1), 10),
                             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                             ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                        ]
-                    )
+                        ],
+                    ),
                 )
                 story.append(severity_table)
             else:
@@ -925,7 +935,7 @@ class ReportGenerator:
 
             # Vulnerability Severity Distribution
             story.append(
-                Paragraph("VULNERABILITY SEVERITY DISTRIBUTION", heading_style)
+                Paragraph("VULNERABILITY SEVERITY DISTRIBUTION", heading_style),
             )
             if not enriched_results.empty:
                 reassessed_counts = (
@@ -937,7 +947,7 @@ class ReportGenerator:
                     Paragraph(
                         f"Total Reassessed Vulnerabilities: {len(enriched_results)}",
                         normal_style,
-                    )
+                    ),
                 )
 
                 # Reassessed severity distribution table
@@ -946,7 +956,8 @@ class ReportGenerator:
                     reassessed_data.append([severity, str(count)])
 
                 reassessed_table = Table(
-                    reassessed_data, colWidths=[2 * inch, 1 * inch]
+                    reassessed_data,
+                    colWidths=[2 * inch, 1 * inch],
                 )
                 reassessed_table.setStyle(
                     TableStyle(
@@ -956,8 +967,8 @@ class ReportGenerator:
                             ("FONTSIZE", (0, 0), (-1, -1), 10),
                             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                             ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                        ]
-                    )
+                        ],
+                    ),
                 )
                 story.append(reassessed_table)
             else:
@@ -968,8 +979,9 @@ class ReportGenerator:
             # Severity Transition Matrix
             story.append(
                 Paragraph(
-                    "SEVERITY TRANSITION MATRIX (Original → Reassessed)", heading_style
-                )
+                    "SEVERITY TRANSITION MATRIX (Original → Reassessed)",
+                    heading_style,
+                ),
             )
             if (
                 not enriched_results.empty
@@ -986,12 +998,12 @@ class ReportGenerator:
 
                 # Convert to table data
                 matrix_data = [
-                    ["Original → Reassessed"] + list(transition_matrix.columns)
+                    ["Original → Reassessed"] + list(transition_matrix.columns),
                 ]
                 for row_label in transition_matrix.index:
                     row_data = transition_matrix.loc[row_label]
                     matrix_data.append(
-                        [str(row_label)] + [str(val) for val in row_data]
+                        [str(row_label)] + [str(val) for val in row_data],
                     )
 
                 matrix_table = Table(
@@ -1010,20 +1022,20 @@ class ReportGenerator:
                             ("GRID", (0, 0), (-1, -1), 1, colors.black),
                             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
                             ("BACKGROUND", (0, 0), (0, -1), colors.lightgrey),
-                        ]
-                    )
+                        ],
+                    ),
                 )
                 story.append(matrix_table)
             else:
                 story.append(
-                    Paragraph("Severity transition data not available", normal_style)
+                    Paragraph("Severity transition data not available", normal_style),
                 )
 
             story.append(Spacer(1, 0.3 * inch))
 
             # Attack Scenario & Vulnerability Analysis
             story.append(
-                Paragraph("ATTACK SCENARIO & VULNERABILITY ANALYSIS", heading_style)
+                Paragraph("ATTACK SCENARIO & VULNERABILITY ANALYSIS", heading_style),
             )
 
             # Try to get scenario analysis from the nested structure
@@ -1042,7 +1054,7 @@ class ReportGenerator:
                     Paragraph(
                         f"Identified {len(attack_paths)} potential attack paths:",
                         normal_style,
-                    )
+                    ),
                 )
                 # Show top 10 attack paths
                 for idx, path in enumerate(attack_paths[:10], 1):
@@ -1050,7 +1062,7 @@ class ReportGenerator:
                         Paragraph(
                             f"{idx}. {path.get('description', 'Unknown attack path')}",
                             normal_style,
-                        )
+                        ),
                     )
 
                     # Add team and asset context if available
@@ -1081,7 +1093,7 @@ class ReportGenerator:
                             Paragraph(
                                 f"   Target Asset: {service_name} (Team: {ownership})",
                                 code_style,
-                            )
+                            ),
                         )
 
                     risk_score = path.get("risk_score", "N/A")
@@ -1090,8 +1102,9 @@ class ReportGenerator:
                     impact = path.get("impact", "N/A")
                     story.append(
                         Paragraph(
-                            f"   Likelihood: {likelihood}, Impact: {impact}", code_style
-                        )
+                            f"   Likelihood: {likelihood}, Impact: {impact}",
+                            code_style,
+                        ),
                     )
             else:
                 # Show existing attack chain analysis if available
@@ -1100,7 +1113,8 @@ class ReportGenerator:
                     critical_paths = attack_analysis.get("critical_paths", [])
                     attack_chains = attack_analysis.get("attack_chains", [])
                     entry_points = attack_analysis.get(
-                        "entry_point_vulnerabilities", []
+                        "entry_point_vulnerabilities",
+                        [],
                     )
 
                     if critical_paths or attack_chains or entry_points:
@@ -1110,29 +1124,29 @@ class ReportGenerator:
                                 Paragraph(
                                     f"  Critical Attack Paths: {len(critical_paths)}",
                                     code_style,
-                                )
+                                ),
                             )
                         if attack_chains:
                             story.append(
                                 Paragraph(
                                     f"  Total Attack Chains: {len(attack_chains)}",
                                     code_style,
-                                )
+                                ),
                             )
                         if entry_points:
                             story.append(
                                 Paragraph(
                                     f"  Entry Point Vulnerabilities: {len(entry_points)}",
                                     code_style,
-                                )
+                                ),
                             )
                     else:
                         story.append(
-                            Paragraph("No attack scenarios identified", normal_style)
+                            Paragraph("No attack scenarios identified", normal_style),
                         )
                 else:
                     story.append(
-                        Paragraph("No attack scenarios identified", normal_style)
+                        Paragraph("No attack scenarios identified", normal_style),
                     )
 
             story.append(Spacer(1, 0.3 * inch))
@@ -1155,12 +1169,12 @@ class ReportGenerator:
 
                     # Convert to table data
                     heatmap_table_data = [
-                        ["Ownership \\ Severity"] + list(heatmap_data.columns)
+                        ["Ownership \\ Severity"] + list(heatmap_data.columns),
                     ]
                     for row_label in heatmap_data.index:
                         row_data = heatmap_data.loc[row_label]
                         heatmap_table_data.append(
-                            [str(row_label)] + [str(int(val)) for val in row_data]
+                            [str(row_label)] + [str(int(val)) for val in row_data],
                         )
 
                     heatmap_table = Table(
@@ -1179,19 +1193,20 @@ class ReportGenerator:
                                 ("GRID", (0, 0), (-1, -1), 1, colors.black),
                                 ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
                                 ("BACKGROUND", (0, 0), (0, -1), colors.lightgrey),
-                            ]
-                        )
+                            ],
+                        ),
                     )
                     story.append(heatmap_table)
                 except Exception as e:
                     story.append(
-                        Paragraph(f"Error generating heatmap: {str(e)}", normal_style)
+                        Paragraph(f"Error generating heatmap: {e!s}", normal_style),
                     )
             else:
                 story.append(
                     Paragraph(
-                        "Team-based vulnerability data not available", normal_style
-                    )
+                        "Team-based vulnerability data not available",
+                        normal_style,
+                    ),
                 )
 
             story.append(Spacer(1, 0.3 * inch))
@@ -1229,24 +1244,25 @@ class ReportGenerator:
                         # Add image
                         try:
                             story.append(
-                                Image(plot_path, width=6 * inch, height=4 * inch)
+                                Image(plot_path, width=6 * inch, height=4 * inch),
                             )
                         except Exception as e:
                             story.append(
-                                Paragraph(f"Error loading plot: {str(e)}", normal_style)
+                                Paragraph(f"Error loading plot: {e!s}", normal_style),
                             )
 
                         story.append(Spacer(1, 0.2 * inch))
 
             # Top Vulnerabilities - Detailed Assessment
             story.append(
-                Paragraph("TOP VULNERABILITIES - DETAILED ASSESSMENT", heading_style)
+                Paragraph("TOP VULNERABILITIES - DETAILED ASSESSMENT", heading_style),
             )
             if not enriched_results.empty:
                 # Sort by CVSS score or severity
                 if "cvss_score" in enriched_results.columns:
                     enriched_results_sorted = enriched_results.nlargest(
-                        20, "cvss_score"
+                        20,
+                        "cvss_score",
                     )
                 else:
                     severity_order = {
@@ -1259,10 +1275,11 @@ class ReportGenerator:
                     }
                     sev_col = enriched_results.get("severity", "Unknown")
                     enriched_results["severity_rank"] = sev_col.map(
-                        lambda x: severity_order.get(x, 0)
+                        lambda x: severity_order.get(x, 0),
                     )
                     enriched_results_sorted = enriched_results.nlargest(
-                        20, "severity_rank"
+                        20,
+                        "severity_rank",
                     )
 
                 # Add detailed vulnerability information
@@ -1278,8 +1295,9 @@ class ReportGenerator:
                     original_severity = row.get("severity", "Unknown")
                     story.append(
                         Paragraph(
-                            f"   Original Severity: {original_severity}", code_style
-                        )
+                            f"   Original Severity: {original_severity}",
+                            code_style,
+                        ),
                     )
 
                     # CVSS Details
@@ -1287,7 +1305,7 @@ class ReportGenerator:
                         score = row["cvss_score"]
                         version = row.get("cvss_version", "Unknown")
                         story.append(
-                            Paragraph(f"   CVSS {version}: {score}", code_style)
+                            Paragraph(f"   CVSS {version}: {score}", code_style),
                         )
 
                         # Add vector if available
@@ -1299,7 +1317,7 @@ class ReportGenerator:
                     if pd.notna(row.get("severity_reassessed")):
                         reassessed = row["severity_reassessed"]
                         story.append(
-                            Paragraph(f"   Reassessed: {reassessed}", code_style)
+                            Paragraph(f"   Reassessed: {reassessed}", code_style),
                         )
 
                         # Add reassessment reason/criteria
@@ -1325,20 +1343,20 @@ class ReportGenerator:
                     if pd.notna(row.get("asset_value")):
                         asset_value = row["asset_value"]
                         story.append(
-                            Paragraph(f"   Asset Value: {asset_value}", code_style)
+                            Paragraph(f"   Asset Value: {asset_value}", code_style),
                         )
 
                     if pd.notna(row.get("service_role")):
                         service_role = row["service_role"]
                         story.append(
-                            Paragraph(f"   Service Role: {service_role}", code_style)
+                            Paragraph(f"   Service Role: {service_role}", code_style),
                         )
 
                     # Add ownership if available
                     if pd.notna(row.get("ownership")):
                         ownership = row["ownership"]
                         story.append(
-                            Paragraph(f"   Ownership: {ownership}", code_style)
+                            Paragraph(f"   Ownership: {ownership}", code_style),
                         )
 
                     story.append(Spacer(1, 0.1 * inch))
@@ -1355,5 +1373,5 @@ class ReportGenerator:
             return str(pdf_path)
 
         except Exception as e:
-            self.logger.error(f"Failed to generate PDF report: {str(e)}", exc_info=True)
+            self.logger.error(f"Failed to generate PDF report: {e!s}", exc_info=True)
             raise

@@ -8,22 +8,25 @@ class CVSSv31(BaseModel):
 
     baseScore: float = Field(ge=0.0, le=10.0, description="CVSS base score (0-10)")
     baseSeverity: str = Field(
-        description="Base severity (CRITICAL, HIGH, MEDIUM, LOW, NONE)"
+        description="Base severity (CRITICAL, HIGH, MEDIUM, LOW, NONE)",
     )
     vectorString: str = Field(description="CVSS vector string")
     attackVector: str | None = Field(None, description="Attack Vector (N, A, L, P)")
     attackComplexity: str | None = Field(None, description="Attack Complexity (L, H)")
     privilegesRequired: str | None = Field(
-        None, description="Privileges Required (N, L, H)"
+        None,
+        description="Privileges Required (N, L, H)",
     )
     userInteraction: str | None = Field(None, description="User Interaction (N, R)")
     scope: str | None = Field(None, description="Scope (U, C)")
     confidentialityImpact: str | None = Field(
-        None, description="Confidentiality Impact (N, L, H)"
+        None,
+        description="Confidentiality Impact (N, L, H)",
     )
     integrityImpact: str | None = Field(None, description="Integrity Impact (N, L, H)")
     availabilityImpact: str | None = Field(
-        None, description="Availability Impact (N, L, H)"
+        None,
+        description="Availability Impact (N, L, H)",
     )
     version: str | None = Field(None, description="CVSS version")
 
@@ -38,22 +41,25 @@ class CVSSv30(BaseModel):
 
     baseScore: float = Field(ge=0.0, le=10.0, description="CVSS base score (0-10)")
     baseSeverity: str = Field(
-        description="Base severity (CRITICAL, HIGH, MEDIUM, LOW, NONE)"
+        description="Base severity (CRITICAL, HIGH, MEDIUM, LOW, NONE)",
     )
     vectorString: str = Field(description="CVSS vector string")
     attackVector: str | None = Field(None, description="Attack Vector (N, A, L, P)")
     attackComplexity: str | None = Field(None, description="Attack Complexity (L, H)")
     privilegesRequired: str | None = Field(
-        None, description="Privileges Required (N, L, H)"
+        None,
+        description="Privileges Required (N, L, H)",
     )
     userInteraction: str | None = Field(None, description="User Interaction (N, R)")
     scope: str | None = Field(None, description="Scope (U, C)")
     confidentialityImpact: str | None = Field(
-        None, description="Confidentiality Impact (N, L, H)"
+        None,
+        description="Confidentiality Impact (N, L, H)",
     )
     integrityImpact: str | None = Field(None, description="Integrity Impact (N, L, H)")
     availabilityImpact: str | None = Field(
-        None, description="Availability Impact (N, L, H)"
+        None,
+        description="Availability Impact (N, L, H)",
     )
     version: str | None = Field(None, description="CVSS version")
 
@@ -68,20 +74,24 @@ class CVSSv20(BaseModel):
 
     baseScore: float = Field(ge=0.0, le=10.0, description="CVSS base score (0-10)")
     baseSeverity: str | None = Field(
-        None, description="Base severity (HIGH, MEDIUM, LOW)"
+        None,
+        description="Base severity (HIGH, MEDIUM, LOW)",
     )
     vectorString: str = Field(description="CVSS vector string")
     accessVector: str | None = Field(None, description="Access Vector (L, A, N)")
     accessComplexity: str | None = Field(
-        None, description="Access Complexity (H, M, L)"
+        None,
+        description="Access Complexity (H, M, L)",
     )
     authentication: str | None = Field(None, description="Authentication (M, S, N)")
     confidentialityImpact: str | None = Field(
-        None, description="Confidentiality Impact (N, P, C)"
+        None,
+        description="Confidentiality Impact (N, P, C)",
     )
     integrityImpact: str | None = Field(None, description="Integrity Impact (N, P, C)")
     availabilityImpact: str | None = Field(
-        None, description="Availability Impact (N, P, C)"
+        None,
+        description="Availability Impact (N, P, C)",
     )
     version: str | None = Field(None, description="CVSS version")
 
@@ -111,7 +121,10 @@ class EPSSScore(BaseModel):
 
     score: float = Field(ge=0.0, le=1.0, description="EPSS score (0-1 probability)")
     percentile: float | None = Field(
-        None, ge=0.0, le=100.0, description="EPSS percentile"
+        None,
+        ge=0.0,
+        le=100.0,
+        description="EPSS percentile",
     )
     date: str | None = Field(None, description="Date of EPSS score")
 
@@ -135,7 +148,8 @@ class CVEVulnerability(BaseModel):
     cvss_v2_0: CVSSv20 | None = Field(None, description="CVSS v2.0 metrics")
     epss: EPSSScore | None = Field(None, description="EPSS score")
     is_kev: bool = Field(
-        False, description="Is in Known Exploited Vulnerabilities catalog"
+        False,
+        description="Is in Known Exploited Vulnerabilities catalog",
     )
 
     class Config:

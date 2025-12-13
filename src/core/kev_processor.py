@@ -15,14 +15,14 @@ logger = get_logger(__name__)
 def download_known_exploited_vulnerabilities(
     directory: str,
 ) -> pd.DataFrame | None:
-    """
-    Download the known exploited vulnerabilities data from CISA.
+    """Download the known exploited vulnerabilities data from CISA.
 
     Args:
         directory: Directory to save the file
 
     Returns:
         DataFrame with KEV data or None if download failed
+
     """
     url = (
         "https://www.cisa.gov/sites/default/files/csv/"
@@ -61,14 +61,14 @@ def download_known_exploited_vulnerabilities(
 def load_known_exploited_vulnerabilities(
     file_path: str,
 ) -> pd.DataFrame | None:
-    """
-    Load known exploited vulnerabilities from a CSV file.
+    """Load known exploited vulnerabilities from a CSV file.
 
     Args:
         file_path: Path to the KEV CSV file
 
     Returns:
         DataFrame with KEV data or None if load failed
+
     """
     try:
         logger.debug(f"Loading KEV data from {file_path}")

@@ -9,8 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_threat_indicators_from_nvd(cve_data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Extract threat indicators from NVD CVE data.
+    """Extract threat indicators from NVD CVE data.
 
     Parses NVD references to identify:
     - Public exploit availability
@@ -23,6 +22,7 @@ def extract_threat_indicators_from_nvd(cve_data: dict[str, Any]) -> dict[str, An
 
     Returns:
         Dictionary with threat indicators
+
     """
     indicators = {
         "has_exploit_poc": False,
@@ -76,14 +76,14 @@ def extract_threat_indicators_from_nvd(cve_data: dict[str, Any]) -> dict[str, An
 
 
 def add_threat_indicators(enriched_results: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add threat indicators to enriched results.
+    """Add threat indicators to enriched results.
 
     Args:
         enriched_results: DataFrame with vulnerability data
 
     Returns:
         DataFrame with added threat indicator columns
+
     """
     if enriched_results.empty:
         return enriched_results
@@ -107,8 +107,7 @@ def add_threat_indicators(enriched_results: pd.DataFrame) -> pd.DataFrame:
 
 
 def calculate_threat_score(row: dict[str, Any]) -> float:
-    """
-    Calculate threat score for a vulnerability.
+    """Calculate threat score for a vulnerability.
 
     Combines:
     - KEV status (in CISA Known Exploited Vulnerabilities)
@@ -120,6 +119,7 @@ def calculate_threat_score(row: dict[str, Any]) -> float:
 
     Returns:
         Threat score (0-10)
+
     """
     score = 0.0
 
@@ -146,14 +146,14 @@ def calculate_threat_score(row: dict[str, Any]) -> float:
 
 
 def categorize_by_threat(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """
-    Categorize vulnerabilities by threat level.
+    """Categorize vulnerabilities by threat level.
 
     Args:
         enriched_results: DataFrame with threat data
 
     Returns:
         Dictionary with threat categories
+
     """
     if enriched_results.empty:
         return {
@@ -172,14 +172,14 @@ def categorize_by_threat(enriched_results: pd.DataFrame) -> dict[str, pd.DataFra
 
 
 def get_threat_summary(enriched_results: pd.DataFrame) -> dict[str, Any]:
-    """
-    Get summary of threat intelligence.
+    """Get summary of threat intelligence.
 
     Args:
         enriched_results: DataFrame with vulnerability data
 
     Returns:
         Dictionary with threat summary
+
     """
     if enriched_results.empty:
         return {

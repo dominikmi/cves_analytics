@@ -11,7 +11,7 @@ from src.utils.config import AppConfig
 def main():
     """Main entry point for the pipeline."""
     parser = argparse.ArgumentParser(
-        description="Run full vulnerability assessment pipeline"
+        description="Run full vulnerability assessment pipeline",
     )
     parser.add_argument(
         "--org-size",
@@ -99,7 +99,7 @@ def main():
         print(f"Report saved to: {report_path}")
 
     except Exception as e:
-        print(f"Pipeline failed: {str(e)}", file=sys.stderr)
+        print(f"Pipeline failed: {e!s}", file=sys.stderr)
         sys.exit(1)
 
 

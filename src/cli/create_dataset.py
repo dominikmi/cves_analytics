@@ -28,7 +28,11 @@ def main() -> None:
     """Main entry point for dataset creation."""
     parser = argparse.ArgumentParser(description="CVE data analyser")
     parser.add_argument(
-        "-s", "--start_year", type=int, required=True, help="Start year"
+        "-s",
+        "--start_year",
+        type=int,
+        required=True,
+        help="Start year",
     )
     parser.add_argument("-e", "--end_year", type=int, required=True, help="End year")
     parser.add_argument(
@@ -39,7 +43,11 @@ def main() -> None:
         help="Download/Process the CVE data path",
     )
     parser.add_argument(
-        "-o", "--output_path", type=str, required=True, help="Output the CVE data path"
+        "-o",
+        "--output_path",
+        type=str,
+        required=True,
+        help="Output the CVE data path",
     )
 
     # Enforce help message if no arguments provided
@@ -50,7 +58,7 @@ def main() -> None:
     args = parser.parse_args()
 
     logger.info(
-        f"Starting the process for the years {args.start_year} to {args.end_year}"
+        f"Starting the process for the years {args.start_year} to {args.end_year}",
     )
 
     # Download CVE v5 data
@@ -70,14 +78,14 @@ def main() -> None:
     logger.info("Step 3: Loading CVE data into DataFrame...")
     cves = load_cvev5_cve_data(args.start_year, args.end_year, args.data_path)
     logger.info(
-        f"CVE data loaded in {time.time() - start_time:.2f}s - {len(cves)} records"
+        f"CVE data loaded in {time.time() - start_time:.2f}s - {len(cves)} records",
     )
 
     # Check if data was loaded
     if cves.empty:
         logger.error(
             "No CVE data loaded. Please check if downloads were successful "
-            "and JSON files exist in the data directory."
+            "and JSON files exist in the data directory.",
         )
         sys.exit(1)
 
@@ -110,7 +118,11 @@ def main() -> None:
     if epss_file:
         epss_scores = pd.read_csv(epss_file, skiprows=1)
         cves_with_epss = pd.merge(
-            cves, epss_scores, left_on="cve_id", right_on="cve", how="left"
+            cves,
+            epss_scores,
+            left_on="cve_id",
+            right_on="cve",
+            how="left",
         )
     else:
         cves_with_epss = cves
@@ -143,7 +155,7 @@ def main() -> None:
     start_time = time.time()
     logger.info("Step 10: Enriching with CWE details...")
     cves_with_kev["cwe_details"] = cves_with_kev["cwe_id"].apply(
-        get_cwe_name_and_description
+        get_cwe_name_and_description,
     )
     logger.info(f"CWE enrichment complete in {time.time() - start_time:.2f}s")
 

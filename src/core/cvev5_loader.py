@@ -45,7 +45,9 @@ class CVEv5Loader:
             logger.warning(f"Failed to cache data: {e}")
 
     def _parse_cve_file(
-        self, json_file: Path, cve_ids: set[str] | None = None
+        self,
+        json_file: Path,
+        cve_ids: set[str] | None = None,
     ) -> dict[str, Any] | None:
         """Parse a single CVE JSON file efficiently."""
         try:
@@ -70,22 +72,22 @@ class CVEv5Loader:
                 if "cvssV4_0" in metric and "cvss_v4_0_score" not in cvss_data:
                     cvss_data["cvss_v4_0_score"] = metric["cvssV4_0"].get("baseScore")
                     cvss_data["cvss_v4_0_vector"] = metric["cvssV4_0"].get(
-                        "vectorString"
+                        "vectorString",
                     )
                 elif "cvssV3_1" in metric and "cvss_v3_1_score" not in cvss_data:
                     cvss_data["cvss_v3_1_score"] = metric["cvssV3_1"].get("baseScore")
                     cvss_data["cvss_v3_1_vector"] = metric["cvssV3_1"].get(
-                        "vectorString"
+                        "vectorString",
                     )
                 elif "cvssV3_0" in metric and "cvss_v3_0_score" not in cvss_data:
                     cvss_data["cvss_v3_0_score"] = metric["cvssV3_0"].get("baseScore")
                     cvss_data["cvss_v3_0_vector"] = metric["cvssV3_0"].get(
-                        "vectorString"
+                        "vectorString",
                     )
                 elif "cvssV2_0" in metric and "cvss_v2_0_score" not in cvss_data:
                     cvss_data["cvss_v2_0_score"] = metric["cvssV2_0"].get("baseScore")
                     cvss_data["cvss_v2_0_vector"] = metric["cvssV2_0"].get(
-                        "vectorString"
+                        "vectorString",
                     )
 
             # Extract description
@@ -125,8 +127,7 @@ class CVEv5Loader:
         use_cache: bool = True,
         max_workers: int = 8,
     ) -> pd.DataFrame:
-        """
-        Load CVE v5 data with parallel processing and caching.
+        """Load CVE v5 data with parallel processing and caching.
 
         Args:
             start_year: Start year for CVE data
@@ -138,6 +139,7 @@ class CVEv5Loader:
 
         Returns:
             DataFrame with CVE data
+
         """
         # Try cache first
         if use_cache:

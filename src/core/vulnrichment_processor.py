@@ -13,14 +13,14 @@ logger = get_logger(__name__)
 
 
 def _get_metric_position_of_other(metrics_list: list[dict[str, Any]]) -> int | None:
-    """
-    Find the position in metrics list where "other" key exists.
+    """Find the position in metrics list where "other" key exists.
 
     Args:
         metrics_list: List of metric dictionaries
 
     Returns:
         Index of the metric with "other" key, or None if not found
+
     """
     for i, metric in enumerate(metrics_list):
         if "other" in metric:
@@ -31,14 +31,14 @@ def _get_metric_position_of_other(metrics_list: list[dict[str, Any]]) -> int | N
 def _flatten_vulnrichment_output(
     vulnrichment_output: list[dict[str, Any]] | None,
 ) -> dict[str, Any] | None:
-    """
-    Flatten vulnrichment output from list of dicts to single dict.
+    """Flatten vulnrichment output from list of dicts to single dict.
 
     Args:
         vulnrichment_output: List of dictionaries to flatten
 
     Returns:
         Flattened dictionary or None if input is None
+
     """
     if vulnrichment_output is None:
         return None
@@ -55,14 +55,14 @@ def _flatten_vulnrichment_output(
 
 @error_handler()
 def get_cve_vulnrichment(cve_id: str) -> list[dict[str, Any]] | None:
-    """
-    Get vulnerability enrichment data for a CVE from CISAGOV repository.
+    """Get vulnerability enrichment data for a CVE from CISAGOV repository.
 
     Args:
         cve_id: CVE identifier (e.g., "CVE-2021-1234")
 
     Returns:
         List of enrichment options or default list if not found
+
     """
     logger.debug(f"Processing cve_id -> {cve_id}")
 
@@ -134,14 +134,14 @@ def get_cve_vulnrichment(cve_id: str) -> list[dict[str, Any]] | None:
 def update_row_with_vulnrichment_details(
     row: pd.Series,
 ) -> pd.Series:
-    """
-    Update a DataFrame row with vulnerability enrichment details.
+    """Update a DataFrame row with vulnerability enrichment details.
 
     Args:
         row: DataFrame row to update
 
     Returns:
         Updated row with enrichment details
+
     """
     cve_id = row.get("cve_id")
     if not cve_id:

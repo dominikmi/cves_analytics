@@ -1,5 +1,4 @@
-"""
-Security Controls Model for Scenario Simulation.
+"""Security Controls Model for Scenario Simulation.
 
 This module defines the security controls that can be present in a simulated
 environment. These controls are used by the Bayesian risk assessment to
@@ -51,8 +50,7 @@ class PatchManagementCadence(str, Enum):
 
 @dataclass
 class ControlProbabilities:
-    """
-    Probability of each control being present at different maturity levels.
+    """Probability of each control being present at different maturity levels.
 
     These probabilities are derived from:
     - Verizon DBIR control adoption statistics
@@ -68,7 +66,7 @@ class ControlProbabilities:
             "defined": 0.6,
             "managed": 0.85,
             "optimizing": 0.95,
-        }
+        },
     )
 
     firewall: dict[str, float] = field(
@@ -78,7 +76,7 @@ class ControlProbabilities:
             "defined": 0.95,
             "managed": 0.99,
             "optimizing": 0.99,
-        }
+        },
     )
 
     waf: dict[str, float] = field(
@@ -88,7 +86,7 @@ class ControlProbabilities:
             "defined": 0.5,
             "managed": 0.75,
             "optimizing": 0.9,
-        }
+        },
     )
 
     ids_ips: dict[str, float] = field(
@@ -98,7 +96,7 @@ class ControlProbabilities:
             "defined": 0.6,
             "managed": 0.8,
             "optimizing": 0.95,
-        }
+        },
     )
 
     # Endpoint Controls
@@ -109,7 +107,7 @@ class ControlProbabilities:
             "defined": 0.4,
             "managed": 0.7,
             "optimizing": 0.9,
-        }
+        },
     )
 
     antivirus: dict[str, float] = field(
@@ -119,7 +117,7 @@ class ControlProbabilities:
             "defined": 0.9,
             "managed": 0.95,
             "optimizing": 0.95,
-        }
+        },
     )
 
     # Access Controls
@@ -130,7 +128,7 @@ class ControlProbabilities:
             "defined": 0.6,
             "managed": 0.85,
             "optimizing": 0.95,
-        }
+        },
     )
 
     privileged_access_mgmt: dict[str, float] = field(
@@ -140,7 +138,7 @@ class ControlProbabilities:
             "defined": 0.3,
             "managed": 0.6,
             "optimizing": 0.85,
-        }
+        },
     )
 
     # Security Operations
@@ -151,7 +149,7 @@ class ControlProbabilities:
             "defined": 0.4,
             "managed": 0.7,
             "optimizing": 0.9,
-        }
+        },
     )
 
     soc_24x7: dict[str, float] = field(
@@ -161,7 +159,7 @@ class ControlProbabilities:
             "defined": 0.2,
             "managed": 0.5,
             "optimizing": 0.8,
-        }
+        },
     )
 
     # Patch Management (probability of each cadence)
@@ -172,7 +170,7 @@ class ControlProbabilities:
             "defined": 0.1,
             "managed": 0.3,
             "optimizing": 0.6,
-        }
+        },
     )
 
     patch_weekly: dict[str, float] = field(
@@ -182,7 +180,7 @@ class ControlProbabilities:
             "defined": 0.3,
             "managed": 0.4,
             "optimizing": 0.3,
-        }
+        },
     )
 
     patch_monthly: dict[str, float] = field(
@@ -192,7 +190,7 @@ class ControlProbabilities:
             "defined": 0.4,
             "managed": 0.25,
             "optimizing": 0.08,
-        }
+        },
     )
 
     patch_quarterly: dict[str, float] = field(
@@ -202,13 +200,12 @@ class ControlProbabilities:
             "defined": 0.15,
             "managed": 0.04,
             "optimizing": 0.01,
-        }
+        },
     )
 
 
 class SecurityControlsConfig(BaseModel):
-    """
-    Configuration for security controls in a simulated environment.
+    """Configuration for security controls in a simulated environment.
 
     All controls are binary (present/absent) as requested.
     """
@@ -220,10 +217,12 @@ class SecurityControlsConfig(BaseModel):
     )
     firewall: bool = Field(default=True, description="Perimeter firewall in place")
     waf: bool = Field(
-        default=False, description="Web Application Firewall protecting web services"
+        default=False,
+        description="Web Application Firewall protecting web services",
     )
     ids_ips: bool = Field(
-        default=False, description="Intrusion Detection/Prevention System active"
+        default=False,
+        description="Intrusion Detection/Prevention System active",
     )
 
     # Endpoint Controls
@@ -232,53 +231,62 @@ class SecurityControlsConfig(BaseModel):
         description="Endpoint Detection and Response / Extended Detection and Response",
     )
     antivirus: bool = Field(
-        default=True, description="Traditional antivirus/antimalware"
+        default=True,
+        description="Traditional antivirus/antimalware",
     )
 
     # Access Controls
     mfa: bool = Field(default=False, description="Multi-Factor Authentication enforced")
     privileged_access_mgmt: bool = Field(
-        default=False, description="Privileged Access Management solution"
+        default=False,
+        description="Privileged Access Management solution",
     )
 
     # Patch Management (only one should be true)
     patch_daily: bool = Field(
-        default=False, description="Critical patches applied within 24 hours"
+        default=False,
+        description="Critical patches applied within 24 hours",
     )
     patch_weekly: bool = Field(default=False, description="Patches applied weekly")
     patch_monthly: bool = Field(
-        default=True, description="Patches applied monthly (Patch Tuesday cycle)"
+        default=True,
+        description="Patches applied monthly (Patch Tuesday cycle)",
     )
     patch_quarterly: bool = Field(
-        default=False, description="Patches applied quarterly"
+        default=False,
+        description="Patches applied quarterly",
     )
 
     # Security Operations
     siem: bool = Field(
-        default=False, description="Security Information and Event Management"
+        default=False,
+        description="Security Information and Event Management",
     )
     soc_24x7: bool = Field(default=False, description="24/7 Security Operations Center")
     incident_response_plan: bool = Field(
-        default=False, description="Documented incident response plan"
+        default=False,
+        description="Documented incident response plan",
     )
     security_training: bool = Field(
-        default=False, description="Regular security awareness training"
+        default=False,
+        description="Regular security awareness training",
     )
 
     # Physical/Environmental
     air_gapped: bool = Field(
-        default=False, description="Air-gapped network (no internet connectivity)"
+        default=False,
+        description="Air-gapped network (no internet connectivity)",
     )
 
     def get_patch_cadence(self) -> str:
         """Get the active patch management cadence."""
         if self.patch_daily:
             return "daily"
-        elif self.patch_weekly:
+        if self.patch_weekly:
             return "weekly"
-        elif self.patch_monthly:
+        if self.patch_monthly:
             return "monthly"
-        elif self.patch_quarterly:
+        if self.patch_quarterly:
             return "quarterly"
         return "ad_hoc"
 
@@ -306,8 +314,7 @@ class SecurityControlsConfig(BaseModel):
 
 
 class SecurityControlsGenerator:
-    """
-    Generates realistic security control configurations based on:
+    """Generates realistic security control configurations based on:
     - Organization size
     - Industry
     - Security maturity level
@@ -315,12 +322,12 @@ class SecurityControlsGenerator:
     """
 
     def __init__(self, probabilities: ControlProbabilities | None = None):
-        """
-        Initialize the generator.
+        """Initialize the generator.
 
         Args:
             probabilities: Optional custom control probabilities.
                           If None, uses research-derived defaults.
+
         """
         self.probabilities = probabilities or ControlProbabilities()
 
@@ -331,8 +338,7 @@ class SecurityControlsGenerator:
         environment: str = "prod",
         size: str = "mid",
     ) -> SecurityControlsConfig:
-        """
-        Generate security controls configuration.
+        """Generate security controls configuration.
 
         Args:
             maturity: Security maturity level
@@ -342,6 +348,7 @@ class SecurityControlsGenerator:
 
         Returns:
             SecurityControlsConfig with generated controls
+
         """
         if isinstance(maturity, str):
             maturity = SecurityMaturityLevel(maturity.lower())
@@ -597,8 +604,7 @@ class SecurityControlsGenerator:
 
 
 class ExposureBasedControlProbabilities:
-    """
-    Control probabilities adjusted by exposure type.
+    """Control probabilities adjusted by exposure type.
 
     Rationale:
     - Internet-facing: Maximum protection required (WAF mandatory, strong perimeter)
@@ -685,8 +691,7 @@ class ExposureBasedControlProbabilities:
 
 
 class ServiceSecurityControlsGenerator:
-    """
-    Generates security controls for individual services based on their exposure.
+    """Generates security controls for individual services based on their exposure.
 
     This provides more realistic control distributions where:
     - Internet-facing services have WAF, strong MFA, enhanced monitoring
@@ -699,12 +704,12 @@ class ServiceSecurityControlsGenerator:
         base_generator: SecurityControlsGenerator | None = None,
         base_maturity: SecurityMaturityLevel | str = SecurityMaturityLevel.DEFINED,
     ):
-        """
-        Initialize the service-level generator.
+        """Initialize the service-level generator.
 
         Args:
             base_generator: Base generator for organization-wide controls
             base_maturity: Base security maturity level
+
         """
         self.base_generator = base_generator or SecurityControlsGenerator()
         if isinstance(base_maturity, str):
@@ -720,8 +725,7 @@ class ServiceSecurityControlsGenerator:
         environment: str = "prod",
         size: str = "mid",
     ) -> dict[str, bool]:
-        """
-        Generate security controls for a specific service.
+        """Generate security controls for a specific service.
 
         Args:
             exposure: Service exposure (internet-facing, dmz, internal, restricted)
@@ -733,6 +737,7 @@ class ServiceSecurityControlsGenerator:
 
         Returns:
             Dictionary of control name -> bool
+
         """
         maturity_key = self.base_maturity.value
         probabilities = self.base_generator.probabilities
@@ -888,8 +893,7 @@ class ServiceSecurityControlsGenerator:
 
 
 def estimate_maturity_from_posture(posture: dict[str, Any]) -> SecurityMaturityLevel:
-    """
-    Estimate security maturity level from existing security posture dict.
+    """Estimate security maturity level from existing security posture dict.
 
     This is used to convert legacy security_posture dicts to maturity levels.
 
@@ -898,6 +902,7 @@ def estimate_maturity_from_posture(posture: dict[str, Any]) -> SecurityMaturityL
 
     Returns:
         Estimated SecurityMaturityLevel
+
     """
     score = 0
 
@@ -929,11 +934,10 @@ def estimate_maturity_from_posture(posture: dict[str, Any]) -> SecurityMaturityL
     # Map score to maturity
     if score >= 10:
         return SecurityMaturityLevel.OPTIMIZING
-    elif score >= 7:
+    if score >= 7:
         return SecurityMaturityLevel.MANAGED
-    elif score >= 4:
+    if score >= 4:
         return SecurityMaturityLevel.DEFINED
-    elif score >= 2:
+    if score >= 2:
         return SecurityMaturityLevel.DEVELOPING
-    else:
-        return SecurityMaturityLevel.INITIAL
+    return SecurityMaturityLevel.INITIAL

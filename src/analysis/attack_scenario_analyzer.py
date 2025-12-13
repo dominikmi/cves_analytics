@@ -69,7 +69,9 @@ class AttackScenarioAnalyzer:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def analyze(
-        self, enriched_results: pd.DataFrame, scenario: dict[str, Any]
+        self,
+        enriched_results: pd.DataFrame,
+        scenario: dict[str, Any],
     ) -> dict[str, Any]:
         """Analyze vulnerability data to identify potential attack scenarios."""
         try:
@@ -108,10 +110,10 @@ class AttackScenarioAnalyzer:
                 ],  # Top 10
                 "total_identified_paths": len(unique_paths),
                 "high_risk_paths": len(
-                    [p for p in unique_paths if p.risk_score >= 8.0]
+                    [p for p in unique_paths if p.risk_score >= 8.0],
                 ),
                 "medium_risk_paths": len(
-                    [p for p in unique_paths if 5.0 <= p.risk_score < 8.0]
+                    [p for p in unique_paths if 5.0 <= p.risk_score < 8.0],
                 ),
                 "low_risk_paths": len([p for p in unique_paths if p.risk_score < 5.0]),
             }
@@ -120,19 +122,21 @@ class AttackScenarioAnalyzer:
             self.logger.info(
                 f"High risk: {result['high_risk_paths']}, "
                 f"Medium risk: {result['medium_risk_paths']}, "
-                f"Low risk: {result['low_risk_paths']}"
+                f"Low risk: {result['low_risk_paths']}",
             )
 
             return result
 
         except Exception as e:
             self.logger.error(
-                f"Failed to analyze attack scenarios: {str(e)}", exc_info=True
+                f"Failed to analyze attack scenarios: {e!s}",
+                exc_info=True,
             )
             return {"attack_paths": [], "error": str(e)}
 
     def _find_internet_attack_paths(
-        self, enriched_results: pd.DataFrame
+        self,
+        enriched_results: pd.DataFrame,
     ) -> list[AttackPath]:
         """Find attack paths starting from internet-facing services."""
         paths = []
@@ -177,7 +181,8 @@ class AttackScenarioAnalyzer:
 
                 # Risk score calculation
                 base_risk = max(
-                    cvss_score, epss_score * 10
+                    cvss_score,
+                    epss_score * 10,
                 )  # Normalize EPSS to 0-10 scale
                 risk_score = min(10.0, base_risk * exposure_factor * asset_value_factor)
 
@@ -186,7 +191,7 @@ class AttackScenarioAnalyzer:
                     service_name=str(row.get("service_name", "unknown")),
                     service_role=str(row.get("service_role", "service")),
                     vulnerability_id=str(
-                        row.get("cve_id", row.get("vuln_id", "unknown"))
+                        row.get("cve_id", row.get("vuln_id", "unknown")),
                     ),
                     cve_id=str(row.get("cve_id", row.get("vuln_id", "unknown"))),
                     attack_vector=self._determine_attack_vector(row),
@@ -207,13 +212,14 @@ class AttackScenarioAnalyzer:
                 paths.append(path)
 
             except Exception as e:
-                self.logger.debug(f"Error processing internet attack path: {str(e)}")
+                self.logger.debug(f"Error processing internet attack path: {e!s}")
                 continue
 
         return paths
 
     def _find_privilege_escalation_paths(
-        self, enriched_results: pd.DataFrame
+        self,
+        enriched_results: pd.DataFrame,
     ) -> list[AttackPath]:
         """Find privilege escalation opportunities."""
         paths = []
@@ -233,7 +239,7 @@ class AttackScenarioAnalyzer:
                 (enriched_results["cwe_id"].isin(priv_esc_cwes))
                 & (
                     enriched_results["severity_reassessed"].isin(
-                        ["Critical", "High", "Medium"]
+                        ["Critical", "High", "Medium"],
                     )
                 )
             ]
@@ -265,7 +271,7 @@ class AttackScenarioAnalyzer:
                     service_name=str(row.get("service_name", "unknown")),
                     service_role=str(row.get("service_role", "service")),
                     vulnerability_id=str(
-                        row.get("cve_id", row.get("vuln_id", "unknown"))
+                        row.get("cve_id", row.get("vuln_id", "unknown")),
                     ),
                     cve_id=str(row.get("cve_id", row.get("vuln_id", "unknown"))),
                     attack_vector="privilege_escalation",
@@ -286,14 +292,15 @@ class AttackScenarioAnalyzer:
 
             except Exception as e:
                 self.logger.debug(
-                    f"Error processing privilege escalation path: {str(e)}"
+                    f"Error processing privilege escalation path: {e!s}",
                 )
                 continue
 
         return paths
 
     def _find_lateral_movement_paths(
-        self, enriched_results: pd.DataFrame
+        self,
+        enriched_results: pd.DataFrame,
     ) -> list[AttackPath]:
         """Find lateral movement opportunities between services."""
         paths = []
@@ -312,7 +319,7 @@ class AttackScenarioAnalyzer:
                 (enriched_results["service_role"].isin(network_services))
                 & (
                     enriched_results["severity_reassessed"].isin(
-                        ["Critical", "High", "Medium"]
+                        ["Critical", "High", "Medium"],
                     )
                 )
             ]
@@ -337,7 +344,7 @@ class AttackScenarioAnalyzer:
                     service_name=str(row.get("service_name", "unknown")),
                     service_role=str(row.get("service_role", "service")),
                     vulnerability_id=str(
-                        row.get("cve_id", row.get("vuln_id", "unknown"))
+                        row.get("cve_id", row.get("vuln_id", "unknown")),
                     ),
                     cve_id=str(row.get("cve_id", row.get("vuln_id", "unknown"))),
                     attack_vector="lateral_movement",
@@ -357,13 +364,14 @@ class AttackScenarioAnalyzer:
                 paths.append(path)
 
             except Exception as e:
-                self.logger.debug(f"Error processing lateral movement path: {str(e)}")
+                self.logger.debug(f"Error processing lateral movement path: {e!s}")
                 continue
 
         return paths
 
     def _find_data_exfiltration_paths(
-        self, enriched_results: pd.DataFrame
+        self,
+        enriched_results: pd.DataFrame,
     ) -> list[AttackPath]:
         """Find data exfiltration opportunities."""
         paths = []
@@ -417,7 +425,7 @@ class AttackScenarioAnalyzer:
                     service_name=str(row.get("service_name", "unknown")),
                     service_role=str(row.get("service_role", "service")),
                     vulnerability_id=str(
-                        row.get("cve_id", row.get("vuln_id", "unknown"))
+                        row.get("cve_id", row.get("vuln_id", "unknown")),
                     ),
                     cve_id=str(row.get("cve_id", row.get("vuln_id", "unknown"))),
                     attack_vector="data_exfiltration",
@@ -439,7 +447,7 @@ class AttackScenarioAnalyzer:
                 paths.append(path)
 
             except Exception as e:
-                self.logger.debug(f"Error processing data exfiltration path: {str(e)}")
+                self.logger.debug(f"Error processing data exfiltration path: {e!s}")
                 continue
 
         return paths
@@ -450,21 +458,20 @@ class AttackScenarioAnalyzer:
         cvss_vector = str(row.get("cvss_vector", ""))
         if "AV:N" in cvss_vector:
             return "network"
-        elif "AV:L" in cvss_vector:
+        if "AV:L" in cvss_vector:
             return "local"
-        elif "AV:A" in cvss_vector:
+        if "AV:A" in cvss_vector:
             return "adjacent"
-        elif "AV:P" in cvss_vector:
+        if "AV:P" in cvss_vector:
             return "physical"
 
         # Fallback to service role-based determination
         service_role = str(row.get("service_role", "")).lower()
         if "web" in service_role or "api" in service_role:
             return "network"
-        elif "database" in service_role:
+        if "database" in service_role:
             return "lateral_movement"
-        else:
-            return "network"
+        return "network"
 
     def _deduplicate_attack_paths(self, paths: list[AttackPath]) -> list[AttackPath]:
         """Remove duplicate attack paths."""
@@ -502,7 +509,8 @@ class AttackScenarioAnalyzer:
 
 
 def analyze_attack_scenarios(
-    enriched_results: pd.DataFrame, scenario: dict[str, Any]
+    enriched_results: pd.DataFrame,
+    scenario: dict[str, Any],
 ) -> dict[str, Any]:
     """Convenience function to analyze attack scenarios."""
     analyzer = AttackScenarioAnalyzer()

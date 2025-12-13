@@ -9,8 +9,7 @@ class CVSSParser:
 
     @staticmethod
     def _safe_get(data: dict[str, Any], *keys: str) -> Any | None:
-        """
-        Safely navigate nested dictionaries.
+        """Safely navigate nested dictionaries.
 
         Args:
             data: Dictionary to navigate
@@ -18,6 +17,7 @@ class CVSSParser:
 
         Returns:
             Value at the end of the key path, or None if not found
+
         """
         current = data
         for key in keys:
@@ -31,14 +31,14 @@ class CVSSParser:
 
     @staticmethod
     def parse_cvss_v3(impact_data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Parse CVSS v3 metrics from impact data.
+        """Parse CVSS v3 metrics from impact data.
 
         Args:
             impact_data: Impact data from CVE JSON
 
         Returns:
             Dictionary containing parsed CVSS v3 metrics
+
         """
         base_metric = CVSSParser._safe_get(impact_data, "baseMetricV3")
         if not base_metric:
@@ -65,14 +65,14 @@ class CVSSParser:
 
     @staticmethod
     def parse_cvss_v2(impact_data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Parse CVSS v2 metrics from impact data.
+        """Parse CVSS v2 metrics from impact data.
 
         Args:
             impact_data: Impact data from CVE JSON
 
         Returns:
             Dictionary containing parsed CVSS v2 metrics
+
         """
         base_metric = CVSSParser._safe_get(impact_data, "baseMetricV2")
         if not base_metric:
@@ -98,32 +98,32 @@ class CVSSParser:
 
     @staticmethod
     def parse_cvss(impact_data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Parse CVSS metrics, preferring v3 over v2.
+        """Parse CVSS metrics, preferring v3 over v2.
 
         Args:
             impact_data: Impact data from CVE JSON
 
         Returns:
             Dictionary containing parsed CVSS metrics
+
         """
         # Try v3 first, fall back to v2
         if "baseMetricV3" in impact_data:
             return CVSSParser.parse_cvss_v3(impact_data)
-        elif "baseMetricV2" in impact_data:
+        if "baseMetricV2" in impact_data:
             return CVSSParser.parse_cvss_v2(impact_data)
         return {}
 
     @staticmethod
     def parse_cvss_vector(vector: str | None) -> dict[str, str]:
-        """
-        Parse CVSS vector string into components.
+        """Parse CVSS vector string into components.
 
         Args:
             vector: CVSS vector string (e.g., "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
 
         Returns:
             Dictionary with CVSS components
+
         """
         if not vector or not isinstance(vector, str):
             return {}

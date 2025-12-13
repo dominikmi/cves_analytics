@@ -11,28 +11,22 @@ logger = logging.getLogger(__name__)
 class CVEsAnalyticsError(Exception):
     """Base exception for all CVEs Analytics errors."""
 
-    pass
-
 
 class DataValidationError(CVEsAnalyticsError):
     """Raised when data validation fails."""
-
-    pass
 
 
 class ConfigurationError(CVEsAnalyticsError):
     """Raised when configuration is invalid."""
 
-    pass
-
 
 def error_handler(default_return: Any = None, raise_on_error: bool = False):
-    """
-    Decorator for standardized error handling.
+    """Decorator for standardized error handling.
 
     Args:
         default_return: Value to return if an error occurs
         raise_on_error: Whether to re-raise the exception
+
     """
 
     def decorator(func: Callable) -> Callable:

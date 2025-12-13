@@ -13,14 +13,18 @@ class EnvironmentGenerator:
         self.logger = logger
 
     def generate(
-        self, size: str, reach: str, industry: str, environment_type: str
+        self,
+        size: str,
+        reach: str,
+        industry: str,
+        environment_type: str,
     ) -> dict[str, Any]:
         """Generate a simulated environment scenario."""
         start_time = time.time()
 
         try:
             self.logger.info(
-                f"Generating environment: size={size}, reach={reach}, industry={industry}, env={environment_type}"
+                f"Generating environment: size={size}, reach={reach}, industry={industry}, env={environment_type}",
             )
 
             generator = ScenarioGenerator()
@@ -35,13 +39,14 @@ class EnvironmentGenerator:
             duration = time.time() - start_time
             services_count = len(scenario.get("services", []))
             self.logger.info(
-                f"Environment generated in {duration:.2f}s with {services_count} services"
+                f"Environment generated in {duration:.2f}s with {services_count} services",
             )
 
             return scenario
 
         except Exception as e:
             self.logger.error(
-                f"Failed to generate environment: {str(e)}", exc_info=True
+                f"Failed to generate environment: {e!s}",
+                exc_info=True,
             )
             raise

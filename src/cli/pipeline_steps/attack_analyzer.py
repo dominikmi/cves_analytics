@@ -16,7 +16,9 @@ class AttackAnalyzer:
         self.logger = logger
 
     def analyze(
-        self, enriched_results: pd.DataFrame, scenario: dict[str, Any]
+        self,
+        enriched_results: pd.DataFrame,
+        scenario: dict[str, Any],
     ) -> dict[str, Any]:
         """Analyze attack scenarios and vulnerability dependencies."""
         start_time = time.time()
@@ -37,13 +39,15 @@ class AttackAnalyzer:
             # Add required columns for analyzer
             if "impact" not in analysis_df.columns:
                 analysis_df["impact"] = analysis_df.get(
-                    "severity_reassessed", "Unknown"
+                    "severity_reassessed",
+                    "Unknown",
                 )
             if "cwe" not in analysis_df.columns:
                 analysis_df["cwe"] = analysis_df.get("cwe_id", "")
             if "severity" not in analysis_df.columns:
                 analysis_df["severity"] = analysis_df.get(
-                    "severity_reassessed", "Unknown"
+                    "severity_reassessed",
+                    "Unknown",
                 )
 
             # Remove duplicates
@@ -51,7 +55,7 @@ class AttackAnalyzer:
             analysis_df = analysis_df.drop_duplicates(subset=["cve_id"], keep="first")
             if len(analysis_df) < original_count:
                 self.logger.info(
-                    f"Removed {original_count - len(analysis_df)} duplicate CVEs"
+                    f"Removed {original_count - len(analysis_df)} duplicate CVEs",
                 )
 
             # LIMIT DATA TO PREVENT PERFORMANCE ISSUES
@@ -81,24 +85,25 @@ class AttackAnalyzer:
                 for col in cvss_columns:
                     if col in analysis_df.columns:
                         analysis_df["cvss_score"] = analysis_df["cvss_score"].fillna(
-                            0
+                            0,
                         ) + analysis_df[col].fillna(0)
 
                 # Sort by severity first, then CVSS score
                 analysis_df = analysis_df.sort_values(
-                    ["severity_order", "cvss_score"], ascending=[False, False]
+                    ["severity_order", "cvss_score"],
+                    ascending=[False, False],
                 ).head(max_vulnerabilities)
 
                 self.logger.info(
                     f"Limited analysis to top {max_vulnerabilities} critical vulnerabilities "
-                    f"(reduced from {original_count} total)"
+                    f"(reduced from {original_count} total)",
                 )
 
             self.logger.info(f"Analyzing {len(analysis_df)} unique CVEs")
 
             # Analyze attack chains
             self.logger.info(
-                "Analyzing attack chains and vulnerability dependencies..."
+                "Analyzing attack chains and vulnerability dependencies...",
             )
             attack_chains = []
             critical_paths = []
@@ -111,7 +116,7 @@ class AttackAnalyzer:
 
                     # Get attack chains with progress logging
                     self.logger.info(
-                        "Finding attack chains (this may take a moment)..."
+                        "Finding attack chains (this may take a moment)...",
                     )
                     attack_chains = analyzer.find_unique_chains()
                     self.logger.info(f"Found {len(attack_chains)} unique attack chains")
@@ -120,7 +125,7 @@ class AttackAnalyzer:
                     self.logger.info("Identifying critical attack paths...")
                     critical_paths = analyzer.get_critical_paths(min_length=2)
                     self.logger.info(
-                        f"Found {len(critical_paths)} critical attack paths"
+                        f"Found {len(critical_paths)} critical attack paths",
                     )
 
                     # Get graph statistics
@@ -129,10 +134,10 @@ class AttackAnalyzer:
                     self.logger.info(
                         f"Attack graph: {graph_stats['total_nodes']} nodes, "
                         f"{graph_stats['total_edges']} edges, "
-                        f"density: {graph_stats['density']:.3f}"
+                        f"density: {graph_stats['density']:.3f}",
                     )
             except Exception as e:
-                self.logger.warning(f"Could not analyze attack chains: {str(e)}")
+                self.logger.warning(f"Could not analyze attack chains: {e!s}")
 
             # Get critical vulnerabilities by reassessed severity
             self.logger.info("Identifying critical vulnerabilities...")
@@ -169,7 +174,7 @@ class AttackAnalyzer:
             duration = time.time() - start_time
             self.logger.info(f"Vulnerability analysis completed in {duration:.2f}s")
             self.logger.info(
-                f"Found {len(critical_vulns)} critical, {len(high_vulns)} high severity vulnerabilities"
+                f"Found {len(critical_vulns)} critical, {len(high_vulns)} high severity vulnerabilities",
             )
 
             return {
@@ -185,6 +190,7 @@ class AttackAnalyzer:
 
         except Exception as e:
             self.logger.error(
-                f"Failed to analyze attack scenarios: {str(e)}", exc_info=True
+                f"Failed to analyze attack scenarios: {e!s}",
+                exc_info=True,
             )
             raise

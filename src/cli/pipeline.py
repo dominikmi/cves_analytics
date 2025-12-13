@@ -48,7 +48,8 @@ class VulnerabilityAssessmentPipeline:
 
             # Step 4: Analyze attack scenarios
             self._execute_step(
-                "Attack Scenario Analysis", self._analyze_attack_scenarios
+                "Attack Scenario Analysis",
+                self._analyze_attack_scenarios,
             )
 
             # Step 5: Generate report
@@ -60,7 +61,7 @@ class VulnerabilityAssessmentPipeline:
             return report_path
 
         except Exception as e:
-            self.logger.error(f"Pipeline failed: {str(e)}", exc_info=True)
+            self.logger.error(f"Pipeline failed: {e!s}", exc_info=True)
             raise
 
     def _execute_step(self, step_name: str, step_function):
@@ -78,7 +79,7 @@ class VulnerabilityAssessmentPipeline:
             return result
         except Exception as e:
             duration = time.time() - start_time
-            self.logger.error(f"ERROR in {step_name}: {str(e)}", exc_info=True)
+            self.logger.error(f"ERROR in {step_name}: {e!s}", exc_info=True)
             self.logger.error(f"Step {step_name} failed after {duration:.2f}s")
             raise
 
@@ -97,7 +98,8 @@ class VulnerabilityAssessmentPipeline:
             raise RuntimeError("Environment must be generated before scanning")
 
         self.state["scan_results"] = self.docker_scanner.scan(
-            self.state["scenario"], self.config.grype_binary_path
+            self.state["scenario"],
+            self.config.grype_binary_path,
         )
 
     def _enrich_data(self):
@@ -109,7 +111,9 @@ class VulnerabilityAssessmentPipeline:
             raise RuntimeError("Scenario must be available for enrichment")
 
         self.state["enriched_results"] = self.data_enricher.enrich(
-            self.state["scan_results"], self.state["scenario"], self.config.data_path
+            self.state["scan_results"],
+            self.state["scenario"],
+            self.config.data_path,
         )
 
     def _analyze_attack_scenarios(self):
@@ -121,7 +125,8 @@ class VulnerabilityAssessmentPipeline:
             raise RuntimeError("Scenario must be available for analysis")
 
         self.state["analysis_results"] = self.attack_analyzer.analyze(
-            self.state["enriched_results"], self.state["scenario"]
+            self.state["enriched_results"],
+            self.state["scenario"],
         )
 
     def _generate_report(self):
