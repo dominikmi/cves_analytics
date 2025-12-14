@@ -97,10 +97,12 @@ class VulnerabilityAssessmentPipeline:
         if "scenario" not in self.state:
             raise RuntimeError("Environment must be generated before scanning")
 
-        self.state["scan_results"] = self.docker_scanner.scan(
+        scan_results = self.docker_scanner.scan(
             self.state["scenario"],
             self.config.grype_binary_path,
         )
+        # Keep as Polars DataFrame for downstream processing
+        self.state["scan_results"] = scan_results
 
     def _enrich_data(self) -> None:
         """Enrich scan results with CVE and environment context."""

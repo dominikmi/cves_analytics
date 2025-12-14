@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def extract_threat_indicators_from_nvd(cve_data: dict[str, Any]) -> dict[str, An
         Dictionary with threat indicators
 
     """
-    indicators = {
+    indicators: dict[str, Any] = {
         "has_exploit_poc": False,
         "has_metasploit": False,
         "has_vendor_advisory": False,
@@ -75,28 +75,34 @@ def extract_threat_indicators_from_nvd(cve_data: dict[str, Any]) -> dict[str, An
     return indicators
 
 
-def add_threat_indicators(enriched_results: pd.DataFrame) -> pd.DataFrame:
+def add_threat_indicators(enriched_results: pl.DataFrame) -> pl.DataFrame:
     """Add threat indicators to enriched results.
 
     Args:
-        enriched_results: DataFrame with vulnerability data
+        enriched_results: Polars DataFrame with vulnerability data
 
     Returns:
         DataFrame with added threat indicator columns
 
     """
-    if enriched_results.empty:
+    if enriched_results.is_empty():
         return enriched_results
 
     try:
         # Initialize columns
-        enriched_results["has_exploit_poc"] = False
-        enriched_results["has_metasploit"] = False
-        enriched_results["threat_score"] = 0.0
+        enriched_results = enriched_results.with_columns(
+            [
+                pl.lit(False).alias("has_exploit_poc"),
+                pl.lit(False).alias("has_metasploit"),
+                pl.lit(0.0).alias("threat_score"),
+            ]
+        )
 
-        # Set KEV flag if available
+        # Set KEV flag if not available
         if "is_kev" not in enriched_results.columns:
-            enriched_results["is_kev"] = False
+            enriched_results = enriched_results.with_columns(
+                pl.lit(False).alias("is_kev")
+            )
 
         logger.info("Added threat indicator columns to enriched results")
 
@@ -145,43 +151,51 @@ def calculate_threat_score(row: dict[str, Any]) -> float:
     return round(threat_score, 2)
 
 
-def categorize_by_threat(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame]:
+def categorize_by_threat(enriched_results: pl.DataFrame) -> dict[str, pl.DataFrame]:
     """Categorize vulnerabilities by threat level.
 
     Args:
-        enriched_results: DataFrame with threat data
+        enriched_results: Polars DataFrame with threat data
 
     Returns:
         Dictionary with threat categories
 
     """
-    if enriched_results.empty:
+    if enriched_results.is_empty():
         return {
-            "active_exploitation": pd.DataFrame(),
-            "exploit_available": pd.DataFrame(),
-            "monitored": pd.DataFrame(),
+            "active_exploitation": pl.DataFrame(),
+            "exploit_available": pl.DataFrame(),
+            "monitored": pl.DataFrame(),
         }
 
     return {
-        "active_exploitation": enriched_results[enriched_results.get("is_kev", False)],
-        "exploit_available": enriched_results[
-            enriched_results.get("has_exploit_poc", False)
-        ],
-        "monitored": enriched_results[enriched_results.get("has_metasploit", False)],
+        "active_exploitation": enriched_results.filter(
+            pl.col("is_kev") if "is_kev" in enriched_results.columns else pl.lit(False)
+        ),
+        "exploit_available": enriched_results.filter(
+            pl.col("has_exploit_poc")
+            if "has_exploit_poc" in enriched_results.columns
+            else pl.lit(False)
+        ),
+        "monitored": enriched_results.filter(
+            pl.col("has_metasploit")
+            if "has_metasploit" in enriched_results.columns
+            else pl.lit(False)
+        ),
     }
 
 
-def get_threat_summary(enriched_results: pd.DataFrame) -> dict[str, Any]:
+def get_threat_summary(enriched_results: pl.DataFrame) -> dict[str, Any]:
     """Get summary of threat intelligence.
 
     Args:
-        enriched_results: DataFrame with vulnerability data
+        enriched_results: Polars DataFrame with vulnerability data
 
     Returns:
         Dictionary with threat summary
 
     """
-    if enriched_results.empty:
+    if enriched_results.is_empty():
         return {
             "kev_count": 0,
             "exploit_poc_count": 0,
@@ -190,16 +204,25 @@ def get_threat_summary(enriched_results: pd.DataFrame) -> dict[str, Any]:
         }
 
     return {
-        "kev_count": enriched_results.get("is_kev", False).sum()
+        "kev_count": enriched_results.select(pl.col("is_kev").sum()).item()
         if "is_kev" in enriched_results.columns
         else 0,
-        "exploit_poc_count": enriched_results.get("has_exploit_poc", False).sum()
+        "exploit_poc_count": enriched_results.select(
+            pl.col("has_exploit_poc").sum()
+        ).item()
         if "has_exploit_poc" in enriched_results.columns
         else 0,
-        "metasploit_count": enriched_results.get("has_metasploit", False).sum()
+        "metasploit_count": enriched_results.select(
+            pl.col("has_metasploit").sum()
+        ).item()
         if "has_metasploit" in enriched_results.columns
         else 0,
-        "high_epss_count": (enriched_results.get("epss_score", 0) >= 0.5).sum()
+        "high_epss_count": enriched_results.select(
+            (
+                pl.col("epss_score").cast(pl.Float64, strict=False).fill_null(0.0)
+                >= 0.5
+            ).sum()
+        ).item()
         if "epss_score" in enriched_results.columns
         else 0,
         "total_vulns": len(enriched_results),

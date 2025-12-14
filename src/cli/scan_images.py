@@ -6,7 +6,7 @@ import os
 import sys
 from pathlib import Path
 
-import pandas as pd
+import polars as pl
 from dotenv import load_dotenv
 
 from src.core.docker_scanner import DockerImageScanner
@@ -61,13 +61,13 @@ def main() -> None:
         grype_binary_path=grype_binary_path,
     )
 
-    results = []
+    results: list[pl.DataFrame] = []
 
     # Scan single image
     if args.image:
         logger.info(f"Scanning image: {args.image}")
         result = scanner.scan_image_with_grype(args.image)
-        if not result.empty:
+        if not result.is_empty():
             results.append(result)
 
     # Scan images from registry
@@ -80,20 +80,20 @@ def main() -> None:
                 image_ref = f"{repo}:{tag}"
                 logger.info(f"Scanning image: {image_ref}")
                 result = scanner.scan_image_with_grype(image_ref)
-                if not result.empty:
+                if not result.is_empty():
                     results.append(result)
 
     # Scan images from CSV list
     elif args.list_of_images:
         logger.info(f"Reading image list from: {args.list_of_images}")
         try:
-            images_df = pd.read_csv(args.list_of_images)
+            images_df = pl.read_csv(args.list_of_images)
             image_column = images_df.columns[0]
 
-            for image in images_df[image_column]:
+            for image in images_df[image_column].to_list():
                 logger.info(f"Scanning image: {image}")
                 result = scanner.scan_image_with_grype(image)
-                if not result.empty:
+                if not result.is_empty():
                     results.append(result)
         except Exception as e:
             logger.error(f"Error reading image list: {e}")
@@ -106,14 +106,14 @@ def main() -> None:
 
     # Combine results
     if results:
-        combined_results = pd.concat(results, ignore_index=True)
+        combined_results = pl.concat(results)
 
         # Save to file if specified
         if args.output:
-            combined_results.to_csv(args.output, index=False)
+            combined_results.write_csv(args.output)
             logger.info(f"Results saved to {args.output}")
         else:
-            print(combined_results.to_csv(index=False))
+            print(combined_results.write_csv())
     else:
         logger.warning("No vulnerabilities found")
 

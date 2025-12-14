@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 from src.core.remediation_planner import RemediationPlanner
 from src.core.risk_scoring import add_risk_scores, categorize_by_risk
@@ -23,8 +23,8 @@ class ReportGenerator:
     def generate(
         self,
         scenario: dict[str, Any],
-        scan_results: pd.DataFrame,
-        enriched_results: pd.DataFrame,
+        scan_results: pl.DataFrame,
+        enriched_results: pl.DataFrame,
         attack_analysis: dict[str, Any],
         output_dir: str,
     ) -> str:
@@ -99,16 +99,16 @@ class ReportGenerator:
             report.append("SCAN RESULTS SUMMARY")
             report.append("-" * 80)
 
-            if not scan_results.empty:
+            if not scan_results.is_empty():
                 # Vulnerability count
                 report.append(f"Total Vulnerabilities Found: {len(scan_results)}\n")
 
                 # Severity distribution
                 if "severity" in scan_results.columns:
-                    severity_dist = scan_results["severity"].value_counts()
+                    severity_dist = scan_results.group_by("severity").len().to_dicts()
                     report.append("Vulnerability Severity Distribution:")
-                    for severity, count in severity_dist.items():
-                        report.append(f"  {severity}: {count}")
+                    for row in severity_dist:
+                        report.append(f"  {row['severity']}: {row['len']}")
 
                 # Bayesian risk by original severity (shows how Bayesian assessment differs)
                 if (
@@ -116,26 +116,42 @@ class ReportGenerator:
                     and "risk_category" in enriched_results.columns
                 ):
                     report.append("\nOriginal Severity → Bayesian Risk Assessment:")
-                    transition_matrix = pd.crosstab(
-                        enriched_results["severity"],
-                        enriched_results["risk_category"],
-                        margins=True,
-                        margins_name="Total",
+                    # Create transition matrix using Polars
+                    transition = (
+                        enriched_results.group_by(["severity", "risk_category"])
+                        .len()
+                        .to_dicts()
                     )
-                    for row_label in transition_matrix.index:
-                        row_data = transition_matrix.loc[row_label]
-                        row_str = f"  {row_label}: " + ", ".join(
-                            [f"{col}({val})" for col, val in row_data.items()],
+                    # Group by severity
+                    severity_groups: dict[str, dict[str, int]] = {}
+                    for row in transition:
+                        sev = row["severity"]
+                        cat = row["risk_category"]
+                        count = row["len"]
+                        if sev not in severity_groups:
+                            severity_groups[sev] = {}
+                        severity_groups[sev][cat] = count
+                    for sev, cats in severity_groups.items():
+                        row_str = f"  {sev}: " + ", ".join(
+                            [f"{cat}({count})" for cat, count in cats.items()]
                         )
                         report.append(row_str)
 
                 # Top affected images
                 if "image" in scan_results.columns:
-                    top_images = scan_results["image"].value_counts().head(5)
-                    if not top_images.empty:
+                    top_images = (
+                        scan_results.group_by("image")
+                        .len()
+                        .sort("len", descending=True)
+                        .head(5)
+                        .to_dicts()
+                    )
+                    if top_images:
                         report.append("\nTop Affected Images:")
-                        for idx, (image, count) in enumerate(top_images.items(), 1):
-                            report.append(f"  {idx}. {image}: {count} vulnerabilities")
+                        for idx, row in enumerate(top_images, 1):
+                            report.append(
+                                f"  {idx}. {row['image']}: {row['len']} vulnerabilities"
+                            )
 
             report.append("")
 
@@ -187,21 +203,17 @@ class ReportGenerator:
                             ownership = "Unknown"
                             # Try to find ownership from enriched results if available
                             if (
-                                not enriched_results.empty
+                                not enriched_results.is_empty()
                                 and "service_name" in enriched_results.columns
                                 and "ownership" in enriched_results.columns
                             ):
-                                ownership_match = (
-                                    enriched_results[
-                                        enriched_results["service_name"] == service_name
-                                    ]["ownership"].iloc[0]
-                                    if not enriched_results[
-                                        enriched_results["service_name"] == service_name
-                                    ].empty
-                                    else "Unknown"
+                                filtered = enriched_results.filter(
+                                    pl.col("service_name") == service_name
                                 )
-                                if pd.notna(ownership_match):
-                                    ownership = ownership_match
+                                if not filtered.is_empty():
+                                    ownership_match = filtered["ownership"][0]
+                                    if ownership_match is not None:
+                                        ownership = ownership_match
 
                             report.append(
                                 f"     Target Asset: {service_name} (Team: {ownership})",
@@ -223,7 +235,7 @@ class ReportGenerator:
             report.append("TOP VULNERABILITIES BY BAYESIAN RISK")
             report.append("-" * 80)
 
-            if not enriched_results.empty:
+            if not enriched_results.is_empty():
                 # Find the CVE column
                 cve_col = None
                 for col in ["cve_id", "vuln_id"]:
@@ -240,19 +252,25 @@ class ReportGenerator:
                 if cve_col:
                     # Sort by Bayesian risk score (primary), fallback to CVSS
                     if "bayesian_risk_score" in enriched_results.columns:
-                        enriched_results["risk_sort"] = enriched_results[
-                            "bayesian_risk_score"
-                        ].fillna(-1)
-                        top_vulns = enriched_results.nlargest(20, "risk_sort")
+                        enriched_results = enriched_results.with_columns(
+                            pl.col("bayesian_risk_score")
+                            .fill_null(-1)
+                            .alias("risk_sort")
+                        )
+                        top_vulns = enriched_results.sort(
+                            "risk_sort", descending=True
+                        ).head(20)
                     elif "cvss_score" in enriched_results.columns:
-                        enriched_results["risk_sort"] = enriched_results[
-                            "cvss_score"
-                        ].fillna(-1)
-                        top_vulns = enriched_results.nlargest(20, "risk_sort")
+                        enriched_results = enriched_results.with_columns(
+                            pl.col("cvss_score").fill_null(-1).alias("risk_sort")
+                        )
+                        top_vulns = enriched_results.sort(
+                            "risk_sort", descending=True
+                        ).head(20)
                     else:
                         top_vulns = enriched_results.head(20)
 
-                    for idx, (_, row) in enumerate(top_vulns.iterrows(), 1):
+                    for idx, row in enumerate(top_vulns.to_dicts(), 1):
                         img = row.get(image_col, "unknown") if image_col else "unknown"
                         service_name = row.get("service_name", "unknown")
                         cve_id = row[cve_col]
@@ -269,9 +287,13 @@ class ReportGenerator:
                         )
 
                         # EPSS (prior probability)
-                        if pd.notna(row.get("epss_score")):
-                            epss = row["epss_score"]
-                            report.append(f"   EPSS (Prior): {epss:.2%}")
+                        epss_score = row.get("epss_score")
+                        if epss_score is not None:
+                            try:
+                                epss_val = float(epss_score)
+                                report.append(f"   EPSS (Prior): {epss_val:.2%}")
+                            except (ValueError, TypeError):
+                                report.append(f"   EPSS (Prior): {epss_score}")
 
                         # NLP-extracted attack category (explains why it's a top vuln)
                         nlp_attack_types = row.get("nlp_attack_types", [])
@@ -293,19 +315,19 @@ class ReportGenerator:
                             report.append(f"   Attack Context: {context_str}")
 
                         # CVSS Details
-                        if pd.notna(row.get("cvss_score")):
-                            score = row["cvss_score"]
-                            report.append(f"   CVSS Score: {score}")
+                        cvss_score = row.get("cvss_score")
+                        if cvss_score is not None:
+                            report.append(f"   CVSS Score: {cvss_score}")
 
                         # Add CWE and MITRE ATT&CK tactic if available
                         cwe = row.get("cwe_id", "")
-                        if pd.notna(cwe) and cwe:
+                        if cwe is not None and cwe:
                             report.append(f"   CWE: {cwe}")
                             # Map to MITRE ATT&CK tactic
                             impact = row.get("impact", "")
                             mitre_tactic = AttackChainAnalyzer.map_to_mitre(
-                                str(impact) if pd.notna(impact) else "",
-                                str(cwe) if pd.notna(cwe) else "",
+                                str(impact) if impact is not None else "",
+                                str(cwe) if cwe is not None else "",
                             )
                             if mitre_tactic and mitre_tactic != "Unknown":
                                 report.append(f"   MITRE ATT&CK Tactic: {mitre_tactic}")
@@ -330,21 +352,21 @@ class ReportGenerator:
                             report.append("   CISA KEV: Actively Exploited")
 
                         # Add environment context if available
-                        if pd.notna(row.get("exposure")):
-                            exposure = row["exposure"]
+                        exposure = row.get("exposure")
+                        if exposure is not None:
                             report.append(f"   Exposure: {exposure}")
 
-                        if pd.notna(row.get("asset_value")):
-                            asset_value = row["asset_value"]
+                        asset_value = row.get("asset_value")
+                        if asset_value is not None:
                             report.append(f"   Asset Value: {asset_value}")
 
-                        if pd.notna(row.get("service_role")):
-                            service_role = row["service_role"]
+                        service_role = row.get("service_role")
+                        if service_role is not None:
                             report.append(f"   Service Role: {service_role}")
 
                         # Add ownership if available
-                        if pd.notna(row.get("ownership")):
-                            ownership = row["ownership"]
+                        ownership = row.get("ownership")
+                        if ownership is not None:
                             report.append(f"   Ownership: {ownership}")
 
                         report.append("")  # Blank line for readability
@@ -360,18 +382,29 @@ class ReportGenerator:
             report.append("-" * 80)
 
             if (
-                not enriched_results.empty
+                not enriched_results.is_empty()
                 and "ownership" in enriched_results.columns
                 and "risk_category" in enriched_results.columns
             ):
                 try:
                     # Create a cross-tabulation of ownership vs Bayesian risk category
-                    heatmap_data = pd.crosstab(
-                        enriched_results["ownership"],
-                        enriched_results["risk_category"],
-                        margins=True,
-                        margins_name="Total",
+                    heatmap = (
+                        enriched_results.group_by(["ownership", "risk_category"])
+                        .len()
+                        .to_dicts()
                     )
+
+                    # Build heatmap data structure
+                    ownership_risk: dict[str, dict[str, int]] = {}
+                    all_categories: set[str] = set()
+                    for row in heatmap:
+                        owner = row["ownership"]
+                        cat = row["risk_category"]
+                        count = row["len"]
+                        all_categories.add(cat)
+                        if owner not in ownership_risk:
+                            ownership_risk[owner] = {}
+                        ownership_risk[owner][cat] = count
 
                     # Reorder columns to show risk categories in order
                     col_order = [
@@ -382,21 +415,18 @@ class ReportGenerator:
                             "Medium",
                             "Low",
                             "Negligible",
-                            "Total",
                         ]
-                        if c in heatmap_data.columns
+                        if c in all_categories
                     ]
-                    heatmap_data = heatmap_data[col_order]
 
                     # Format and add to report
                     report.append(
                         "Ownership\\Risk".ljust(20)
-                        + " ".join(str(col).ljust(10) for col in heatmap_data.columns),
+                        + " ".join(str(col).ljust(10) for col in col_order),
                     )
-                    for row_label in heatmap_data.index:
-                        row_data = heatmap_data.loc[row_label]
-                        row_str = str(row_label).ljust(20) + " ".join(
-                            str(int(val)).ljust(10) for val in row_data
+                    for owner, cats in ownership_risk.items():
+                        row_str = str(owner).ljust(20) + " ".join(
+                            str(cats.get(col, 0)).ljust(10) for col in col_order
                         )
                         report.append(row_str)
                 except Exception as e:
@@ -427,7 +457,7 @@ class ReportGenerator:
 
     def _generate_executive_summary(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
         attack_analysis: dict[str, Any],
     ) -> list[str]:
         """Generate executive summary section."""
@@ -435,7 +465,7 @@ class ReportGenerator:
         report.append("EXECUTIVE SUMMARY")
         report.append("-" * 80)
 
-        if enriched_results.empty:
+        if enriched_results.is_empty():
             report.append("No vulnerability data available")
             return report
 
@@ -444,13 +474,19 @@ class ReportGenerator:
 
         # Use Bayesian risk_category if available, fallback to severity_reassessed
         if "risk_category" in enriched_results.columns:
-            critical_count = (enriched_results["risk_category"] == "Critical").sum()
-            high_count = (enriched_results["risk_category"] == "High").sum()
+            critical_count = enriched_results.filter(
+                pl.col("risk_category") == "Critical"
+            ).height
+            high_count = enriched_results.filter(
+                pl.col("risk_category") == "High"
+            ).height
         elif "severity_reassessed" in enriched_results.columns:
-            critical_count = (
-                enriched_results["severity_reassessed"] == "Critical"
-            ).sum()
-            high_count = (enriched_results["severity_reassessed"] == "High").sum()
+            critical_count = enriched_results.filter(
+                pl.col("severity_reassessed") == "Critical"
+            ).height
+            high_count = enriched_results.filter(
+                pl.col("severity_reassessed") == "High"
+            ).height
         else:
             critical_count = 0
             high_count = 0
@@ -506,9 +542,10 @@ class ReportGenerator:
         if "severity" in enriched_results.columns:
             report.append("")
             report.append("Original Severity Distribution (Scanner Output):")
-            orig_dist = enriched_results["severity"].value_counts()
+            orig_dist = enriched_results.group_by("severity").len().to_dicts()
+            orig_dist_map = {row["severity"]: row["len"] for row in orig_dist}
             for sev in ["Critical", "High", "Medium", "Low", "Negligible", "Unknown"]:
-                count = orig_dist.get(sev, 0)
+                count = orig_dist_map.get(sev, 0)
                 if count > 0:
                     pct = (count / total_vulns * 100) if total_vulns > 0 else 0
                     report.append(f"  {sev}: {count} ({pct:.1f}%)")
@@ -517,14 +554,18 @@ class ReportGenerator:
         if "risk_category" in enriched_results.columns:
             report.append("")
             report.append("Bayesian Risk Assessment (After Analysis):")
-            risk_dist = enriched_results["risk_category"].value_counts()
+            risk_dist = enriched_results.group_by("risk_category").len().to_dicts()
+            risk_dist_map = {row["risk_category"]: row["len"] for row in risk_dist}
             for category in ["Critical", "High", "Medium", "Low", "Negligible"]:
-                count = risk_dist.get(category, 0)
+                count = risk_dist_map.get(category, 0)
                 pct = (count / total_vulns * 100) if total_vulns > 0 else 0
                 report.append(f"  {category}: {count} ({pct:.1f}%)")
             report.append("")
+            medium_count = enriched_results.filter(
+                pl.col("risk_category") == "Medium"
+            ).height
             report.append(
-                f"Actionable Vulnerabilities (Critical+High+Medium): {critical_high_count + (enriched_results['risk_category'] == 'Medium').sum()}",
+                f"Actionable Vulnerabilities (Critical+High+Medium): {critical_high_count + medium_count}",
             )
             report.append(
                 f"Critical/High Requiring Immediate Action: {critical_high_count} ({critical_high_pct:.1f}%)",
@@ -550,14 +591,14 @@ class ReportGenerator:
 
     def _generate_risk_prioritization(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
     ) -> list[str]:
         """Generate risk-based prioritization section using Bayesian risk assessment."""
         report = []
         report.append("RISK-BASED PRIORITIZATION (Bayesian)")
         report.append("-" * 80)
 
-        if enriched_results.empty:
+        if enriched_results.is_empty():
             report.append("No vulnerability data available")
             return report
 
@@ -572,12 +613,20 @@ class ReportGenerator:
         report.append(
             f"CRITICAL (Fix ASAP): {len(risk_categories['critical'])} vulnerabilities",
         )
-        if not critical.empty:
-            for idx, (_, row) in enumerate(critical.iterrows(), 1):
+        if not critical.is_empty():
+            for idx, row in enumerate(critical.to_dicts(), 1):
                 cve_id = row.get("cve_id", "unknown")
                 service = row.get("service_name", "unknown")
-                cvss = row.get("cvss_score", 0) or 0
-                epss = row.get("epss_score", 0) or 0
+                cvss_raw = row.get("cvss_score", 0)
+                epss_raw = row.get("epss_score", 0)
+                try:
+                    cvss = float(cvss_raw) if cvss_raw else 0.0
+                except (ValueError, TypeError):
+                    cvss = 0.0
+                try:
+                    epss = float(epss_raw) if epss_raw else 0.0
+                except (ValueError, TypeError):
+                    epss = 0.0
 
                 if has_bayesian:
                     bayes_risk = row.get("bayesian_risk_score", 0) or 0
@@ -599,8 +648,8 @@ class ReportGenerator:
         report.append(
             f"HIGH PRIORITY (This Sprint): {len(risk_categories['important'])} vulnerabilities",
         )
-        if not important.empty:
-            for idx, (_, row) in enumerate(important.iterrows(), 1):
+        if not important.is_empty():
+            for idx, row in enumerate(important.to_dicts(), 1):
                 cve_id = row.get("cve_id", "unknown")
                 service = row.get("service_name", "unknown")
 
@@ -621,8 +670,8 @@ class ReportGenerator:
         report.append(
             f"MEDIUM PRIORITY (Plan Fix): {len(risk_categories['monitor'])} vulnerabilities",
         )
-        if not monitor.empty:
-            for idx, (_, row) in enumerate(monitor.iterrows(), 1):
+        if not monitor.is_empty():
+            for idx, row in enumerate(monitor.to_dicts(), 1):
                 cve_id = row.get("cve_id", "unknown")
                 if has_bayesian:
                     bayes_risk = row.get("bayesian_risk_score", 0) or 0
@@ -641,14 +690,14 @@ class ReportGenerator:
 
     def _generate_remediation_roadmap(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
     ) -> list[str]:
         """Generate remediation roadmap section."""
         report = []
         report.append("REMEDIATION ROADMAP")
         report.append("-" * 80)
 
-        if enriched_results.empty:
+        if enriched_results.is_empty():
             report.append("No vulnerability data available")
             return report
 
@@ -663,8 +712,8 @@ class ReportGenerator:
             f"  Estimated Effort: {phase1['effort_hours']:.0f} hours ({phase1['timeline_weeks']} weeks)",
         )
         report.append(f"  Severity: {phase1['severity']}")
-        if not phase1["vulns"].empty:
-            for idx, (_, row) in enumerate(phase1["vulns"].head(5).iterrows(), 1):
+        if not phase1["vulns"].is_empty():
+            for idx, row in enumerate(phase1["vulns"].head(5).to_dicts(), 1):
                 cve_id = row.get("cve_id", "unknown")
                 service = row.get("service_name", "unknown")
                 report.append(f"    {idx}. {cve_id} in {service}")
@@ -696,11 +745,11 @@ class ReportGenerator:
     def generate_pdf_report(
         self,
         scenario: dict[str, Any],
-        scan_results: pd.DataFrame,
-        enriched_results: pd.DataFrame,
+        scan_results: pl.DataFrame,
+        enriched_results: pl.DataFrame,
         attack_analysis: dict[str, Any],
         output_dir: str,
-        plots_dir: str = None,
+        plots_dir: str | None = None,
     ) -> str:
         """Generate a comprehensive PDF vulnerability assessment report with plots."""
         start_time = time.time()
@@ -727,21 +776,39 @@ class ReportGenerator:
 
             # Function to generate team-based vulnerability heatmap
             def generate_team_heatmap(
-                enriched_results: pd.DataFrame,
+                enriched_results: pl.DataFrame,
                 plots_dir: str,
-            ) -> str:
+            ) -> str | None:
                 """Generate a heatmap showing reassessed severities per team."""
                 if (
-                    not enriched_results.empty
+                    not enriched_results.is_empty()
                     and "ownership" in enriched_results.columns
                     and "severity_reassessed" in enriched_results.columns
                 ):
                     try:
                         # Create a cross-tabulation of ownership vs reassessed severity
-                        heatmap_data = pd.crosstab(
-                            enriched_results["ownership"],
-                            enriched_results["severity_reassessed"],
+                        heatmap_raw = (
+                            enriched_results.group_by(
+                                ["ownership", "severity_reassessed"]
+                            )
+                            .len()
+                            .to_dicts()
                         )
+                        # Build pivot table manually
+                        teams_set: set[str] = set()
+                        severities_set: set[str] = set()
+                        pivot_data: dict[str, dict[str, int]] = {}
+                        for row in heatmap_raw:
+                            team = row["ownership"]
+                            sev = row["severity_reassessed"]
+                            count = row["len"]
+                            teams_set.add(team)
+                            severities_set.add(sev)
+                            if team not in pivot_data:
+                                pivot_data[team] = {}
+                            pivot_data[team][sev] = count
+                        teams = sorted(teams_set)
+                        severities = sorted(severities_set)
 
                         # Create the heatmap plot
                         plt.figure(figsize=(10, 6))
@@ -752,10 +819,13 @@ class ReportGenerator:
                         # Create heatmap using matplotlib
                         fig, ax = plt.subplots(figsize=(10, 6))
 
-                        # Create heatmap data matrix
-                        teams = list(heatmap_data.index)
-                        severities = list(heatmap_data.columns)
-                        data_matrix = heatmap_data.values
+                        # Create heatmap data matrix from pivot_data
+                        data_matrix = np.array(
+                            [
+                                [pivot_data.get(t, {}).get(s, 0) for s in severities]
+                                for t in teams
+                            ]
+                        )
 
                         # Create heatmap
                         im = ax.imshow(data_matrix, cmap="YlOrRd", aspect="auto")
@@ -982,32 +1052,48 @@ class ReportGenerator:
                 ),
             )
             if (
-                not enriched_results.empty
+                not enriched_results.is_empty()
                 and "severity" in enriched_results.columns
                 and "severity_reassessed" in enriched_results.columns
             ):
                 # Create a cross-tabulation of original vs reassessed severity
-                transition_matrix = pd.crosstab(
-                    enriched_results["severity"],
-                    enriched_results["severity_reassessed"],
-                    margins=True,
-                    margins_name="Total",
+                transition_raw = (
+                    enriched_results.group_by(["severity", "severity_reassessed"])
+                    .len()
+                    .to_dicts()
                 )
+                # Build pivot table
+                orig_sevs_set: set[str] = set()
+                reassessed_sevs_set: set[str] = set()
+                pivot_trans: dict[str, dict[str, int]] = {}
+                for row in transition_raw:
+                    orig = row["severity"]
+                    reassessed = row["severity_reassessed"]
+                    count = row["len"]
+                    orig_sevs_set.add(orig)
+                    reassessed_sevs_set.add(reassessed)
+                    if orig not in pivot_trans:
+                        pivot_trans[orig] = {}
+                    pivot_trans[orig][reassessed] = count
+                orig_sevs = sorted(orig_sevs_set)
+                reassessed_sevs = sorted(reassessed_sevs_set)
 
                 # Convert to table data
                 matrix_data = [
-                    ["Original → Reassessed"] + list(transition_matrix.columns),
+                    ["Original → Reassessed"] + reassessed_sevs,
                 ]
-                for row_label in transition_matrix.index:
-                    row_data = transition_matrix.loc[row_label]
+                for orig in orig_sevs:
                     matrix_data.append(
-                        [str(row_label)] + [str(val) for val in row_data],
+                        [str(orig)]
+                        + [
+                            str(pivot_trans.get(orig, {}).get(r, 0))
+                            for r in reassessed_sevs
+                        ],
                     )
 
                 matrix_table = Table(
                     matrix_data,
-                    colWidths=[1.2 * inch]
-                    + [0.8 * inch] * (len(transition_matrix.columns)),
+                    colWidths=[1.2 * inch] + [0.8 * inch] * len(reassessed_sevs),
                 )
                 matrix_table.setStyle(
                     TableStyle(
@@ -1071,21 +1157,17 @@ class ReportGenerator:
                         ownership = "Unknown"
                         # Try to find ownership from enriched results if available
                         if (
-                            not enriched_results.empty
+                            not enriched_results.is_empty()
                             and "service_name" in enriched_results.columns
                             and "ownership" in enriched_results.columns
                         ):
-                            ownership_match = (
-                                enriched_results[
-                                    enriched_results["service_name"] == service_name
-                                ]["ownership"].iloc[0]
-                                if not enriched_results[
-                                    enriched_results["service_name"] == service_name
-                                ].empty
-                                else "Unknown"
+                            filtered = enriched_results.filter(
+                                pl.col("service_name") == service_name
                             )
-                            if pd.notna(ownership_match):
-                                ownership = ownership_match
+                            if not filtered.is_empty():
+                                ownership_match = filtered["ownership"][0]
+                                if ownership_match is not None:
+                                    ownership = ownership_match
 
                         story.append(
                             Paragraph(
@@ -1151,33 +1233,46 @@ class ReportGenerator:
             # Team-based Vulnerability Heatmap
             story.append(Paragraph("TEAM-BASED VULNERABILITY HEATMAP", heading_style))
             if (
-                not enriched_results.empty
+                not enriched_results.is_empty()
                 and "ownership" in enriched_results.columns
                 and "severity_reassessed" in enriched_results.columns
             ):
                 # Create a cross-tabulation of ownership vs reassessed severity
                 try:
-                    heatmap_data = pd.crosstab(
-                        enriched_results["ownership"],
-                        enriched_results["severity_reassessed"],
-                        margins=True,
-                        margins_name="Total",
+                    heatmap_raw = (
+                        enriched_results.group_by(["ownership", "severity_reassessed"])
+                        .len()
+                        .to_dicts()
                     )
+                    # Build pivot table
+                    owners_set: set[str] = set()
+                    sevs_set: set[str] = set()
+                    pivot: dict[str, dict[str, int]] = {}
+                    for row in heatmap_raw:
+                        owner = row["ownership"]
+                        sev = row["severity_reassessed"]
+                        count = row["len"]
+                        owners_set.add(owner)
+                        sevs_set.add(sev)
+                        if owner not in pivot:
+                            pivot[owner] = {}
+                        pivot[owner][sev] = count
+                    owners = sorted(owners_set)
+                    sevs = sorted(sevs_set)
 
                     # Convert to table data
                     heatmap_table_data = [
-                        ["Ownership \\ Severity"] + list(heatmap_data.columns),
+                        ["Ownership \\ Severity"] + sevs,
                     ]
-                    for row_label in heatmap_data.index:
-                        row_data = heatmap_data.loc[row_label]
+                    for owner in owners:
                         heatmap_table_data.append(
-                            [str(row_label)] + [str(int(val)) for val in row_data],
+                            [str(owner)]
+                            + [str(pivot.get(owner, {}).get(s, 0)) for s in sevs],
                         )
 
                     heatmap_table = Table(
                         heatmap_table_data,
-                        colWidths=[1.2 * inch]
-                        + [0.8 * inch] * (len(heatmap_data.columns)),
+                        colWidths=[1.2 * inch] + [0.8 * inch] * len(sevs),
                     )
                     heatmap_table.setStyle(
                         TableStyle(
@@ -1254,13 +1349,12 @@ class ReportGenerator:
             story.append(
                 Paragraph("TOP VULNERABILITIES - DETAILED ASSESSMENT", heading_style),
             )
-            if not enriched_results.empty:
+            if not enriched_results.is_empty():
                 # Sort by CVSS score or severity
                 if "cvss_score" in enriched_results.columns:
-                    enriched_results_sorted = enriched_results.nlargest(
-                        20,
-                        "cvss_score",
-                    )
+                    enriched_results_sorted = enriched_results.sort(
+                        "cvss_score", descending=True
+                    ).head(20)
                 else:
                     severity_order = {
                         "Critical": 5,
@@ -1270,17 +1364,18 @@ class ReportGenerator:
                         "Negligible": 1,
                         "Unknown": 0,
                     }
-                    sev_col = enriched_results.get("severity", "Unknown")
-                    enriched_results["severity_rank"] = sev_col.map(
-                        lambda x: severity_order.get(x, 0),
+                    enriched_results = enriched_results.with_columns(
+                        pl.col("severity")
+                        .replace(severity_order)
+                        .fill_null(0)
+                        .alias("severity_rank")
                     )
-                    enriched_results_sorted = enriched_results.nlargest(
-                        20,
-                        "severity_rank",
-                    )
+                    enriched_results_sorted = enriched_results.sort(
+                        "severity_rank", descending=True
+                    ).head(20)
 
                 # Add detailed vulnerability information
-                for idx, (_, row) in enumerate(enriched_results_sorted.iterrows(), 1):
+                for idx, row in enumerate(enriched_results_sorted.to_dicts(), 1):
                     cve_id = row.get("cve_id", row.get("vuln_id", "N/A"))
                     image = row.get("image_name", "N/A")
                     service_name = row.get("service_name", "N/A")
@@ -1298,60 +1393,64 @@ class ReportGenerator:
                     )
 
                     # CVSS Details
-                    if pd.notna(row.get("cvss_score")):
-                        score = row["cvss_score"]
+                    cvss_score = row.get("cvss_score")
+                    if cvss_score is not None:
                         version = row.get("cvss_version", "Unknown")
                         story.append(
-                            Paragraph(f"   CVSS {version}: {score}", code_style),
+                            Paragraph(f"   CVSS {version}: {cvss_score}", code_style),
                         )
 
                         # Add vector if available
-                        if pd.notna(row.get("cvss_vector")):
-                            vector = row["cvss_vector"]
-                            story.append(Paragraph(f"   Vector: {vector}", code_style))
+                        cvss_vector = row.get("cvss_vector")
+                        if cvss_vector is not None:
+                            story.append(
+                                Paragraph(f"   Vector: {cvss_vector}", code_style)
+                            )
 
                     # Reassessed severity with justification
-                    if pd.notna(row.get("severity_reassessed")):
-                        reassessed = row["severity_reassessed"]
+                    severity_reassessed = row.get("severity_reassessed")
+                    if severity_reassessed is not None:
                         story.append(
-                            Paragraph(f"   Reassessed: {reassessed}", code_style),
+                            Paragraph(
+                                f"   Reassessed: {severity_reassessed}", code_style
+                            ),
                         )
 
                         # Add reassessment reason/criteria
-                        if pd.notna(row.get("reassessment_reason")):
-                            reason = row["reassessment_reason"]
+                        reason = row.get("reassessment_reason")
+                        if reason is not None:
                             story.append(Paragraph(f"   Reason: {reason}", code_style))
 
                     # Add EPSS if available
-                    if pd.notna(row.get("epss_score")):
-                        epss = row["epss_score"]
+                    epss = row.get("epss_score")
+                    if epss is not None:
                         story.append(Paragraph(f"   EPSS Score: {epss}", code_style))
 
                     # Add CWE if available
-                    if pd.notna(row.get("cwe_id")):
-                        cwe = row["cwe_id"]
+                    cwe = row.get("cwe_id")
+                    if cwe is not None:
                         story.append(Paragraph(f"   CWE: {cwe}", code_style))
 
                     # Add environment context if available
-                    if pd.notna(row.get("exposure")):
-                        exposure = row["exposure"]
+                    exposure = row.get("exposure")
+                    if exposure is not None:
                         story.append(Paragraph(f"   Exposure: {exposure}", code_style))
 
-                    if pd.notna(row.get("asset_value")):
-                        asset_value = row["asset_value"]
+                    asset_value = row.get("asset_value")
+                    if asset_value is not None:
                         story.append(
                             Paragraph(f"   Asset Value: {asset_value}", code_style),
                         )
 
-                    if pd.notna(row.get("service_role")):
-                        service_role = row["service_role"]
+                    service_role = row.get("service_role")
+                    if service_role is not None:
                         story.append(
                             Paragraph(f"   Service Role: {service_role}", code_style),
                         )
 
                     # Add ownership if available
-                    if pd.notna(row.get("ownership")):
-                        ownership = row["ownership"]
+                    ownership = row.get("ownership")
+                    if ownership is not None:
                         story.append(
                             Paragraph(f"   Ownership: {ownership}", code_style),
                         )

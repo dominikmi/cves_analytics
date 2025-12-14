@@ -6,7 +6,7 @@ import sys
 import time
 from datetime import UTC, datetime
 
-import pandas as pd
+import polars as pl
 
 from src.core.cvev5_processor import (
     download_cvev5_cve_data,
@@ -82,7 +82,7 @@ def main() -> None:
     )
 
     # Check if data was loaded
-    if cves.empty:
+    if cves.is_empty():
         logger.error(
             "No CVE data loaded. Please check if downloads were successful "
             "and JSON files exist in the data directory.",
@@ -92,7 +92,7 @@ def main() -> None:
     # Sort by CVE ID
     start_time = time.time()
     logger.info("Step 4: Sorting CVE data...")
-    cves = cves.sort_values(by="cve_id")
+    cves = cves.sort("cve_id")
     logger.info(f"Sort complete in {time.time() - start_time:.2f}s")
 
     today_date = datetime.now(tz=UTC).strftime("%Y-%m-%d")
@@ -100,9 +100,8 @@ def main() -> None:
     # Save raw CVE data
     start_time = time.time()
     logger.info("Step 5: Saving raw CVE data...")
-    cves.to_csv(
+    cves.write_csv(
         f"{args.output_path}/cves_{args.start_year}-{args.end_year}_{today_date}.csv",
-        index=False,
     )
     logger.info(f"Raw data saved in {time.time() - start_time:.2f}s")
 
@@ -116,9 +115,8 @@ def main() -> None:
     start_time = time.time()
     logger.info("Step 7: Merging EPSS scores...")
     if epss_file:
-        epss_scores = pd.read_csv(epss_file, skiprows=1)
-        cves_with_epss = pd.merge(
-            cves,
+        epss_scores = pl.read_csv(epss_file, comment_prefix="#")
+        cves_with_epss = cves.join(
             epss_scores,
             left_on="cve_id",
             right_on="cve",
@@ -139,8 +137,7 @@ def main() -> None:
     start_time = time.time()
     logger.info("Step 9: Merging KEV data...")
     if kev_data is not None:
-        cves_with_kev = pd.merge(
-            cves_with_epss,
+        cves_with_kev = cves_with_epss.join(
             kev_data,
             left_on="cve_id",
             right_on="cveID",
@@ -154,22 +151,33 @@ def main() -> None:
     # Enrich with CWE details
     start_time = time.time()
     logger.info("Step 10: Enriching with CWE details...")
-    cves_with_kev["cwe_details"] = cves_with_kev["cwe_id"].apply(
-        get_cwe_name_and_description,
-    )
+    cwe_details_list = [
+        get_cwe_name_and_description(cwe_id)
+        for cwe_id in cves_with_kev["cwe_id"].to_list()
+    ]
     logger.info(f"CWE enrichment complete in {time.time() - start_time:.2f}s")
 
     # Expand CWE details
     start_time = time.time()
     logger.info("Step 11: Expanding CWE details...")
-    cwe_details_df = pd.json_normalize(cves_with_kev["cwe_details"])
-    cves_enriched = pd.concat([cves_with_kev, cwe_details_df], axis=1)
+    # Extract CWE name and description from the list of dicts
+    cwe_names = [d.get("cwe_name", "") if d else "" for d in cwe_details_list]
+    cwe_descriptions = [
+        d.get("cwe_description", "") if d else "" for d in cwe_details_list
+    ]
+    cves_enriched = cves_with_kev.with_columns(
+        pl.Series("cwe_name", cwe_names),
+        pl.Series("cwe_description", cwe_descriptions),
+    )
     logger.info(f"CWE expansion complete in {time.time() - start_time:.2f}s")
 
     # Enrich with vulnrichment data
     start_time = time.time()
     logger.info("Step 12: Enriching with vulnerability enrichment data...")
-    cves_enriched = cves_enriched.apply(update_row_with_vulnrichment_details, axis=1)
+    enriched_rows = [
+        update_row_with_vulnrichment_details(row) for row in cves_enriched.to_dicts()
+    ]
+    cves_enriched = pl.DataFrame(enriched_rows)
     logger.info(f"Vulnrichment enrichment complete in {time.time() - start_time:.2f}s")
 
     # Save final enriched dataset
@@ -179,7 +187,7 @@ def main() -> None:
         f"{args.output_path}/cves_enriched_{args.start_year}-{args.end_year}"
         f"_{today_date}.csv"
     )
-    cves_enriched.to_csv(output_file, index=False)
+    cves_enriched.write_csv(output_file)
     logger.info(f"Final data saved in {time.time() - start_time:.2f}s")
 
     logger.info(f"Dataset creation complete. Output saved to {output_file}")

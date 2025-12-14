@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
+import polars as pl
 import requests
 
 from src.utils.error_handling import error_handler
@@ -114,9 +114,9 @@ def load_cvev5_cve_data(
     start_year: int,
     end_year: int,
     directory: str,
-    cve_ids: list[str] = None,
-) -> pd.DataFrame:
-    """Load CVE v5 data into a DataFrame with optimized filtering.
+    cve_ids: list[str] | None = None,
+) -> pl.DataFrame:
+    """Load CVE v5 data into a Polars DataFrame with optimized filtering.
 
     Args:
         start_year: Start year for CVE data
@@ -125,7 +125,7 @@ def load_cvev5_cve_data(
         cve_ids: Optional list of specific CVE IDs to load
 
     Returns:
-        DataFrame with CVE data
+        Polars DataFrame with CVE data
 
     """
     # Import config here to avoid circular imports
@@ -143,14 +143,14 @@ def load_cvev5_cve_data(
     cve_dir = Path(directory) / "CVEV5" / "cves"
     if not cve_dir.exists():
         logger.error(f"CVE directory not found: {cve_dir}")
-        return pd.DataFrame()
+        return pl.DataFrame()
 
     # If specific CVE IDs requested, load only those
     if cve_ids:
         return _load_specific_cves(cve_dir, cve_ids)
 
     # Collect JSON files with year filtering
-    json_files = []
+    json_files: list[Path] = []
     for year in range(start_year, end_year + 1):
         year_dir = cve_dir / str(year)
         if year_dir.exists():
@@ -161,7 +161,7 @@ def load_cvev5_cve_data(
     )
 
     if not json_files:
-        return pd.DataFrame()
+        return pl.DataFrame()
 
     # Apply processing limit
     if len(json_files) > max_files:
@@ -195,9 +195,9 @@ def load_cvev5_cve_data(
 
     if data:
         logger.info(f"Creating DataFrame with {len(data)} CVE records...")
-        df = pd.DataFrame(data)
+        df = pl.DataFrame(data)
 
-        # Optimize data types
+        # Cast numeric columns to Float64
         numeric_columns = [
             "cvss_v4_0_score",
             "cvss_v3_1_score",
@@ -205,17 +205,21 @@ def load_cvev5_cve_data(
             "cvss_v2_0_score",
         ]
 
-        for col in numeric_columns:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
+        cast_exprs = [
+            pl.col(col).cast(pl.Float64, strict=False)
+            for col in numeric_columns
+            if col in df.columns
+        ]
+        if cast_exprs:
+            df = df.with_columns(cast_exprs)
 
         logger.info(f"DataFrame created with shape {df.shape}")
         return df
 
-    return pd.DataFrame()
+    return pl.DataFrame()
 
 
-def _load_specific_cves(cve_dir: Path, cve_ids: list[str]) -> pd.DataFrame:
+def _load_specific_cves(cve_dir: Path, cve_ids: list[str]) -> pl.DataFrame:
     """Load specific CVEs by ID."""
     data = []
 
@@ -235,8 +239,8 @@ def _load_specific_cves(cve_dir: Path, cve_ids: list[str]) -> pd.DataFrame:
             logger.error(f"Error loading {cve_id}: {e}")
 
     if data:
-        return pd.DataFrame(data)
-    return pd.DataFrame()
+        return pl.DataFrame(data)
+    return pl.DataFrame()
 
 
 def _process_cve_file(file_path: Path) -> dict[str, Any] | None:

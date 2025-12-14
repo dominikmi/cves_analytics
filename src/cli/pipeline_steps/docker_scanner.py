@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 from src.core.docker_scanner import DockerImageScanner
 
@@ -15,7 +15,7 @@ class DockerScanner:
         """Initialize the Docker scanner."""
         self.logger = logger
 
-    def scan(self, scenario: dict[str, Any], grype_path: str) -> pd.DataFrame:
+    def scan(self, scenario: dict[str, Any], grype_path: str) -> pl.DataFrame:
         """Scan Docker images from the scenario for vulnerabilities."""
         start_time = time.time()
 
@@ -29,7 +29,7 @@ class DockerScanner:
 
             if not images:
                 self.logger.warning("No Docker images found in scenario")
-                return pd.DataFrame()
+                return pl.DataFrame()
 
             self.logger.info(
                 f"Found {len(images)} Docker images to scan: {', '.join(images[:5])}{'...' if len(images) > 5 else ''}",
@@ -60,7 +60,7 @@ class DockerScanner:
                     self.logger.info(f"[{idx}/{len(images)}] Scanning: {image}")
                     try:
                         result = scanner.scan_image_with_grype(image)
-                        if not result.empty:
+                        if not result.is_empty():
                             results.append(result)
                             self.logger.info(f"  Found {len(result)} vulnerabilities")
                         else:
@@ -69,9 +69,9 @@ class DockerScanner:
                         self.logger.warning(f"  Could not scan {image}: {e!s}")
 
                 if results:
-                    scan_results = pd.concat(results, ignore_index=True)
+                    scan_results = pl.concat(results)
                 else:
-                    scan_results = pd.DataFrame()
+                    scan_results = pl.DataFrame()
 
             duration = time.time() - start_time
             self.logger.info(f"Image scanning completed in {duration:.2f}s")

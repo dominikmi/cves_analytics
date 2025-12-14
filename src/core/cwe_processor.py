@@ -2,12 +2,10 @@
 
 import asyncio
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import aiohttp
-import pandas as pd
 import requests
 
 from src.utils.error_handling import error_handler
@@ -19,18 +17,22 @@ logger = get_logger(__name__)
 CWE_SEMAPHORE = asyncio.Semaphore(4)
 
 
+# Global in-memory cache for CWE data (persists across function calls)
+_CWE_MEMORY_CACHE: dict[str, dict[str, Any]] = {}
+_CWE_CACHE_LOADED: bool = False
+
+
 def _get_cwe_cache_file(data_dir: str) -> Path:
-    """Get the CWE baseline cache file path for today.
+    """Get the persistent CWE baseline cache file path.
 
     Args:
         data_dir: Data directory path
 
     Returns:
-        Path to CWE baseline cache file
+        Path to CWE baseline cache file (persistent, not daily)
 
     """
-    today = datetime.now(tz=UTC).strftime("%Y-%m-%d")
-    return Path(data_dir) / f"CWE_baseline_{today}.json"
+    return Path(data_dir) / "CWE_baseline.json"
 
 
 def _load_cwe_cache(cache_file: Path) -> dict[str, Any]:
@@ -181,34 +183,72 @@ async def _fetch_cwe_async(
             }
 
 
-def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
-    """Get CWE name and description from MITRE CWE API (sync wrapper).
+def _is_null_value(value: Any) -> bool:
+    """Check if a value is null/None/NaN.
+
+    Args:
+        value: Value to check
+
+    Returns:
+        True if value is null-like
+
+    """
+    if value is None:
+        return True
+    if isinstance(value, float) and value != value:  # NaN check
+        return True
+    if isinstance(value, str) and value.lower() in ("nan", "none", ""):
+        return True
+    return False
+
+
+def get_cwe_name_and_description(
+    cwe_id: str,
+    data_dir: str = "data",
+) -> dict[str, Any]:
+    """Get CWE name and description from cache or MITRE CWE API.
+
+    Uses a persistent cache to avoid repeated API calls. The cache is loaded
+    once into memory and updated when new CWEs are fetched.
 
     Args:
         cwe_id: CWE identifier (e.g., "CWE-79")
+        data_dir: Data directory for cache file
 
     Returns:
         Dictionary with CWE metadata
 
     """
+    global _CWE_MEMORY_CACHE, _CWE_CACHE_LOADED
+
     # Handle special cases and NaN values
     if (
-        pd.isna(cwe_id)
+        _is_null_value(cwe_id)
         or not cwe_id
         or cwe_id in ["not_found", "NVD-CWE-noinfo", "NVD-CWE-Other"]
     ):
         return {
-            "cwe_id": str(cwe_id) if not pd.isna(cwe_id) else "nan",
+            "cwe_id": str(cwe_id) if not _is_null_value(cwe_id) else "nan",
             "cwe_name": "not_found",
             "cwe_desc": "not_found",
             "cwe_cc_scope": "not_found",
             "cwe_cc_impact": "not_found",
         }
 
-    try:
-        # Ensure cwe_id is a string
-        cwe_id = str(cwe_id).strip()
+    # Ensure cwe_id is a string
+    cwe_id = str(cwe_id).strip()
 
+    # Load cache from disk on first call
+    if not _CWE_CACHE_LOADED:
+        cache_file = _get_cwe_cache_file(data_dir)
+        _CWE_MEMORY_CACHE = _load_cwe_cache(cache_file)
+        _CWE_CACHE_LOADED = True
+
+    # Check if CWE is already in cache
+    if cwe_id in _CWE_MEMORY_CACHE:
+        return _CWE_MEMORY_CACHE[cwe_id]
+
+    try:
         # Extract CWE number from CWE-XXX format
         cwe_number = cwe_id.split("-")[1]
         url = f"https://cwe-api.mitre.org/api/v1/cwe/weakness/{cwe_number}"
@@ -219,24 +259,32 @@ def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
 
         # Check if CWE was found
         if isinstance(cwe_data, str) and "not found" in cwe_data:
-            return {
+            not_found_result = {
                 "cwe_id": cwe_id,
                 "cwe_name": "not_found",
                 "cwe_desc": "not_found",
                 "cwe_cc_scope": "not_found",
                 "cwe_cc_impact": "not_found",
             }
+            # Cache not found to avoid repeated API calls
+            _CWE_MEMORY_CACHE[cwe_id] = not_found_result
+            _save_cwe_cache(_get_cwe_cache_file(data_dir), _CWE_MEMORY_CACHE)
+            return not_found_result
 
         # Extract weakness data
         weaknesses = cwe_data.get("Weaknesses", [])
         if not weaknesses:
-            return {
+            not_found_result = {
                 "cwe_id": cwe_id,
                 "cwe_name": "not_found",
                 "cwe_desc": "not_found",
                 "cwe_cc_scope": "not_found",
                 "cwe_cc_impact": "not_found",
             }
+            # Cache not found to avoid repeated API calls
+            _CWE_MEMORY_CACHE[cwe_id] = not_found_result
+            _save_cwe_cache(_get_cwe_cache_file(data_dir), _CWE_MEMORY_CACHE)
+            return not_found_result
 
         weakness = weaknesses[0]
 
@@ -256,7 +304,7 @@ def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
             cwe_cc_impact = "not_found"
             cwe_cc_scope = "not_found"
 
-        return {
+        result = {
             "cwe_id": cwe_id,
             "cwe_name": cwe_name,
             "cwe_desc": cwe_description,
@@ -264,24 +312,38 @@ def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
             "cwe_cc_impact": cwe_cc_impact,
         }
 
+        # Update in-memory cache and save to disk
+        _CWE_MEMORY_CACHE[cwe_id] = result
+        _save_cwe_cache(_get_cwe_cache_file(data_dir), _CWE_MEMORY_CACHE)
+
+        return result
+
     except requests.RequestException as e:
         logger.error(f"Failed to fetch CWE data for {cwe_id}: {e}")
-        return {
+        error_result = {
             "cwe_id": cwe_id,
             "cwe_name": "not_found",
             "cwe_desc": "not_found",
             "cwe_cc_scope": "not_found",
             "cwe_cc_impact": "not_found",
         }
+        # Cache failed lookups to avoid repeated API calls
+        _CWE_MEMORY_CACHE[cwe_id] = error_result
+        _save_cwe_cache(_get_cwe_cache_file(data_dir), _CWE_MEMORY_CACHE)
+        return error_result
     except Exception as e:
         logger.error(f"Error processing CWE data for {cwe_id}: {e}")
-        return {
+        error_result = {
             "cwe_id": cwe_id,
             "cwe_name": "not_found",
             "cwe_desc": "not_found",
             "cwe_cc_scope": "not_found",
             "cwe_cc_impact": "not_found",
         }
+        # Cache failed lookups to avoid repeated API calls
+        _CWE_MEMORY_CACHE[cwe_id] = error_result
+        _save_cwe_cache(_get_cwe_cache_file(data_dir), _CWE_MEMORY_CACHE)
+        return error_result
 
 
 @error_handler()

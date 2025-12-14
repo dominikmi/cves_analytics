@@ -4,7 +4,7 @@ import logging
 from math import ceil
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +30,14 @@ class RemediationPlanner:
 
     def create_remediation_roadmap(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
         severity_column: str = "severity_reassessed",
         use_bayesian: bool = True,
     ) -> dict[str, Any]:
         """Create phased remediation plan based on Bayesian risk assessment.
 
         Args:
-            enriched_results: DataFrame with vulnerability data
+            enriched_results: Polars DataFrame with vulnerability data
             severity_column: Column name for severity assessment (fallback)
             use_bayesian: If True, use risk_category from Bayesian assessment
 
@@ -45,20 +45,20 @@ class RemediationPlanner:
             Dictionary with phases and effort estimates
 
         """
-        if enriched_results.empty:
+        if enriched_results.is_empty():
             return {
                 "phase1": {
-                    "vulns": pd.DataFrame(),
+                    "vulns": pl.DataFrame(),
                     "effort_hours": 0,
                     "timeline": "Week 1",
                 },
                 "phase2": {
-                    "vulns": pd.DataFrame(),
+                    "vulns": pl.DataFrame(),
                     "effort_hours": 0,
                     "timeline": "Weeks 2-3",
                 },
                 "phase3": {
-                    "vulns": pd.DataFrame(),
+                    "vulns": pl.DataFrame(),
                     "effort_hours": 0,
                     "timeline": "Weeks 4-6",
                 },
@@ -86,9 +86,9 @@ class RemediationPlanner:
             )
 
         # Phase 1: Bayesian Critical vulnerabilities ONLY (Week 1)
-        phase1_vulns = enriched_results[enriched_results[category_column] == "Critical"]
+        phase1_vulns = enriched_results.filter(pl.col(category_column) == "Critical")
         if sort_column in enriched_results.columns:
-            phase1 = phase1_vulns.nlargest(20, sort_column)
+            phase1 = phase1_vulns.sort(sort_column, descending=True).head(20)
         else:
             phase1 = phase1_vulns.head(20)
 
@@ -98,9 +98,9 @@ class RemediationPlanner:
         )
 
         # Phase 2: Bayesian High vulnerabilities (Weeks 2-3)
-        phase2_vulns = enriched_results[enriched_results[category_column] == "High"]
+        phase2_vulns = enriched_results.filter(pl.col(category_column) == "High")
         if sort_column in enriched_results.columns:
-            phase2 = phase2_vulns.nlargest(50, sort_column)
+            phase2 = phase2_vulns.sort(sort_column, descending=True).head(50)
         else:
             phase2 = phase2_vulns.head(50)
 
@@ -110,9 +110,9 @@ class RemediationPlanner:
         )
 
         # Phase 3: Bayesian Medium vulnerabilities (Weeks 4-6)
-        phase3_vulns = enriched_results[enriched_results[category_column] == "Medium"]
+        phase3_vulns = enriched_results.filter(pl.col(category_column) == "Medium")
         if sort_column in enriched_results.columns:
-            phase3 = phase3_vulns.nlargest(100, sort_column)
+            phase3 = phase3_vulns.sort(sort_column, descending=True).head(100)
         else:
             phase3 = phase3_vulns.head(100)
 
@@ -162,49 +162,58 @@ class RemediationPlanner:
 
     def identify_quick_wins(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
         max_effort_hours: float = 4.0,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Identify vulnerabilities that can be fixed quickly.
 
         Quick wins are high-impact vulnerabilities with low complexity.
 
         Args:
-            enriched_results: DataFrame with vulnerability data
+            enriched_results: Polars DataFrame with vulnerability data
             max_effort_hours: Maximum effort threshold for quick wins
 
         Returns:
             DataFrame with quick win vulnerabilities
 
         """
-        if enriched_results.empty:
-            return pd.DataFrame()
+        if enriched_results.is_empty():
+            return pl.DataFrame()
 
         # Quick wins: high risk but low complexity
-        # Criteria: Risk score >= 6 AND effort <= max_effort_hours
-        quick_wins = enriched_results[
-            (enriched_results.get("risk_score", 5.0) >= 6.0)
-            & (
-                enriched_results.get("severity_reassessed", "Unknown").isin(
-                    ["Critical", "High"],
-                )
+        # Criteria: Risk score >= 6 AND severity in Critical/High
+        risk_col = "risk_score" if "risk_score" in enriched_results.columns else None
+        sev_col = (
+            "severity_reassessed"
+            if "severity_reassessed" in enriched_results.columns
+            else "severity"
+        )
+
+        if risk_col:
+            quick_wins = enriched_results.filter(
+                (pl.col(risk_col) >= 6.0) & pl.col(sev_col).is_in(["Critical", "High"])
             )
-        ].copy()
+        else:
+            quick_wins = enriched_results.filter(
+                pl.col(sev_col).is_in(["Critical", "High"])
+            )
 
         # Estimate effort if not available
         if "estimated_effort_hours" not in quick_wins.columns:
-            quick_wins["estimated_effort_hours"] = quick_wins[
-                "severity_reassessed"
-            ].map(self.EFFORT_ESTIMATES)
+            quick_wins = quick_wins.with_columns(
+                pl.col(sev_col)
+                .replace(self.EFFORT_ESTIMATES)
+                .alias("estimated_effort_hours")
+            )
 
         # Filter by effort threshold
-        quick_wins = quick_wins[
-            quick_wins["estimated_effort_hours"] <= max_effort_hours
-        ]
+        quick_wins = quick_wins.filter(
+            pl.col("estimated_effort_hours") <= max_effort_hours
+        )
 
         # Sort by risk score
-        if "risk_score" in quick_wins.columns:
-            quick_wins = quick_wins.sort_values("risk_score", ascending=False)
+        if risk_col and risk_col in quick_wins.columns:
+            quick_wins = quick_wins.sort(risk_col, descending=True)
 
         self.logger.info(
             f"Identified {len(quick_wins)} quick wins (effort <= {max_effort_hours}h)",
@@ -214,20 +223,20 @@ class RemediationPlanner:
 
     def estimate_total_effort(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
         use_bayesian: bool = True,
     ) -> dict[str, Any]:
         """Estimate total remediation effort based on Bayesian risk categories.
 
         Args:
-            enriched_results: DataFrame with vulnerability data
+            enriched_results: Polars DataFrame with vulnerability data
             use_bayesian: If True, use risk_category from Bayesian assessment
 
         Returns:
             Dictionary with effort estimates (only for Bayesian Critical/High/Medium)
 
         """
-        if enriched_results.empty:
+        if enriched_results.is_empty():
             return {
                 "total_hours": 0,
                 "total_weeks": 0,
@@ -244,13 +253,13 @@ class RemediationPlanner:
             category_column = "severity"
 
         breakdown = {}
-        total_hours = 0
+        total_hours = 0.0
 
         # Only count Critical, High, Medium for remediation effort
         # Low and Negligible are not prioritized for remediation
         for severity in ["Critical", "High", "Medium"]:
             effort = self.EFFORT_ESTIMATES.get(severity, 1.0)
-            count = (enriched_results[category_column] == severity).sum()
+            count = enriched_results.filter(pl.col(category_column) == severity).height
             hours = count * effort
             total_hours += hours
             breakdown[severity] = {"count": int(count), "effort_hours": hours}

@@ -11,7 +11,7 @@ source for CVE attribution data. This dataset includes:
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pandas as pd
+import polars as pl
 import requests
 
 from src.utils.logging_config import get_logger
@@ -89,44 +89,45 @@ class CVSSBTProcessor:
                 return cache_path
             return None
 
-    def load(self, force_download: bool = False) -> pd.DataFrame:
+    def load(self, force_download: bool = False) -> pl.DataFrame:
         """Load the CVSS-BT dataset.
 
         Args:
             force_download: Force re-download of the data
 
         Returns:
-            DataFrame with CVSS-BT data
+            Polars DataFrame with CVSS-BT data
 
         """
         file_path = self.download(force=force_download)
 
         if file_path is None:
             logger.warning("CVSS-BT data not available")
-            return pd.DataFrame()
+            return pl.DataFrame()
 
         try:
-            df = pd.read_csv(file_path)
+            df = pl.read_csv(file_path)
             logger.info(f"Loaded {len(df)} records from CVSS-BT dataset")
 
             # Standardize column names
-            df = df.rename(
-                columns={
-                    "cve": "cve_id",
-                    "cvss-bt_score": "cvss_bt_score",
-                    "cvss-bt_severity": "cvss_bt_severity",
-                    "cvss-bt_vector": "cvss_bt_vector",
-                    "base_score": "cvss_base_score",
-                    "base_severity": "cvss_base_severity",
-                    "base_vector": "cvss_base_vector",
-                    "cisa_kev": "is_cisa_kev",
-                    "vulncheck_kev": "is_vulncheck_kev",
-                    "exploitdb": "has_exploitdb",
-                    "metasploit": "has_metasploit",
-                    "nuclei": "has_nuclei",
-                    "poc_github": "has_poc_github",
-                },
-            )
+            rename_map = {
+                "cve": "cve_id",
+                "cvss-bt_score": "cvss_bt_score",
+                "cvss-bt_severity": "cvss_bt_severity",
+                "cvss-bt_vector": "cvss_bt_vector",
+                "base_score": "cvss_base_score",
+                "base_severity": "cvss_base_severity",
+                "base_vector": "cvss_base_vector",
+                "cisa_kev": "is_cisa_kev",
+                "vulncheck_kev": "is_vulncheck_kev",
+                "exploitdb": "has_exploitdb",
+                "metasploit": "has_metasploit",
+                "nuclei": "has_nuclei",
+                "poc_github": "has_poc_github",
+            }
+            # Only rename columns that exist
+            existing_renames = {k: v for k, v in rename_map.items() if k in df.columns}
+            df = df.rename(existing_renames)
 
             # Convert boolean columns
             bool_cols = [
@@ -137,15 +138,22 @@ class CVSSBTProcessor:
                 "has_nuclei",
                 "has_poc_github",
             ]
-            for col in bool_cols:
-                if col in df.columns:
-                    df[col] = df[col].astype(bool)
+            existing_bool_cols = [c for c in bool_cols if c in df.columns]
+            if existing_bool_cols:
+                df = df.with_columns(
+                    [pl.col(c).cast(pl.Boolean) for c in existing_bool_cols]
+                )
 
             # Create combined KEV flag
             if "is_cisa_kev" in df.columns:
-                df["is_kev"] = df["is_cisa_kev"]
                 if "is_vulncheck_kev" in df.columns:
-                    df["is_kev"] = df["is_cisa_kev"] | df["is_vulncheck_kev"]
+                    df = df.with_columns(
+                        (pl.col("is_cisa_kev") | pl.col("is_vulncheck_kev")).alias(
+                            "is_kev"
+                        )
+                    )
+                else:
+                    df = df.with_columns(pl.col("is_cisa_kev").alias("is_kev"))
 
             # Create combined exploit flag
             exploit_cols = [
@@ -156,34 +164,38 @@ class CVSSBTProcessor:
             ]
             existing_exploit_cols = [c for c in exploit_cols if c in df.columns]
             if existing_exploit_cols:
-                df["has_public_exploit"] = df[existing_exploit_cols].any(axis=1)
+                df = df.with_columns(
+                    pl.any_horizontal([pl.col(c) for c in existing_exploit_cols]).alias(
+                        "has_public_exploit"
+                    )
+                )
 
             return df
 
         except Exception as e:
             logger.error(f"Failed to load CVSS-BT data: {e}")
-            return pd.DataFrame()
+            return pl.DataFrame()
 
     def enrich_with_cvss_bt(
         self,
-        scan_results: pd.DataFrame,
+        scan_results: pl.DataFrame,
         cve_id_col: str = "cve_id",
-    ) -> tuple[pd.DataFrame, int]:
+    ) -> tuple[pl.DataFrame, int]:
         """Enrich scan results with CVSS-BT data.
 
         Args:
-            scan_results: DataFrame with vulnerability scan results
+            scan_results: Polars DataFrame with vulnerability scan results
             cve_id_col: Column name containing CVE IDs
 
         Returns:
             Tuple of (enriched DataFrame, count of enriched records)
 
         """
-        if scan_results.empty:
+        if scan_results.is_empty():
             return scan_results, 0
 
         cvss_bt_data = self.load()
-        if cvss_bt_data.empty:
+        if cvss_bt_data.is_empty():
             logger.warning("CVSS-BT data not available, skipping enrichment")
             return scan_results, 0
 
@@ -210,21 +222,22 @@ class CVSSBTProcessor:
 
         # Only include columns that exist
         available_cols = [c for c in merge_cols if c in cvss_bt_data.columns]
-        cvss_bt_subset = cvss_bt_data[available_cols].drop_duplicates(subset=["cve_id"])
+        cvss_bt_subset = cvss_bt_data.select(available_cols).unique(subset=["cve_id"])
 
         # Merge with scan results
         before_count = len(scan_results)
-        enriched = pd.merge(
-            scan_results,
+        enriched = scan_results.join(
             cvss_bt_subset,
             left_on=cve_id_col,
             right_on="cve_id",
             how="left",
-            suffixes=("", "_bt"),
+            suffix="_bt",
         )
 
         # Count how many records were enriched
-        enriched_count = enriched["cvss_bt_score"].notna().sum()
+        enriched_count = enriched.select(
+            pl.col("cvss_bt_score").is_not_null().sum()
+        ).item()
         logger.info(
             f"Enriched {enriched_count}/{before_count} records with CVSS-BT data",
         )
@@ -246,14 +259,14 @@ def download_cvss_bt_data(data_dir: str | Path) -> Path | None:
     return processor.download()
 
 
-def load_cvss_bt_data(data_dir: str | Path) -> pd.DataFrame:
+def load_cvss_bt_data(data_dir: str | Path) -> pl.DataFrame:
     """Convenience function to load CVSS-BT data.
 
     Args:
         data_dir: Directory containing CVSS-BT data
 
     Returns:
-        DataFrame with CVSS-BT data
+        Polars DataFrame with CVSS-BT data
 
     """
     processor = CVSSBTProcessor(data_dir)

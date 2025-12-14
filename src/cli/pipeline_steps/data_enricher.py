@@ -4,13 +4,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 from src.core.cvev5_loader import CVEv5Loader
 from src.core.cvss_bt_processor import CVSSBTProcessor
 from src.core.cvss_vector_reassessment import reassess_vulnerabilities
 from src.core.cwe_processor import get_cwe_name_and_description
 from src.core.nlp_extractor import enrich_with_nlp_features
+from src.core.risk_scoring import add_bayesian_risk_scores
 from src.simulation.security_controls import (
     ServiceSecurityControlsGenerator,
 )
@@ -25,15 +26,15 @@ class DataEnricher:
 
     def enrich(
         self,
-        scan_results: pd.DataFrame,
+        scan_results: pl.DataFrame,
         scenario: dict[str, Any],
         data_path: str,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Enrich scan results with CVE data and environment context."""
         start_time = time.time()
 
         try:
-            if scan_results.empty:
+            if scan_results.is_empty():
                 self.logger.warning("No scan results to enrich")
                 return scan_results
 
@@ -41,10 +42,10 @@ class DataEnricher:
 
             # Rename vuln_id to cve_id for consistency
             if "vuln_id" in scan_results.columns:
-                scan_results = scan_results.rename(columns={"vuln_id": "cve_id"})
+                scan_results = scan_results.rename({"vuln_id": "cve_id"})
 
             # Add environment context to scan results
-            enriched = self._add_environment_context(scan_results.copy(), scenario)
+            enriched = self._add_environment_context(scan_results.clone(), scenario)
 
             # PRIMARY SOURCE: CVSS-BT dataset (includes CVSS, EPSS, KEV, exploits)
             enriched = self._enrich_with_cvss_bt(enriched, data_path)
@@ -71,14 +72,20 @@ class DataEnricher:
             # Enrich with CWE data if available
             if "cwe_id" in enriched.columns:
                 self.logger.info("Enriching with CWE data...")
-                enriched["cwe_details"] = enriched["cwe_id"].apply(
-                    get_cwe_name_and_description,
-                )
+                cwe_details = [
+                    get_cwe_name_and_description(cwe_id)
+                    for cwe_id in enriched["cwe_id"].to_list()
+                ]
+                enriched = enriched.with_columns(pl.Series("cwe_details", cwe_details))
 
             # Extract NLP features from descriptions
             if "description" in enriched.columns:
                 self.logger.info("Extracting NLP features from descriptions...")
                 enriched = enrich_with_nlp_features(enriched, "description")
+
+            # Add Bayesian risk scores
+            self.logger.info("Calculating Bayesian risk scores...")
+            enriched = add_bayesian_risk_scores(enriched)
 
             duration = time.time() - start_time
             self.logger.info(f"Data enrichment completed in {duration:.2f}s")
@@ -91,11 +98,11 @@ class DataEnricher:
 
     def _add_environment_context(
         self,
-        scan_results: pd.DataFrame,
+        scan_results: pl.DataFrame,
         scenario: dict[str, Any],
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Add environment context to scan results."""
-        if scan_results.empty or not scenario:
+        if scan_results.is_empty() or not scenario:
             return scan_results
 
         # Get scenario-level info
@@ -151,38 +158,78 @@ class DataEnricher:
 
         # Add context columns to scan results
         if "image_name" in scan_results.columns:
-            # Add environment context columns
-            scan_results["service_name"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("service_name", "unknown"),
-            )
-            scan_results["service_role"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("service_role", "service"),
-            )
-            scan_results["exposure"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("exposure", "internal"),
-            )
-            scan_results["zone"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("zone", "internal"),
-            )
-            scan_results["asset_value"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("asset_value", "medium"),
-            )
-            scan_results["ownership"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("ownership", "DEV"),
-            )
-            scan_results["environment_type"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("environment_type", "unknown"),
-            )
+            # Build context lists for each column
+            image_names = scan_results["image_name"].to_list()
 
-            # Add security controls column for Bayesian risk assessment
-            scan_results["security_controls"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get("security_controls", {}),
-            )
-            scan_results["security_maturity"] = scan_results["image_name"].map(
-                lambda x: image_context.get(x, {}).get(
-                    "security_maturity",
-                    "developing",
-                ),
+            # Add environment context columns using list comprehensions
+            scan_results = scan_results.with_columns(
+                [
+                    pl.Series(
+                        "service_name",
+                        [
+                            image_context.get(x, {}).get("service_name", "unknown")
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "service_role",
+                        [
+                            image_context.get(x, {}).get("service_role", "service")
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "exposure",
+                        [
+                            image_context.get(x, {}).get("exposure", "internal")
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "zone",
+                        [
+                            image_context.get(x, {}).get("zone", "internal")
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "asset_value",
+                        [
+                            image_context.get(x, {}).get("asset_value", "medium")
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "ownership",
+                        [
+                            image_context.get(x, {}).get("ownership", "DEV")
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "environment_type",
+                        [
+                            image_context.get(x, {}).get("environment_type", "unknown")
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "security_controls",
+                        [
+                            image_context.get(x, {}).get("security_controls", {})
+                            for x in image_names
+                        ],
+                    ),
+                    pl.Series(
+                        "security_maturity",
+                        [
+                            image_context.get(x, {}).get(
+                                "security_maturity", "developing"
+                            )
+                            for x in image_names
+                        ],
+                    ),
+                ]
             )
 
             # Add exposure risk factor (legacy - kept for backward compatibility)
@@ -193,8 +240,10 @@ class DataEnricher:
                 "restricted": 0.8,
                 "unknown": 1.0,
             }
-            scan_results["exposure_risk_factor"] = scan_results["exposure"].map(
-                exposure_risk_map,
+            scan_results = scan_results.with_columns(
+                pl.col("exposure")
+                .replace(exposure_risk_map)
+                .alias("exposure_risk_factor")
             )
 
             # Add asset value risk factor (legacy - kept for backward compatibility)
@@ -205,8 +254,10 @@ class DataEnricher:
                 "low": 0.8,
                 "unknown": 1.0,
             }
-            scan_results["asset_value_risk_factor"] = scan_results["asset_value"].map(
-                asset_value_risk_map,
+            scan_results = scan_results.with_columns(
+                pl.col("asset_value")
+                .replace(asset_value_risk_map)
+                .alias("asset_value_risk_factor")
             )
 
             vuln_count = len(scan_results)
@@ -233,7 +284,7 @@ class DataEnricher:
         self.logger.info("Security controls by exposure:")
         for exposure, controls in exposure_controls.items():
             # Count unique controls
-            control_counts = {}
+            control_counts: dict[str, int] = {}
             for ctrl in controls:
                 control_counts[ctrl] = control_counts.get(ctrl, 0) + 1
 
@@ -262,9 +313,9 @@ class DataEnricher:
 
     def _load_and_merge_epss_data(
         self,
-        enriched: pd.DataFrame,
+        enriched: pl.DataFrame,
         data_path: str,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Load EPSS data and merge it with enriched vulnerability data."""
         try:
             # Find the most recent EPSS CSV file
@@ -293,28 +344,28 @@ class DataEnricher:
             self.logger.info(f"Loading EPSS data from {latest_epss_file}")
 
             # Load EPSS data (skip comment lines)
-            epss_data = pd.read_csv(latest_epss_file, comment="#")
+            epss_data = pl.read_csv(latest_epss_file, comment_prefix="#")
             self.logger.info(f"Loaded {len(epss_data)} EPSS records")
 
             # Rename columns to match our expected format
             col_rename = {"cve": "cve_id", "epss": "epss_score"}
-            epss_data = epss_data.rename(columns=col_rename)
+            epss_data = epss_data.rename(col_rename)
 
             # Merge with enriched data
             if "cve_id" in enriched.columns:
-                enriched = pd.merge(
-                    enriched,
-                    epss_data[["cve_id", "epss_score"]],
-                    left_on="cve_id",
-                    right_on="cve_id",
+                enriched = enriched.join(
+                    epss_data.select(["cve_id", "epss_score"]),
+                    on="cve_id",
                     how="left",
                 )
-                merged_count = enriched["epss_score"].notna().sum()
+                merged_count = enriched.filter(
+                    pl.col("epss_score").is_not_null()
+                ).height
                 self.logger.info(f"Merged EPSS data with {merged_count} vulns")
 
-                # Fill NaN EPSS scores with 0
-                enriched["epss_score"] = enriched["epss_score"].fillna(0.0)
-                filled = enriched["epss_score"].isna().sum()
+                # Fill null EPSS scores with 0
+                enriched = enriched.with_columns(pl.col("epss_score").fill_null(0.0))
+                filled = enriched.filter(pl.col("epss_score").is_null()).height
                 self.logger.info(f"Filled missing EPSS scores for {filled} records")
             else:
                 self.logger.warning("No cve_id column found, skipping EPSS merge")
@@ -324,25 +375,32 @@ class DataEnricher:
 
         return enriched
 
-    def _fetch_missing_cve_data(self, enriched: pd.DataFrame) -> pd.DataFrame:
+    def _fetch_missing_cve_data(self, enriched: pl.DataFrame) -> pl.DataFrame:
         """Fetch missing CVE data from NVD API for records without CVSS scores."""
-        missing_mask = enriched["cvss_score"].isna()
-        if not missing_mask.any():
+        missing_count = enriched.filter(pl.col("cvss_score").is_null()).height
+        if missing_count == 0:
             return enriched
 
-        missing_cves = enriched[missing_mask]["cve_id"].unique()
+        missing_cves = (
+            enriched.filter(pl.col("cvss_score").is_null())["cve_id"].unique().to_list()
+        )
         self.logger.info(
             f"Skipping NVD API for {len(missing_cves)} CVEs (rate limited)",
         )
 
         return enriched
 
-    def _extract_cvss_data(self, enriched: pd.DataFrame) -> pd.DataFrame:
+    def _extract_cvss_data(self, enriched: pl.DataFrame) -> pl.DataFrame:
         """Extract CVSS vectors and scores from CVE v5 data."""
         # Find best CVSS score (prefer v4.0 > v3.1 > v3.0 > v2.0)
-        enriched["cvss_vector"] = None
-        enriched["cvss_score"] = None
-        enriched["cvss_version"] = None
+        if "cvss_vector" not in enriched.columns:
+            enriched = enriched.with_columns(pl.lit(None).alias("cvss_vector"))
+        if "cvss_score" not in enriched.columns:
+            enriched = enriched.with_columns(
+                pl.lit(None).cast(pl.Float64).alias("cvss_score")
+            )
+        if "cvss_version" not in enriched.columns:
+            enriched = enriched.with_columns(pl.lit(None).alias("cvss_version"))
 
         cvss_priority = [
             ("cvss_v4_0_score", "cvss_v4_0_vector", "4.0"),
@@ -355,21 +413,40 @@ class DataEnricher:
             if score_col not in enriched.columns:
                 continue
 
-            mask = enriched["cvss_score"].isna() & enriched[score_col].notna()
-            enriched.loc[mask, "cvss_score"] = enriched.loc[mask, score_col]
-            enriched.loc[mask, "cvss_vector"] = enriched.loc[mask, vector_col]
-            enriched.loc[mask, "cvss_version"] = version
+            # Update where cvss_score is null and source score is not null
+            enriched = enriched.with_columns(
+                [
+                    pl.when(
+                        pl.col("cvss_score").is_null() & pl.col(score_col).is_not_null()
+                    )
+                    .then(pl.col(score_col))
+                    .otherwise(pl.col("cvss_score"))
+                    .alias("cvss_score"),
+                    pl.when(
+                        pl.col("cvss_score").is_null() & pl.col(score_col).is_not_null()
+                    )
+                    .then(pl.col(vector_col))
+                    .otherwise(pl.col("cvss_vector"))
+                    .alias("cvss_vector"),
+                    pl.when(
+                        pl.col("cvss_score").is_null() & pl.col(score_col).is_not_null()
+                    )
+                    .then(pl.lit(version))
+                    .otherwise(pl.col("cvss_version"))
+                    .alias("cvss_version"),
+                ]
+            )
 
-        cvss_count = enriched["cvss_score"].notna().sum()
+        cvss_count = enriched.filter(pl.col("cvss_score").is_not_null()).height
         self.logger.info(f"Extracted CVSS data for {cvss_count} vulns from CVE v5")
 
         return enriched
 
     def _enrich_with_cvss_bt(
         self,
-        enriched: pd.DataFrame,
+        enriched: pl.DataFrame,
         data_path: str,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Enrich scan results with CVSS-BT data as the primary source.
 
         CVSS-BT includes:
@@ -387,12 +464,19 @@ class DataEnricher:
                 # Map CVSS-BT columns to standard columns
                 # Use CVSS-BT score as primary, base score as fallback
                 if "cvss_bt_score" in enriched.columns:
-                    enriched["cvss_score"] = enriched["cvss_bt_score"]
-                    enriched["cvss_vector"] = enriched.get("cvss_bt_vector")
+                    enriched = enriched.with_columns(
+                        [
+                            pl.col("cvss_bt_score").alias("cvss_score"),
+                        ]
+                    )
+                    if "cvss_bt_vector" in enriched.columns:
+                        enriched = enriched.with_columns(
+                            pl.col("cvss_bt_vector").alias("cvss_vector")
+                        )
 
                 # Use EPSS from CVSS-BT
                 if "epss" in enriched.columns:
-                    enriched["epss_score"] = enriched["epss"]
+                    enriched = enriched.with_columns(pl.col("epss").alias("epss_score"))
 
                 self.logger.info(
                     f"CVSS-BT enrichment complete: {enriched_count} records",
@@ -409,9 +493,9 @@ class DataEnricher:
 
     def _enrich_with_cvev5_fallback(
         self,
-        enriched: pd.DataFrame,
+        enriched: pl.DataFrame,
         data_path: str,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Enrich scan results with CVE v5 data for records not covered by CVSS-BT.
 
         This is a fallback source for:
@@ -419,12 +503,10 @@ class DataEnricher:
         - Additional metadata (descriptions, CWE)
         """
         # Check how many records still need CVSS data
-        needs_cvss = (
-            enriched["cvss_score"].isna()
-            if "cvss_score" in enriched.columns
-            else pd.Series([True] * len(enriched))
-        )
-        missing_count = needs_cvss.sum()
+        if "cvss_score" in enriched.columns:
+            missing_count = enriched.filter(pl.col("cvss_score").is_null()).height
+        else:
+            missing_count = len(enriched)
 
         if missing_count == 0:
             self.logger.info(
@@ -446,7 +528,7 @@ class DataEnricher:
                 use_cache=True,
             )
 
-            if cve_v5_data.empty:
+            if cve_v5_data.is_empty():
                 self.logger.warning("No CVE v5 data available")
                 return enriched
 
@@ -476,15 +558,13 @@ class DataEnricher:
                     cve_cols_to_merge.append(col)
 
             available_cols = [c for c in cve_cols_to_merge if c in cve_v5_data.columns]
-            cve_subset = cve_v5_data[available_cols].drop_duplicates(subset=["cve_id"])
+            cve_subset = cve_v5_data.select(available_cols).unique(subset=["cve_id"])
 
-            enriched = pd.merge(
-                enriched,
+            enriched = enriched.join(
                 cve_subset,
-                left_on="cve_id",
-                right_on="cve_id",
+                on="cve_id",
                 how="left",
-                suffixes=("", "_v5"),
+                suffix="_v5",
             )
 
             self.logger.info(
@@ -492,16 +572,19 @@ class DataEnricher:
             )
 
             # Extract CVSS data for records that don't have it yet
-            if (
+            has_missing_cvss = (
                 "cvss_score" not in enriched.columns
-                or enriched["cvss_score"].isna().any()
-            ):
+                or enriched.filter(pl.col("cvss_score").is_null()).height > 0
+            )
+            if has_missing_cvss:
                 self.logger.info("Extracting CVSS vectors and scores from CVE v5...")
                 enriched = self._extract_cvss_data(enriched)
 
                 # Log missing CVSS data
                 if "cvss_score" in enriched.columns:
-                    missing_count = enriched["cvss_score"].isna().sum()
+                    missing_count = enriched.filter(
+                        pl.col("cvss_score").is_null()
+                    ).height
                     self.logger.info(
                         f"{missing_count} records still missing CVSS scores",
                     )
