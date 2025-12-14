@@ -1,11 +1,11 @@
 """Attack scenario analyzer for vulnerability assessment pipeline."""
 
 import logging
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,7 @@ class ServiceRole(Enum):
     REGISTRY = "registry"
 
 
-@dataclass
-class AttackStep:
+class AttackStep(BaseModel):
     """Represents a single step in an attack path."""
 
     service_name: str
@@ -46,19 +45,18 @@ class AttackStep:
     cve_id: str
     attack_vector: str
     description: str
-    cvss_score: float
-    epss_score: float
+    cvss_score: float = Field(ge=0.0, le=10.0)
+    epss_score: float = Field(ge=0.0, le=1.0)
 
 
-@dataclass
-class AttackPath:
+class AttackPath(BaseModel):
     """Represents a complete attack path."""
 
     steps: list[AttackStep]
-    risk_score: float
+    risk_score: float = Field(ge=0.0)
     description: str
-    likelihood: float  # 0.0 to 1.0
-    impact: float  # 0.0 to 1.0
+    likelihood: float = Field(ge=0.0, le=1.0)
+    impact: float = Field(ge=0.0, le=1.0)
 
 
 class AttackScenarioAnalyzer:

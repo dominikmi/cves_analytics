@@ -12,10 +12,10 @@ These features can be used as weak signals in Bayesian risk assessment.
 
 import logging
 import re
-from dataclasses import dataclass, field
 from enum import Enum
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -261,8 +261,7 @@ IMPACT_PATTERNS = {
 }
 
 
-@dataclass
-class NLPVulnFeatures:
+class NLPVulnFeatures(BaseModel):
     """Extracted vulnerability features from description.
 
     Attributes:
@@ -278,15 +277,17 @@ class NLPVulnFeatures:
 
     """
 
-    attack_types: list[tuple[AttackType, float]] = field(default_factory=list)
+    attack_types: list[tuple[AttackType, float]] = Field(default_factory=list)
     requires_auth: bool | None = None
     requires_user_interaction: bool | None = None
     is_network_accessible: bool | None = None
     affects_default_config: bool = False
-    impacts: dict[str, bool] = field(default_factory=dict)
-    mentioned_components: list[str] = field(default_factory=list)
-    confidence: float = 0.0
-    raw_matches: dict[str, list[str]] = field(default_factory=dict)
+    impacts: dict[str, bool] = Field(default_factory=dict)
+    mentioned_components: list[str] = Field(default_factory=list)
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    raw_matches: dict[str, list[str]] = Field(default_factory=dict)
+
+    model_config = {"arbitrary_types_allowed": True}
 
     def to_dict(self) -> dict:
         """Convert to dictionary for DataFrame storage."""
