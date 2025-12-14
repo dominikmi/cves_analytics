@@ -23,7 +23,7 @@ class TestCVEv5Processor(unittest.TestCase):
     def test_load_cvev5_cve_data_empty_directory(self):
         """Test loading CVE data from empty directory."""
         result = load_cvev5_cve_data(2022, 2022, str(self.data_path))
-        self.assertTrue(result.empty)
+        self.assertTrue(result.is_empty())
 
     def test_load_cvev5_cve_data_with_valid_cve(self):
         """Test loading CVE data with valid CVE record."""
@@ -64,11 +64,11 @@ class TestCVEv5Processor(unittest.TestCase):
         result = load_cvev5_cve_data(2022, 2022, str(self.data_path))
 
         # Verify results
-        self.assertFalse(result.empty)
+        self.assertFalse(result.is_empty())
         self.assertEqual(len(result), 1)
-        self.assertEqual(result.iloc[0]["cve_id"], "CVE-2022-1234")
-        self.assertEqual(result.iloc[0]["cwe_id"], "CWE-79")
-        self.assertEqual(result.iloc[0]["cvss_v3_1_score"], 7.5)
+        self.assertEqual(result["cve_id"][0], "CVE-2022-1234")
+        self.assertEqual(result["cwe_id"][0], "CWE-79")
+        self.assertEqual(result["cvss_v3_1_score"][0], 7.5)
 
     def test_load_cvev5_cve_data_multiple_cvss_versions(self):
         """Test loading CVE with multiple CVSS versions (precedence)."""
@@ -112,8 +112,8 @@ class TestCVEv5Processor(unittest.TestCase):
         result = load_cvev5_cve_data(2022, 2022, str(self.data_path))
 
         # Should prefer v3.1 over v3.0
-        self.assertEqual(result.iloc[0]["cvss_v3_1_score"], 9.0)
-        self.assertEqual(result.iloc[0]["cvss_v3_0_score"], 8.5)
+        self.assertEqual(result["cvss_v3_1_score"][0], 9.0)
+        self.assertEqual(result["cvss_v3_0_score"][0], 8.5)
 
     def test_load_cvev5_cve_data_malformed_json(self):
         """Test loading with malformed JSON file."""
@@ -127,7 +127,7 @@ class TestCVEv5Processor(unittest.TestCase):
 
         # Should skip malformed file and return empty
         result = load_cvev5_cve_data(2022, 2022, str(self.data_path))
-        self.assertTrue(result.empty)
+        self.assertTrue(result.is_empty())
 
     def test_load_cvev5_cve_data_missing_cve_id(self):
         """Test loading CVE record without cveId."""
@@ -147,7 +147,7 @@ class TestCVEv5Processor(unittest.TestCase):
 
         result = load_cvev5_cve_data(2022, 2022, str(self.data_path))
         # Should skip records without cveId
-        self.assertTrue(result.empty)
+        self.assertTrue(result.is_empty())
 
 
 if __name__ == "__main__":

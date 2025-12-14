@@ -5,7 +5,7 @@ import json
 import logging
 import subprocess
 
-import pandas as pd
+import polars as pl
 import requests
 
 from src.utils.config import get_config
@@ -82,14 +82,14 @@ class DockerImageScanner:
             logger.error(f"Error fetching data from registry: {e}")
             return {}
 
-    def scan_image_with_grype(self, image_name: str) -> pd.DataFrame:
+    def scan_image_with_grype(self, image_name: str) -> pl.DataFrame:
         """Scan a Docker image with Grype and return results as DataFrame.
 
         Args:
             image_name: Name of the Docker image to scan
 
         Returns:
-            DataFrame with vulnerability scan results
+            Polars DataFrame with vulnerability scan results
 
         """
         try:
@@ -109,21 +109,21 @@ class DockerImageScanner:
                     f"Grype returned non-zero exit code {result.returncode} "
                     f"for {image_name}: {result.stderr}",
                 )
-                return pd.DataFrame()
+                return pl.DataFrame()
 
             if not result.stdout.strip():
                 logging.warning(f"Grype returned empty output for {image_name}")
-                return pd.DataFrame()
+                return pl.DataFrame()
 
             try:
                 scan_data = json.loads(result.stdout)
             except json.JSONDecodeError as e:
                 logging.error(f"Error parsing Grype JSON output for {image_name}: {e}")
-                return pd.DataFrame()
+                return pl.DataFrame()
 
             matches = scan_data.get("matches", [])
             if not matches:
-                return pd.DataFrame()
+                return pl.DataFrame()
 
             vulnerabilities = []
             for match in matches:
@@ -151,23 +151,23 @@ class DockerImageScanner:
 
                 vulnerabilities.append(vuln)
 
-            return pd.DataFrame(vulnerabilities)
+            return pl.DataFrame(vulnerabilities)
 
         except subprocess.TimeoutExpired:
             logging.error(f"Grype scan timed out for {image_name}")
-            return pd.DataFrame()
+            return pl.DataFrame()
         except Exception as e:
             logging.error(f"Error scanning image {image_name}: {e}")
-            return pd.DataFrame()
+            return pl.DataFrame()
 
-    async def scan_images_concurrently(self, image_names: list[str]) -> pd.DataFrame:
+    async def scan_images_concurrently(self, image_names: list[str]) -> pl.DataFrame:
         """Scan multiple Docker images concurrently with rate limiting.
 
         Args:
             image_names: List of Docker image names to scan
 
         Returns:
-            DataFrame with all vulnerability scan results
+            Polars DataFrame with all vulnerability scan results
 
         """
         try:
@@ -178,7 +178,7 @@ class DockerImageScanner:
 
         semaphore = asyncio.Semaphore(max_concurrent)
 
-        async def scan_with_semaphore(image_name: str) -> pd.DataFrame:
+        async def scan_with_semaphore(image_name: str) -> pl.DataFrame:
             async with semaphore:
                 loop = asyncio.get_event_loop()
                 return await loop.run_in_executor(
@@ -196,11 +196,11 @@ class DockerImageScanner:
         # Filter out exceptions and combine DataFrames
         dataframes = []
         for result in results:
-            if isinstance(result, pd.DataFrame) and not result.empty:
+            if isinstance(result, pl.DataFrame) and not result.is_empty():
                 dataframes.append(result)
             elif isinstance(result, Exception):
                 logging.error(f"Scan failed with exception: {result}")
 
         if dataframes:
-            return pd.concat(dataframes, ignore_index=True)
-        return pd.DataFrame()
+            return pl.concat(dataframes)
+        return pl.DataFrame()

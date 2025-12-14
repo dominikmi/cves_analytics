@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import aiohttp
-import pandas as pd
+import polars as pl
 import requests
 from dateutil import relativedelta
 
@@ -170,9 +170,9 @@ def download_epss_scores_for_months(months: int, directory: str) -> list[str]:
     for file_path in file_paths:
         if file_path:
             try:
-                epss_scores = pd.read_csv(file_path, skiprows=1)
+                epss_scores = pl.read_csv(file_path, skip_rows=1)
                 output_path = dir_path / f"epss_scores-{Path(file_path).stem}.csv"
-                epss_scores.to_csv(output_path, index=False)
+                epss_scores.write_csv(output_path)
                 files.append(str(output_path))
             except Exception as e:
                 logger.error(f"Failed to process EPSS file {file_path}: {e}")

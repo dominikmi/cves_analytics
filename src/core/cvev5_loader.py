@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 logger = logging.getLogger(__name__)
 
@@ -23,23 +23,23 @@ class CVEv5Loader:
         """Get cache file path for year range."""
         return self.cache_dir / f"cve_v5_{start_year}_{end_year}.parquet"
 
-    def _load_from_cache(self, start_year: int, end_year: int) -> pd.DataFrame | None:
+    def _load_from_cache(self, start_year: int, end_year: int) -> pl.DataFrame | None:
         """Load CVE data from cache if available."""
         cache_path = self._get_cache_path(start_year, end_year)
         if cache_path.exists():
             try:
                 logger.info(f"Loading CVE data from cache: {cache_path}")
-                return pd.read_parquet(cache_path)
+                return pl.read_parquet(cache_path)
             except Exception as e:
                 logger.warning(f"Failed to load cache: {e}")
                 return None
         return None
 
-    def _save_to_cache(self, df: pd.DataFrame, start_year: int, end_year: int) -> None:
+    def _save_to_cache(self, df: pl.DataFrame, start_year: int, end_year: int) -> None:
         """Save CVE data to cache."""
         try:
             cache_path = self._get_cache_path(start_year, end_year)
-            df.to_parquet(cache_path, index=False)
+            df.write_parquet(cache_path)
             logger.info(f"Cached CVE data to: {cache_path}")
         except Exception as e:
             logger.warning(f"Failed to cache data: {e}")
@@ -126,7 +126,7 @@ class CVEv5Loader:
         cve_ids: list[str] | None = None,
         use_cache: bool = True,
         max_workers: int = 8,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Load CVE v5 data with parallel processing and caching.
 
         Args:
@@ -138,7 +138,7 @@ class CVEv5Loader:
             max_workers: Number of parallel workers
 
         Returns:
-            DataFrame with CVE data
+            Polars DataFrame with CVE data
 
         """
         # Try cache first
@@ -146,14 +146,14 @@ class CVEv5Loader:
             cached_data = self._load_from_cache(start_year, end_year)
             if cached_data is not None:
                 if cve_ids:
-                    return cached_data[cached_data["cve_id"].isin(cve_ids)]
+                    return cached_data.filter(pl.col("cve_id").is_in(cve_ids))
                 return cached_data
 
         # Find all CVE JSON files
         cve_dir = Path(directory) / "CVEV5" / "cves"
         if not cve_dir.exists():
             logger.warning(f"CVE directory not found: {cve_dir}")
-            return pd.DataFrame()
+            return pl.DataFrame()
 
         logger.info(f"Loading CVE v5 data from {cve_dir}")
 
@@ -167,7 +167,7 @@ class CVEv5Loader:
         logger.info(f"Found {len(json_files)} CVE v5 JSON files")
 
         if not json_files:
-            return pd.DataFrame()
+            return pl.DataFrame()
 
         # Convert cve_ids to set for O(1) lookup
         cve_ids_set = set(cve_ids) if cve_ids else None
@@ -193,16 +193,16 @@ class CVEv5Loader:
 
         if not cve_records:
             logger.warning("No CVE records loaded")
-            return pd.DataFrame()
+            return pl.DataFrame()
 
         # Create DataFrame from records
-        df = pd.DataFrame(cve_records)
+        df = pl.DataFrame(cve_records)
         logger.info(f"Loaded {len(df)} CVE v5 records")
 
         # Log statistics
         cvss_cols = [c for c in df.columns if "cvss_" in c and "score" in c]
         for col in cvss_cols:
-            with_data = df[col].notna().sum()
+            with_data = df.select(pl.col(col).is_not_null().sum()).item()
             logger.info(f"  {col}: {with_data} records have data")
 
         # Cache the results

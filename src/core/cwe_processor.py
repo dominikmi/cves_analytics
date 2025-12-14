@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
-import pandas as pd
 import requests
 
 from src.utils.error_handling import error_handler
@@ -181,6 +180,25 @@ async def _fetch_cwe_async(
             }
 
 
+def _is_null_value(value: Any) -> bool:
+    """Check if a value is null/None/NaN.
+
+    Args:
+        value: Value to check
+
+    Returns:
+        True if value is null-like
+
+    """
+    if value is None:
+        return True
+    if isinstance(value, float) and value != value:  # NaN check
+        return True
+    if isinstance(value, str) and value.lower() in ("nan", "none", ""):
+        return True
+    return False
+
+
 def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
     """Get CWE name and description from MITRE CWE API (sync wrapper).
 
@@ -193,12 +211,12 @@ def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
     """
     # Handle special cases and NaN values
     if (
-        pd.isna(cwe_id)
+        _is_null_value(cwe_id)
         or not cwe_id
         or cwe_id in ["not_found", "NVD-CWE-noinfo", "NVD-CWE-Other"]
     ):
         return {
-            "cwe_id": str(cwe_id) if not pd.isna(cwe_id) else "nan",
+            "cwe_id": str(cwe_id) if not _is_null_value(cwe_id) else "nan",
             "cwe_name": "not_found",
             "cwe_desc": "not_found",
             "cwe_cc_scope": "not_found",
