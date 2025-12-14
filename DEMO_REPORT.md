@@ -9,369 +9,277 @@
 ================================================================================
 VULNERABILITY ASSESSMENT REPORT
 ================================================================================
-Generated: 2025-12-10 19:38:10
+Generated: 2025-12-14 15:54:09 UTC
 
 EXECUTIVE SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Scanned: 1142
-Average Exploitation Probability: 0.04%
-Average Uncertainty: ±5.44%
+Total Vulnerabilities Scanned: 602
+Average Exploitation Probability: 0.14%
+Average Uncertainty: ±5.51%
 Business Risk Level: LOW
 
 Original Severity Distribution (Scanner Output):
-  Critical: 83 (7.3%)
-  High: 376 (32.9%)
-  Medium: 414 (36.3%)
-  Low: 75 (6.6%)
-  Negligible: 185 (16.2%)
-  Unknown: 9 (0.8%)
+  Critical: 29 (4.8%)
+  High: 168 (27.9%)
+  Medium: 297 (49.3%)
+  Low: 108 (17.9%)
 
 Bayesian Risk Assessment (After Analysis):
-  Critical: 0 (0.0%)
-  High: 0 (0.0%)
-  Medium: 30 (2.6%)
-  Low: 124 (10.9%)
-  Negligible: 988 (86.5%)
+  Critical: 8 (1.3%)
+  High: 1 (0.2%)
+  Medium: 17 (2.8%)
+  Low: 24 (4.0%)
+  Negligible: 552 (91.7%)
 
-Actionable Vulnerabilities (Critical+High+Medium): 30
-Critical/High Requiring Immediate Action: 0 (0.0%)
+Actionable Vulnerabilities (Critical+High+Medium): 26
+Critical/High Requiring Immediate Action: 9 (1.5%)
 
-Estimated Remediation Effort: 30 person-hours
-Recommended Timeline: 1 weeks
+Estimated Remediation Effort: 51 person-hours
+Recommended Timeline: 2 weeks
 
-Known Exploited Vulnerabilities (KEV): 14
+Known Exploited Vulnerabilities (KEV): 2
 Public Exploits Available: 0
 Metasploit Modules: 0
-High Exploitation Probability (EPSS>=0.5): 0
+High Exploitation Probability (EPSS>=0.5): 8
 
 RISK-BASED PRIORITIZATION (Bayesian)
 --------------------------------------------------------------------------------
-CRITICAL (Fix ASAP): 0 vulnerabilities
+CRITICAL (Fix ASAP): 8 vulnerabilities
+  1. CVE-2023-44487 - P(Exploit): 98.4% [93.0%-100.0%] in traefik
+      CVSS: 7.5, EPSS: 94.42%
+  2. CVE-2023-44487 - P(Exploit): 98.4% [93.0%-100.0%] in traefik
+      CVSS: 7.5, EPSS: 94.42%
+  3. CVE-2022-37434 - P(Exploit): 93.6% [87.2%-100.0%] in traefik
+      CVSS: 9.8, EPSS: 92.47%
+  4. CVE-2023-2650 - P(Exploit): 73.0% [63.1%-82.9%] in traefik
+      CVSS: 6.5, EPSS: 91.91%
+  5. CVE-2023-2650 - P(Exploit): 73.0% [63.1%-82.9%] in traefik
+      CVSS: 6.5, EPSS: 91.91%
+  6. CVE-2023-45288 - P(Exploit): 70.4% [60.7%-80.1%] in traefik
+      CVSS: 7.5, EPSS: 66.64%
+  7. CVE-2023-0286 - P(Exploit): 60.1% [49.1%-71.1%] in traefik
+      CVSS: 7.4, EPSS: 88.36%
+  8. CVE-2023-0286 - P(Exploit): 60.1% [49.1%-71.1%] in traefik
+      CVSS: 7.4, EPSS: 88.36%
 
-HIGH PRIORITY (This Sprint): 0 vulnerabilities
+HIGH PRIORITY (This Sprint): 1 vulnerabilities
+  1. CVE-2024-45410 - P(Exploit): 16.2% in traefik
 
-MEDIUM PRIORITY (Plan Fix): 30 vulnerabilities
-  1. CVE-2023-4863 - P(Exploit): 5.0%
-  2. CVE-2023-44487 - P(Exploit): 5.0%
-  3. CVE-2025-24528 - P(Exploit): 5.0%
-  4. CVE-2025-24528 - P(Exploit): 5.0%
-  5. CVE-2025-24528 - P(Exploit): 5.0%
+MEDIUM PRIORITY (Plan Fix): 17 vulnerabilities
+  1. CVE-2022-0778 - P(Exploit): 8.3%
+  2. CVE-2022-0778 - P(Exploit): 8.3%
+  3. CVE-2021-38297 - P(Exploit): 6.9%
+  4. CVE-2024-5535 - P(Exploit): 5.9%
+  5. CVE-2024-5535 - P(Exploit): 5.9%
 
-LOW PRIORITY (Backlog): 1112 vulnerabilities
+LOW PRIORITY (Backlog): 576 vulnerabilities
 
 REMEDIATION ROADMAP
 --------------------------------------------------------------------------------
 PHASE 1: Emergency (Week 1 (ASAP))
-  Vulnerabilities: 0
-  Estimated Effort: 0 hours (1 weeks)
+  Vulnerabilities: 8
+  Estimated Effort: 32 hours (1 weeks)
   Severity: Critical
+    1. CVE-2023-44487 in traefik
+    2. CVE-2023-44487 in traefik
+    3. CVE-2022-37434 in traefik
+    4. CVE-2023-2650 in traefik
+    5. CVE-2023-2650 in traefik
+    ... and 3 more
 
 PHASE 2: High Priority (Weeks 2-2)
-  Vulnerabilities: 0
-  Estimated Effort: 0 hours (1 weeks)
+  Vulnerabilities: 1
+  Estimated Effort: 2 hours (1 weeks)
   Severity: High
 
 PHASE 3: Medium Priority (Weeks 3-3)
-  Vulnerabilities: 30
-  Estimated Effort: 30 hours (1 weeks)
+  Vulnerabilities: 17
+  Estimated Effort: 17 hours (1 weeks)
   Severity: Medium
 
 SCANNED ENVIRONMENT (Simulated)
 --------------------------------------------------------------------------------
 Organization Size: small
 Geographic Reach: local
-Industry: financial-services
-Environment Type: prod
-Security Maturity: defined
+Industry: consulting
+Environment Type: dev
+Security Maturity: initial
 
-Services Scanned: 7
-  - nginx-proxy (load_balancer): nginx:1.18 [internet-facing]
-  - nginx-web (web_server): nginx:1.18-alpine [internet-facing]
-  - python-flask (app_server): python:3.7-slim [internal]
+Services Scanned: 10
+  - traefik (ingress_controller): traefik:v2.2 [internet-facing]
+  - nginx-web (web_server): nginx:alpine [internet-facing]
+  - apache-tomcat (app_server): tomcat:9.0 [internal]
   - mysql-db (database): mysql:5.7 [internal]
-  - openvpn (vpn): kylemanna/openvpn:latest [internet-facing]
-  - elasticsearch (siem_storage): elasticsearch:7.17 [internal]
-  - metabase (bi_tool): metabase/metabase:v0.41 [internal]
+  - rabbitmq (message_broker): rabbitmq:3-management [internal]
+  - gitlab-runner (cicd_runner): gitlab/gitlab-runner:latest [internal]
+  - prometheus (monitoring): prom/prometheus:latest [internal]
+  - git-repository (vcs): gitea:latest [internal]
+  - ci-runner (ci): gitlab-runner:latest [internal]
+  - artifact-registry (registry): registry:latest [internal]
 
-Active Security Controls: 9
-  network_segmentation, firewall, waf, ids_ips, edr_xdr, antivirus, mfa, patch_quarterly, incident_response_plan
+Active Security Controls: 2
+  antivirus, patch_quarterly
 
 SCAN RESULTS SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Found: 1142
+Total Vulnerabilities Found: 602
 
 Vulnerability Severity Distribution:
-  Medium: 414
-  High: 376
-  Negligible: 185
-  Critical: 83
-  Low: 75
-  Unknown: 9
+  High: 168
+  Medium: 297
+  Critical: 29
+  Low: 108
 
 Original Severity → Bayesian Risk Assessment:
-  Critical: Low(15), Medium(0), Negligible(68), Total(83)
-  High: Low(53), Medium(17), Negligible(306), Total(376)
-  Low: Low(21), Medium(0), Negligible(54), Total(75)
-  Medium: Low(29), Medium(5), Negligible(380), Total(414)
-  Negligible: Low(6), Medium(3), Negligible(176), Total(185)
-  Unknown: Low(0), Medium(5), Negligible(4), Total(9)
-  Total: Low(124), Medium(30), Negligible(988), Total(1142)
+  Low: Negligible(101), Low(7)
+  Critical: Critical(1), Medium(4), Negligible(24)
+  Medium: Negligible(276), Low(15), Critical(2), Medium(4)
+  High: Medium(9), High(1), Low(2), Critical(5), Negligible(151)
 
 ATTACK SCENARIO & VULNERABILITY ANALYSIS
 --------------------------------------------------------------------------------
-Total Vulnerabilities: 1142
+Total Vulnerabilities: 602
 
 Attack Graph Statistics:
   Nodes (CVEs): 200
-  Edges (Dependencies): 1594
-  Graph Density: 0.040
+  Edges (Dependencies): 730
+  Graph Density: 0.018
   Is DAG: True
 
-Identified 10 potential attack paths:
-  1. Direct internet attack on nginx-proxy via CVE-2021-46143
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.81
-  2. Direct internet attack on nginx-proxy via CVE-2020-6096
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.81
-  3. Direct internet attack on nginx-proxy via CVE-2024-0553
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
-  4. Direct internet attack on nginx-proxy via CVE-2023-52356
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
-  5. Direct internet attack on nginx-proxy via CVE-2020-1752
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.7
-  6. Direct internet attack on nginx-proxy via CVE-2023-52355
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.75
-  7. Direct internet attack on nginx-proxy via CVE-2023-43787
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.78
-  8. Direct internet attack on nginx-proxy via CVE-2022-0908
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.77
-  9. Direct internet attack on nginx-proxy via CVE-2023-0800
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.68
-  10. Direct internet attack on nginx-proxy via CVE-2023-0801
-     Target Asset: nginx-proxy (Team: DEVOPS)
-     Risk Score: 10.0, Likelihood: 0, Impact: 0.68
+Identified 5 potential attack paths:
+  1. Direct internet attack on traefik via CVE-2022-37434
+     Target Asset: traefik (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.98
+  2. Direct internet attack on traefik via CVE-2023-44487
+     Target Asset: traefik (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.75
+  3. Direct internet attack on traefik via CVE-2023-0286
+     Target Asset: traefik (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.74
+  4. Direct internet attack on traefik via CVE-2023-2650
+     Target Asset: traefik (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.65
+  5. Direct internet attack on traefik via CVE-2023-45288
+     Target Asset: traefik (Team: DEVOPS)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.75
 
 TOP VULNERABILITIES BY BAYESIAN RISK
 --------------------------------------------------------------------------------
-1. CVE-2023-4863 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
+1. CVE-2023-44487 in traefik (traefik:v2.2)
+   Bayesian Risk: Critical - P(Exploit): 98.4% [93.0%-100.0%]
+   EPSS (Prior): 94.42%
+   Attack Category: denial_of_service
+   CVSS Score: 7.5
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: ingress_controller
+   Ownership: DEVOPS
+
+2. CVE-2022-37434 in traefik (traefik:v2.2)
+   Bayesian Risk: Critical - P(Exploit): 93.6% [87.2%-100.0%]
+   EPSS (Prior): 92.47%
    Attack Category: buffer_overflow
+   CVSS Score: 9.8
    Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
    Exposure: internet-facing
    Asset Value: medium
-   Service Role: load_balancer
+   Service Role: ingress_controller
    Ownership: DEVOPS
 
-2. CVE-2023-44487 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
+3. CVE-2023-2650 in traefik (traefik:v2.2)
+   Bayesian Risk: Critical - P(Exploit): 73.0% [63.1%-82.9%]
+   EPSS (Prior): 91.91%
    Attack Category: denial_of_service
-   Exploits Available: ExploitDB, GitHub PoC
-   CISA KEV: Actively Exploited
+   CVSS Score: 6.5
    Exposure: internet-facing
    Asset Value: medium
-   Service Role: load_balancer
+   Service Role: ingress_controller
    Ownership: DEVOPS
 
-3. CVE-2023-44487 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
-   Attack Category: denial_of_service
-   Exploits Available: ExploitDB, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-4. CVE-2024-2961 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
-   CWE: CWE-787
+4. CVE-2023-45288 in traefik (traefik:v2.2)
+   Bayesian Risk: Critical - P(Exploit): 70.4% [60.7%-80.1%]
+   EPSS (Prior): 66.64%
+   CVSS Score: 7.5
    Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
    Exposure: internet-facing
    Asset Value: medium
-   Service Role: load_balancer
+   Service Role: ingress_controller
    Ownership: DEVOPS
 
-5. CVE-2024-2961 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.2%]
-   CWE: CWE-787
+5. CVE-2023-0286 in traefik (traefik:v2.2)
+   Bayesian Risk: Critical - P(Exploit): 60.1% [49.1%-71.1%]
+   EPSS (Prior): 88.36%
+   Attack Category: denial_of_service, information_disclosure
+   CVSS Score: 7.4
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: ingress_controller
+   Ownership: DEVOPS
+
+6. CVE-2024-45410 in traefik (traefik:v2.2)
+   Bayesian Risk: High - P(Exploit): 16.2% [8.1%-24.2%]
+   EPSS (Prior): 13.95%
+   CVSS Score: 7.1
+   CWE: CWE-345
    Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
    Exposure: internet-facing
    Asset Value: medium
-   Service Role: load_balancer
+   Service Role: ingress_controller
    Ownership: DEVOPS
 
-6. CVE-2022-40303 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-7. CVE-2023-4039 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
+7. CVE-2022-0778 in traefik (traefik:v2.2)
+   Bayesian Risk: Medium - P(Exploit): 8.3% [1.6%-15.0%]
+   EPSS (Prior): 7.07%
    Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-8. CVE-2023-4039 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-9. CVE-2023-4039 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
-   Attack Category: denial_of_service
-   CVSS Score: 4.8
-   CWE: CWE-693
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-10. CVE-2022-40304 in nginx-proxy (nginx:1.18)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.3%]
-   Attack Category: memory_corruption
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: medium
-   Service Role: load_balancer
-   Ownership: DEVOPS
-
-11. CVE-2025-27363 in nginx-web (nginx:1.18-alpine)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.6%]
-   Attack Category: remote_code_execution, buffer_overflow
-   CVSS Score: 8.1
+   CVSS Score: 7.1
    Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
    Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
-   Ownership: DEV
+   Asset Value: medium
+   Service Role: ingress_controller
+   Ownership: DEVOPS
 
-12. CVE-2023-44487 in nginx-web (nginx:1.18-alpine)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
-   Attack Category: denial_of_service
-   Exploits Available: ExploitDB, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
-   Ownership: DEV
-
-13. CVE-2023-44487 in nginx-web (nginx:1.18-alpine)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
-   Attack Category: denial_of_service
-   Exploits Available: ExploitDB, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internet-facing
-   Asset Value: high
-   Service Role: web_server
-   Ownership: DEV
-
-14. CVE-2023-4911 in python-flask (python:3.7-slim)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
+8. CVE-2021-38297 in traefik (traefik:v2.2)
+   Bayesian Risk: Medium - P(Exploit): 6.9% [0.4%-13.3%]
+   EPSS (Prior): 5.85%
    Attack Category: buffer_overflow
-   CVSS Score: 7.8
-   CWE: CWE-122
+   CVSS Score: 9.3
    Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: ingress_controller
+   Ownership: DEVOPS
 
-15. CVE-2023-4911 in python-flask (python:3.7-slim)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-10.7%]
-   Attack Category: buffer_overflow
-   CVSS Score: 7.8
-   CWE: CWE-122
+9. CVE-2024-5535 in traefik (traefik:v2.2)
+   Bayesian Risk: Medium - P(Exploit): 5.9% [0.0%-12.2%]
+   EPSS (Prior): 4.37%
+   Attack Category: buffer_overflow, denial_of_service
+   CVSS Score: 8.6
+   CWE: CWE-125
+   MITRE ATT&CK Tactic: Execution
    Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: ingress_controller
+   Ownership: DEVOPS
 
-16. CVE-2024-2961 in python-flask (python:3.7-slim)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
-   CWE: CWE-787
+10. CVE-2023-0464 in traefik (traefik:v2.2)
+   Bayesian Risk: Medium - P(Exploit): 5.9% [0.0%-12.2%]
+   EPSS (Prior): 0.86%
+   Attack Category: denial_of_service
+   CVSS Score: 7.1
    Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-17. CVE-2024-2961 in python-flask (python:3.7-slim)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
-   CWE: CWE-787
-   Exploits Available: GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-18. GHSA-cx63-2mw6-8hw5 in python-flask (python:3.7-slim)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-19. GHSA-r9hx-vwmv-q579 in python-flask (python:3.7-slim)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
-
-20. GHSA-5rjg-fvgr-3xxf in python-flask (python:3.7-slim)
-   Bayesian Risk: Medium - P(Exploit): 5.0% [0.0%-11.1%]
-   Exploits Available: ExploitDB, Nuclei, GitHub PoC
-   CISA KEV: Actively Exploited
-   Exposure: internal
-   Asset Value: high
-   Service Role: app_server
-   Ownership: DEV
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: ingress_controller
+   Ownership: DEVOPS
 
 
 TEAM-BASED BAYESIAN RISK HEATMAP
 --------------------------------------------------------------------------------
-Ownership\Risk      Medium     Low        Negligible Total     
-DEV                 20         68         504        592       
-DEVOPS              10         56         484        550       
-Total               30         124        988        1142      
+Ownership\Risk      Critical   High       Medium     Low        Negligible
+DEVOPS              8          1          17         13         264       
+DEV                 0          0          0          11         288       
 
 ================================================================================```

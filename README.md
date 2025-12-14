@@ -216,7 +216,7 @@ cves_analytics/
 │       ├── create_dataset.py    # Dataset creation
 │       ├── scan_images.py       # Docker scanning
 │       └── generate_simulation.py # Scenario generation
-├── tests/                        # Unit tests (48 test cases)
+├── tests/                        # Unit tests (121 test cases)
 ├── notebooks/                    # Jupyter notebooks
 ├── config/                       # Configuration files
 └── pyproject.toml               # Project configuration
@@ -280,8 +280,8 @@ from src.core.epss_processor import download_epss_scores
 epss_file = download_epss_scores("2025-12-06", "./data")
 
 # Load and process
-import pandas as pd
-epss_scores = pd.read_csv(epss_file, skiprows=1)
+import polars as pl
+epss_scores = pl.read_csv(epss_file, comment_prefix="#")
 print(f"Loaded {len(epss_scores)} EPSS scores")
 ```
 
@@ -310,10 +310,10 @@ Analyze attack chains and vulnerability relationships.
 
 ```python
 from src.core.vulnerability_analyzer import AttackChainAnalyzer
-import pandas as pd
+import polars as pl
 
 # Create DataFrame with CVE data
-cve_data = pd.DataFrame({
+cve_data = pl.DataFrame({
     'cve_id': ['CVE-2021-1', 'CVE-2021-2'],
     'impact': ['RCE', 'Privilege Escalation'],
     'severity': ['Critical', 'High'],
@@ -778,11 +778,10 @@ For issues, questions, or contributions, please open an issue or submit a pull r
 - ✅ **Attack scenarios filtered by Bayesian risk** *(NEW)*
 
 ### Planned
-- [ ] ML-based categorization using spacy.io
-- [ ] Advanced threat modeling
 - [ ] Web dashboard
 - [ ] API server
 - [ ] Custom likelihood ratio configuration UI
+- [ ] Data storage in DuckDB
 
 ## 📊 Project Statistics
 
