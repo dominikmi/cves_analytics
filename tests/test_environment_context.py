@@ -1,6 +1,6 @@
 import unittest
 
-import pandas as pd
+import polars as pl
 
 from src.core.cvss_vector_reassessment import reassess_vulnerabilities
 
@@ -18,7 +18,7 @@ class TestEnvironmentContext(unittest.TestCase):
             "exposure_risk_factor": [1.5],  # internet-facing service
             "asset_value_risk_factor": [1.3],  # high-value asset
         }
-        df = pd.DataFrame(data)
+        df = pl.DataFrame(data)
 
         # Reassess with environment context
         result = reassess_vulnerabilities(
@@ -48,7 +48,7 @@ class TestEnvironmentContext(unittest.TestCase):
             "cvss_vector": ["CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"],
             "epss_score": [0.1],
         }
-        df = pd.DataFrame(data)
+        df = pl.DataFrame(data)
 
         # Reassess without environment context (should work with defaults)
         result = reassess_vulnerabilities(

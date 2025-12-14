@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 from src.core.bayesian_risk import (
     BayesianRiskAssessor,
@@ -88,14 +88,17 @@ def calculate_bayesian_risk(
         controls = None
 
     # Extract threat indicators (including granular CVSS-BT exploit data)
+    # Note: has_metasploit from CVSS-BT maps to has_metasploit_module
+    has_metasploit_module = bool(
+        row.get("has_metasploit_module", False) or row.get("has_metasploit", False)
+    )
     threat_indicators = ThreatIndicatorsInput(
         is_kev=bool(row.get("is_kev", False)),
         has_public_exploit=bool(row.get("has_public_exploit", False)),
-        has_metasploit_module=bool(row.get("has_metasploit_module", False)),
+        has_metasploit_module=has_metasploit_module,
         is_weaponized=bool(row.get("is_weaponized", False)),
         # Granular exploit indicators from CVSS-BT
         has_exploitdb=bool(row.get("has_exploitdb", False)),
-        has_metasploit=bool(row.get("has_metasploit", False)),
         has_nuclei=bool(row.get("has_nuclei", False)),
         has_poc_github=bool(row.get("has_poc_github", False)),
     )
@@ -126,10 +129,10 @@ def calculate_bayesian_risk(
 
 
 def add_bayesian_risk_scores(
-    enriched_results: pd.DataFrame,
+    enriched_results: pl.DataFrame,
     security_controls_col: str | None = "security_controls",
     config: LikelihoodRatioConfig | None = None,
-) -> pd.DataFrame:
+) -> pl.DataFrame:
     """Add Bayesian risk scores to enriched results DataFrame.
 
     This is the new primary function for adding risk scores. It adds:
@@ -141,7 +144,7 @@ def add_bayesian_risk_scores(
     - risk_explanation: Human-readable explanation
 
     Args:
-        enriched_results: DataFrame with vulnerability data
+        enriched_results: Polars DataFrame with vulnerability data
         security_controls_col: Column containing security controls dict
         config: Optional custom likelihood ratio configuration
 
@@ -149,7 +152,7 @@ def add_bayesian_risk_scores(
         DataFrame with added Bayesian risk columns
 
     """
-    if enriched_results.empty:
+    if enriched_results.is_empty():
         return enriched_results
 
     has_percentile = "epss_percentile" in enriched_results.columns
@@ -170,26 +173,26 @@ def add_bayesian_risk_scores(
 
 
 def categorize_by_bayesian_risk(
-    enriched_results: pd.DataFrame,
-) -> dict[str, pd.DataFrame]:
+    enriched_results: pl.DataFrame,
+) -> dict[str, pl.DataFrame]:
     """Categorize vulnerabilities by Bayesian risk category.
 
     Uses the risk_category column from Bayesian assessment.
 
     Args:
-        enriched_results: DataFrame with 'risk_category' column
+        enriched_results: Polars DataFrame with 'risk_category' column
 
     Returns:
         Dictionary with keys 'critical', 'high', 'medium', 'low', 'negligible'
 
     """
-    if enriched_results.empty:
+    if enriched_results.is_empty():
         return {
-            "critical": pd.DataFrame(),
-            "high": pd.DataFrame(),
-            "medium": pd.DataFrame(),
-            "low": pd.DataFrame(),
-            "negligible": pd.DataFrame(),
+            "critical": pl.DataFrame(),
+            "high": pl.DataFrame(),
+            "medium": pl.DataFrame(),
+            "low": pl.DataFrame(),
+            "negligible": pl.DataFrame(),
         }
 
     # Ensure Bayesian risk scores exist
@@ -200,22 +203,21 @@ def categorize_by_bayesian_risk(
     sort_col = "bayesian_risk_score" if has_bayes else "risk_score"
 
     return {
-        "critical": enriched_results[
-            enriched_results["risk_category"] == "Critical"
-        ].sort_values(sort_col, ascending=False),
-        "high": enriched_results[
-            enriched_results["risk_category"] == "High"
-        ].sort_values(sort_col, ascending=False),
-        "medium": enriched_results[
-            enriched_results["risk_category"] == "Medium"
-        ].sort_values(sort_col, ascending=False),
-        "low": enriched_results[enriched_results["risk_category"] == "Low"].sort_values(
-            sort_col,
-            ascending=False,
+        "critical": enriched_results.filter(pl.col("risk_category") == "Critical").sort(
+            sort_col, descending=True
         ),
-        "negligible": enriched_results[
-            enriched_results["risk_category"] == "Negligible"
-        ].sort_values(sort_col, ascending=False),
+        "high": enriched_results.filter(pl.col("risk_category") == "High").sort(
+            sort_col, descending=True
+        ),
+        "medium": enriched_results.filter(pl.col("risk_category") == "Medium").sort(
+            sort_col, descending=True
+        ),
+        "low": enriched_results.filter(pl.col("risk_category") == "Low").sort(
+            sort_col, descending=True
+        ),
+        "negligible": enriched_results.filter(
+            pl.col("risk_category") == "Negligible"
+        ).sort(sort_col, descending=True),
     }
 
 
@@ -251,6 +253,15 @@ def calculate_risk_score(row: dict[str, Any]) -> float:
         return _legacy_calculate_risk_score(row)
 
 
+def _is_nan(value: Any) -> bool:
+    """Check if value is NaN."""
+    if value is None:
+        return True
+    if isinstance(value, float) and value != value:
+        return True
+    return False
+
+
 def _legacy_calculate_risk_score(row: dict[str, Any]) -> float:
     """Legacy risk score calculation (fallback only).
 
@@ -258,14 +269,14 @@ def _legacy_calculate_risk_score(row: dict[str, Any]) -> float:
     """
     # Normalize CVSS to 0-1 range
     cvss_score = row.get("cvss_score", 5.0)
-    if cvss_score is None or pd.isna(cvss_score):
+    if _is_nan(cvss_score):
         cvss_score = 5.0
     cvss = float(cvss_score) / 10.0
     cvss = max(0.0, min(1.0, cvss))
 
     # EPSS is already 0-1
     epss = row.get("epss_score", 0.1)
-    if epss is None or pd.isna(epss):
+    if _is_nan(epss):
         epss = 0.1
     epss = max(0.0, min(1.0, float(epss)))
 
@@ -305,7 +316,7 @@ def _legacy_calculate_risk_score(row: dict[str, Any]) -> float:
     return round(risk_score, 2)
 
 
-def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
+def add_risk_scores(enriched_results: pl.DataFrame) -> pl.DataFrame:
     """Add risk scores to enriched results DataFrame (legacy interface).
 
     This function now uses the Bayesian approach and adds both:
@@ -314,13 +325,13 @@ def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
     - risk_category: Categorical risk level
 
     Args:
-        enriched_results: DataFrame with vulnerability data
+        enriched_results: Polars DataFrame with vulnerability data
 
     Returns:
         DataFrame with added risk score columns
 
     """
-    if enriched_results.empty:
+    if enriched_results.is_empty():
         return enriched_results
 
     try:
@@ -329,9 +340,9 @@ def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
 
         # Add legacy risk_score column (scaled 0-10) for backward compatibility
         if "bayesian_risk_score" in enriched_results.columns:
-            enriched_results["risk_score"] = (
-                enriched_results["bayesian_risk_score"] * 10
-            ).round(2)
+            enriched_results = enriched_results.with_columns(
+                (pl.col("bayesian_risk_score") * 10).round(2).alias("risk_score")
+            )
 
         logger.info(
             f"Added Bayesian risk scores to {len(enriched_results)} vulnerabilities",
@@ -339,44 +350,41 @@ def add_risk_scores(enriched_results: pd.DataFrame) -> pd.DataFrame:
 
         # Log risk distribution
         if "risk_category" in enriched_results.columns:
-            risk_dist = enriched_results["risk_category"].value_counts().to_dict()
+            risk_dist = enriched_results.group_by("risk_category").len().to_dicts()
             logger.info(f"Risk distribution: {risk_dist}")
 
     except Exception as e:
         logger.error(f"Failed to calculate Bayesian risk scores: {e}")
-        # Fallback to legacy calculation
-        enriched_results["risk_score"] = enriched_results.apply(
-            _legacy_calculate_risk_score,
-            axis=1,
-        )
-        enriched_results["risk_category"] = pd.cut(
-            enriched_results["risk_score"],
-            bins=[0, 1, 5, 15, 40, 100],
-            labels=["Negligible", "Low", "Medium", "High", "Critical"],
+        # Fallback: add empty columns
+        enriched_results = enriched_results.with_columns(
+            [
+                pl.lit(0.0).alias("risk_score"),
+                pl.lit("Unknown").alias("risk_category"),
+            ]
         )
 
     return enriched_results
 
 
-def categorize_by_risk(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame]:
+def categorize_by_risk(enriched_results: pl.DataFrame) -> dict[str, pl.DataFrame]:
     """Categorize vulnerabilities by risk level (legacy interface).
 
     This function now uses Bayesian risk categories but maps them to the
     legacy category names for backward compatibility.
 
     Args:
-        enriched_results: DataFrame with risk columns
+        enriched_results: Polars DataFrame with risk columns
 
     Returns:
         Dictionary with keys 'critical', 'important', 'monitor', 'low'
 
     """
-    if enriched_results.empty:
+    if enriched_results.is_empty():
         return {
-            "critical": pd.DataFrame(),
-            "important": pd.DataFrame(),
-            "monitor": pd.DataFrame(),
-            "low": pd.DataFrame(),
+            "critical": pl.DataFrame(),
+            "important": pl.DataFrame(),
+            "monitor": pl.DataFrame(),
+            "low": pl.DataFrame(),
         }
 
     # Ensure risk scores exist
@@ -390,18 +398,18 @@ def categorize_by_risk(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame
 
         # Map Bayesian categories to legacy names
         return {
-            "critical": enriched_results[
-                enriched_results["risk_category"] == "Critical"
-            ].sort_values(sort_col, ascending=False),
-            "important": enriched_results[
-                enriched_results["risk_category"] == "High"
-            ].sort_values(sort_col, ascending=False),
-            "monitor": enriched_results[
-                enriched_results["risk_category"] == "Medium"
-            ].sort_values(sort_col, ascending=False),
-            "low": enriched_results[
-                enriched_results["risk_category"].isin(["Low", "Negligible"])
-            ].sort_values(sort_col, ascending=False),
+            "critical": enriched_results.filter(
+                pl.col("risk_category") == "Critical"
+            ).sort(sort_col, descending=True),
+            "important": enriched_results.filter(
+                pl.col("risk_category") == "High"
+            ).sort(sort_col, descending=True),
+            "monitor": enriched_results.filter(
+                pl.col("risk_category") == "Medium"
+            ).sort(sort_col, descending=True),
+            "low": enriched_results.filter(
+                pl.col("risk_category").is_in(["Low", "Negligible"])
+            ).sort(sort_col, descending=True),
         }
 
     # Fallback to legacy score-based categorization
@@ -409,20 +417,16 @@ def categorize_by_risk(enriched_results: pd.DataFrame) -> dict[str, pd.DataFrame
         enriched_results = add_risk_scores(enriched_results)
 
     return {
-        "critical": enriched_results[enriched_results["risk_score"] >= 8.0].sort_values(
-            "risk_score",
-            ascending=False,
+        "critical": enriched_results.filter(pl.col("risk_score") >= 8.0).sort(
+            "risk_score", descending=True
         ),
-        "important": enriched_results[
-            (enriched_results["risk_score"] >= 6.0)
-            & (enriched_results["risk_score"] < 8.0)
-        ].sort_values("risk_score", ascending=False),
-        "monitor": enriched_results[
-            (enriched_results["risk_score"] >= 4.0)
-            & (enriched_results["risk_score"] < 6.0)
-        ].sort_values("risk_score", ascending=False),
-        "low": enriched_results[enriched_results["risk_score"] < 4.0].sort_values(
-            "risk_score",
-            ascending=False,
+        "important": enriched_results.filter(
+            (pl.col("risk_score") >= 6.0) & (pl.col("risk_score") < 8.0)
+        ).sort("risk_score", descending=True),
+        "monitor": enriched_results.filter(
+            (pl.col("risk_score") >= 4.0) & (pl.col("risk_score") < 6.0)
+        ).sort("risk_score", descending=True),
+        "low": enriched_results.filter(pl.col("risk_score") < 4.0).sort(
+            "risk_score", descending=True
         ),
     }

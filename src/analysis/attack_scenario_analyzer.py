@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 from typing import Any
 
-import pandas as pd
+import polars as pl
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -68,14 +68,14 @@ class AttackScenarioAnalyzer:
 
     def analyze(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
         scenario: dict[str, Any],
     ) -> dict[str, Any]:
         """Analyze vulnerability data to identify potential attack scenarios."""
         try:
             self.logger.info("Starting attack scenario analysis")
 
-            if enriched_results.empty:
+            if enriched_results.is_empty():
                 self.logger.warning("No enriched results to analyze")
                 return {"attack_paths": []}
 
@@ -134,7 +134,7 @@ class AttackScenarioAnalyzer:
 
     def _find_internet_attack_paths(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
     ) -> list[AttackPath]:
         """Find attack paths starting from internet-facing services."""
         paths = []
@@ -142,29 +142,23 @@ class AttackScenarioAnalyzer:
         # Filter for internet-facing services with Bayesian-critical risk
         # Prefer risk_category (Bayesian) over severity_reassessed
         if "risk_category" in enriched_results.columns:
-            internet_vulns = enriched_results[
-                (enriched_results["exposure"] == "internet-facing")
-                & (enriched_results["risk_category"] == "Critical")
-            ]
+            internet_vulns = enriched_results.filter(
+                (pl.col("exposure") == "internet-facing")
+                & (pl.col("risk_category") == "Critical")
+            )
         else:
             # Fallback to severity_reassessed
-            internet_vulns = enriched_results[
-                (enriched_results["exposure"] == "internet-facing")
-                & (enriched_results["severity_reassessed"].isin(["Critical", "High"]))
-            ]
+            internet_vulns = enriched_results.filter(
+                (pl.col("exposure") == "internet-facing")
+                & (pl.col("severity_reassessed").is_in(["Critical", "High"]))
+            )
 
-        for _, row in internet_vulns.iterrows():
+        for row in internet_vulns.to_dicts():
             try:
-                cvss_score = (
-                    float(row.get("cvss_score", 0))
-                    if pd.notna(row.get("cvss_score"))
-                    else 0
-                )
-                epss_score = (
-                    float(row.get("epss_score", 0))
-                    if pd.notna(row.get("epss_score"))
-                    else 0
-                )
+                cvss_val = row.get("cvss_score")
+                cvss_score = float(cvss_val) if cvss_val is not None else 0.0
+                epss_val = row.get("epss_score")
+                epss_score = float(epss_val) if epss_val is not None else 0.0
 
                 # Calculate risk factors
                 exposure_factor = (
@@ -217,7 +211,7 @@ class AttackScenarioAnalyzer:
 
     def _find_privilege_escalation_paths(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
     ) -> list[AttackPath]:
         """Find privilege escalation opportunities."""
         paths = []
@@ -228,32 +222,22 @@ class AttackScenarioAnalyzer:
 
         # Filter by Bayesian risk category (Critical only)
         if "risk_category" in enriched_results.columns:
-            priv_esc_vulns = enriched_results[
-                (enriched_results["cwe_id"].isin(priv_esc_cwes))
-                & (enriched_results["risk_category"] == "Critical")
-            ]
+            priv_esc_vulns = enriched_results.filter(
+                (pl.col("cwe_id").is_in(priv_esc_cwes))
+                & (pl.col("risk_category") == "Critical")
+            )
         else:
-            priv_esc_vulns = enriched_results[
-                (enriched_results["cwe_id"].isin(priv_esc_cwes))
-                & (
-                    enriched_results["severity_reassessed"].isin(
-                        ["Critical", "High", "Medium"],
-                    )
-                )
-            ]
+            priv_esc_vulns = enriched_results.filter(
+                (pl.col("cwe_id").is_in(priv_esc_cwes))
+                & (pl.col("severity_reassessed").is_in(["Critical", "High", "Medium"]))
+            )
 
-        for _, row in priv_esc_vulns.iterrows():
+        for row in priv_esc_vulns.to_dicts():
             try:
-                cvss_score = (
-                    float(row.get("cvss_score", 0))
-                    if pd.notna(row.get("cvss_score"))
-                    else 0
-                )
-                epss_score = (
-                    float(row.get("epss_score", 0))
-                    if pd.notna(row.get("epss_score"))
-                    else 0
-                )
+                cvss_val = row.get("cvss_score")
+                cvss_score = float(cvss_val) if cvss_val is not None else 0.0
+                epss_val = row.get("epss_score")
+                epss_score = float(epss_val) if epss_val is not None else 0.0
 
                 # Higher risk for privilege escalation in critical services
                 asset_value_factor = {
@@ -298,7 +282,7 @@ class AttackScenarioAnalyzer:
 
     def _find_lateral_movement_paths(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
     ) -> list[AttackPath]:
         """Find lateral movement opportunities between services."""
         paths = []
@@ -308,32 +292,22 @@ class AttackScenarioAnalyzer:
 
         # Filter by Bayesian risk category (Critical only)
         if "risk_category" in enriched_results.columns:
-            lateral_vulns = enriched_results[
-                (enriched_results["service_role"].isin(network_services))
-                & (enriched_results["risk_category"] == "Critical")
-            ]
+            lateral_vulns = enriched_results.filter(
+                (pl.col("service_role").is_in(network_services))
+                & (pl.col("risk_category") == "Critical")
+            )
         else:
-            lateral_vulns = enriched_results[
-                (enriched_results["service_role"].isin(network_services))
-                & (
-                    enriched_results["severity_reassessed"].isin(
-                        ["Critical", "High", "Medium"],
-                    )
-                )
-            ]
+            lateral_vulns = enriched_results.filter(
+                (pl.col("service_role").is_in(network_services))
+                & (pl.col("severity_reassessed").is_in(["Critical", "High", "Medium"]))
+            )
 
-        for _, row in lateral_vulns.iterrows():
+        for row in lateral_vulns.to_dicts():
             try:
-                cvss_score = (
-                    float(row.get("cvss_score", 0))
-                    if pd.notna(row.get("cvss_score"))
-                    else 0
-                )
-                epss_score = (
-                    float(row.get("epss_score", 0))
-                    if pd.notna(row.get("epss_score"))
-                    else 0
-                )
+                cvss_val = row.get("cvss_score")
+                cvss_score = float(cvss_val) if cvss_val is not None else 0.0
+                epss_val = row.get("epss_score")
+                epss_score = float(epss_val) if epss_val is not None else 0.0
 
                 # High risk for network infrastructure vulnerabilities
                 risk_score = min(10.0, cvss_score * 1.3)
@@ -369,7 +343,7 @@ class AttackScenarioAnalyzer:
 
     def _find_data_exfiltration_paths(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
     ) -> list[AttackPath]:
         """Find data exfiltration opportunities."""
         paths = []
@@ -380,34 +354,28 @@ class AttackScenarioAnalyzer:
 
         # Filter by Bayesian risk category (Critical only)
         if "risk_category" in enriched_results.columns:
-            data_vulns = enriched_results[
+            data_vulns = enriched_results.filter(
                 (
-                    (enriched_results["service_role"].isin(data_services))
-                    | (enriched_results["asset_value"].isin(critical_assets))
+                    (pl.col("service_role").is_in(data_services))
+                    | (pl.col("asset_value").is_in(critical_assets))
                 )
-                & (enriched_results["risk_category"] == "Critical")
-            ]
+                & (pl.col("risk_category") == "Critical")
+            )
         else:
-            data_vulns = enriched_results[
+            data_vulns = enriched_results.filter(
                 (
-                    (enriched_results["service_role"].isin(data_services))
-                    | (enriched_results["asset_value"].isin(critical_assets))
+                    (pl.col("service_role").is_in(data_services))
+                    | (pl.col("asset_value").is_in(critical_assets))
                 )
-                & (enriched_results["severity_reassessed"].isin(["Critical", "High"]))
-            ]
+                & (pl.col("severity_reassessed").is_in(["Critical", "High"]))
+            )
 
-        for _, row in data_vulns.iterrows():
+        for row in data_vulns.to_dicts():
             try:
-                cvss_score = (
-                    float(row.get("cvss_score", 0))
-                    if pd.notna(row.get("cvss_score"))
-                    else 0
-                )
-                epss_score = (
-                    float(row.get("epss_score", 0))
-                    if pd.notna(row.get("epss_score"))
-                    else 0
-                )
+                cvss_val = row.get("cvss_score")
+                cvss_score = float(cvss_val) if cvss_val is not None else 0.0
+                epss_val = row.get("epss_score")
+                epss_score = float(epss_val) if epss_val is not None else 0.0
 
                 # Very high risk for data-related vulnerabilities
                 asset_value_factor = {
@@ -450,10 +418,10 @@ class AttackScenarioAnalyzer:
 
         return paths
 
-    def _determine_attack_vector(self, row: pd.Series) -> str:
+    def _determine_attack_vector(self, row: dict[str, Any]) -> str:
         """Determine the most likely attack vector based on vulnerability data."""
         # Try to determine from CVSS vector if available
-        cvss_vector = str(row.get("cvss_vector", ""))
+        cvss_vector = str(row.get("cvss_vector", "") or "")
         if "AV:N" in cvss_vector:
             return "network"
         if "AV:L" in cvss_vector:
@@ -507,7 +475,7 @@ class AttackScenarioAnalyzer:
 
 
 def analyze_attack_scenarios(
-    enriched_results: pd.DataFrame,
+    enriched_results: pl.DataFrame,
     scenario: dict[str, Any],
 ) -> dict[str, Any]:
     """Convenience function to analyze attack scenarios."""

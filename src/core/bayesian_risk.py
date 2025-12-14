@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-import pandas as pd
+import polars as pl
 from pydantic import BaseModel, Field, field_validator
 
 from src.utils.logging_config import get_logger
@@ -727,10 +727,20 @@ class BayesianRiskAssessor:
 
     def _normalize_epss(self, epss: float | None) -> float:
         """Normalize EPSS to valid probability range."""
-        if epss is None or pd.isna(epss):
+        if epss is None or (isinstance(epss, float) and epss != epss):
             return 0.01  # Default to low probability, not zero
 
-        epss = float(epss)
+        # Handle string values that aren't valid floats
+        if isinstance(epss, str):
+            epss_lower = epss.lower().strip()
+            if epss_lower in ("false", "true", "none", "nan", "unknown", ""):
+                return 0.01
+            try:
+                epss = float(epss)
+            except ValueError:
+                return 0.01
+        else:
+            epss = float(epss)
 
         # Handle percentage format
         if epss > 1.0:
@@ -1237,7 +1247,9 @@ class BayesianRiskAssessor:
         Uses a beta distribution approximation.
         """
         # Base uncertainty from EPSS percentile
-        if epss_percentile is None or pd.isna(epss_percentile):
+        if epss_percentile is None or (
+            isinstance(epss_percentile, float) and epss_percentile != epss_percentile
+        ):
             percentile_factor = 0.5  # High uncertainty
         else:
             # Higher percentile = more confidence in EPSS
@@ -1321,7 +1333,7 @@ class BayesianRiskAssessor:
 
 
 def assess_vulnerabilities_bayesian(
-    df: pd.DataFrame,
+    df: pl.DataFrame,
     epss_score_col: str = "epss_score",
     epss_percentile_col: str | None = "epss_percentile",
     cvss_vector_col: str = "cvss_vector",
@@ -1331,7 +1343,7 @@ def assess_vulnerabilities_bayesian(
     security_posture_col: str | None = "security_posture",
     kev_col: str | None = "is_kev",
     config: LikelihoodRatioConfig | None = None,
-) -> pd.DataFrame:
+) -> pl.DataFrame:
     """Assess all vulnerabilities in a DataFrame using Bayesian risk assessment.
 
     Args:
@@ -1352,7 +1364,7 @@ def assess_vulnerabilities_bayesian(
     """
     assessor = BayesianRiskAssessor(config)
 
-    def assess_row(row: pd.Series) -> dict[str, Any]:
+    def assess_row(row: dict[str, Any]) -> dict[str, Any]:
         """Assess a single vulnerability."""
         # Extract values
         epss = row.get(epss_score_col)
@@ -1364,19 +1376,19 @@ def assess_vulnerabilities_bayesian(
 
         # Extract security controls from security_posture dict
         security_controls = {}
-        if security_posture_col and security_posture_col in row.index:
+        if security_posture_col and security_posture_col in row:
             posture = row.get(security_posture_col)
             if isinstance(posture, dict):
                 security_controls = _extract_controls_from_posture(posture)
 
         # Extract threat indicators
         threat_indicators = {}
-        if kev_col and kev_col in row.index:
+        if kev_col and kev_col in row:
             threat_indicators["is_kev"] = bool(row.get(kev_col, False))
 
         # Check for other threat columns
         for col in ["has_public_exploit", "has_metasploit_module", "is_weaponized"]:
-            if col in row.index:
+            if col in row:
                 threat_indicators[col] = bool(row.get(col, False))
 
         # Perform assessment
@@ -1398,18 +1410,20 @@ def assess_vulnerabilities_bayesian(
     logger.info(f"  CVSS vector column: {cvss_vector_col}")
     logger.info(f"  Exposure column: {exposure_col}")
 
-    # Apply assessment to each row
-    results = df.apply(assess_row, axis=1, result_type="expand")
+    # Apply assessment to each row using to_dicts()
+    results = [assess_row(row) for row in df.to_dicts()]
 
-    # Add result columns to DataFrame
-    for col in results.columns:
-        df[col] = results[col]
+    # Extract result columns
+    if results:
+        result_cols = list(results[0].keys())
+        for col in result_cols:
+            df = df.with_columns(pl.Series(col, [r[col] for r in results]))
 
     # Log summary
-    critical_count = (df["risk_category"] == "Critical").sum()
-    high_count = (df["risk_category"] == "High").sum()
-    medium_count = (df["risk_category"] == "Medium").sum()
-    low_count = (df["risk_category"] == "Low").sum()
+    critical_count = df.filter(pl.col("risk_category") == "Critical").height
+    high_count = df.filter(pl.col("risk_category") == "High").height
+    medium_count = df.filter(pl.col("risk_category") == "Medium").height
+    low_count = df.filter(pl.col("risk_category") == "Low").height
 
     logger.info(
         f"Bayesian assessment complete. "

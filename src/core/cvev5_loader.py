@@ -158,7 +158,7 @@ class CVEv5Loader:
         logger.info(f"Loading CVE v5 data from {cve_dir}")
 
         # Find all JSON files for the year range
-        json_files = []
+        json_files: list[Path] = []
         for year in range(start_year, end_year + 1):
             year_dir = cve_dir / str(year)
             if year_dir.exists():

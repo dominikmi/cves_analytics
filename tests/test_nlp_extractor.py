@@ -2,7 +2,7 @@
 
 import unittest
 
-import pandas as pd
+import polars as pl
 
 from src.core.nlp_extractor import (
     AttackType,
@@ -242,7 +242,7 @@ class TestEnrichWithNLPFeatures(unittest.TestCase):
 
     def test_enrich_dataframe(self):
         """Test enriching a DataFrame with NLP features."""
-        df = pd.DataFrame(
+        df = pl.DataFrame(
             {
                 "cve_id": ["CVE-2023-0001", "CVE-2023-0002"],
                 "description": [
@@ -258,21 +258,21 @@ class TestEnrichWithNLPFeatures(unittest.TestCase):
         self.assertIn("nlp_requires_auth", result.columns)
 
         # Check that attack types were detected
-        self.assertEqual(result.iloc[0]["nlp_primary_attack"], "sql_injection")
+        self.assertEqual(result["nlp_primary_attack"][0], "sql_injection")
         self.assertIn(
-            result.iloc[1]["nlp_primary_attack"],
+            result["nlp_primary_attack"][1],
             ["buffer_overflow", "remote_code_execution"],
         )
 
     def test_enrich_empty_dataframe(self):
         """Test enriching an empty DataFrame."""
-        df = pd.DataFrame(columns=["cve_id", "description"])
+        df = pl.DataFrame({"cve_id": [], "description": []})
         result = enrich_with_nlp_features(df, "description")
-        self.assertTrue(result.empty)
+        self.assertTrue(result.is_empty())
 
     def test_enrich_missing_column(self):
         """Test enriching DataFrame without description column."""
-        df = pd.DataFrame({"cve_id": ["CVE-2023-0001"]})
+        df = pl.DataFrame({"cve_id": ["CVE-2023-0001"]})
         result = enrich_with_nlp_features(df, "description")
         # Should return original DataFrame unchanged
         self.assertNotIn("nlp_primary_attack", result.columns)

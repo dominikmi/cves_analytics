@@ -466,7 +466,7 @@ class ScenarioGenerator:
 
         score = max(0, base_score + random.randint(-1, 2))
 
-        posture = {
+        posture: dict[str, Any] = {
             "patch_management": (
                 "monthly"
                 if score < self.scenario_config.PATCH_MONTHLY_THRESHOLD

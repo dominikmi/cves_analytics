@@ -14,8 +14,9 @@ Criteria Justification:
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 
-import pandas as pd
+import polars as pl
 
 from src.core.cvss_parser import CVSSParser
 from src.utils.logging_config import get_logger
@@ -63,7 +64,7 @@ def validate_risk_factor(factor: float | None, name: str = "risk_factor") -> flo
         Validated factor in range [0.5, 3.0], or 1.0 if invalid
 
     """
-    if factor is None or pd.isna(factor):
+    if factor is None or (isinstance(factor, float) and factor != factor):
         return 1.0
 
     try:
@@ -91,7 +92,7 @@ def normalize_epss(epss: float | None) -> float:
         Normalized EPSS in range [0, 1], or 0.0 if invalid
 
     """
-    if epss is None or pd.isna(epss):
+    if epss is None or (isinstance(epss, float) and epss != epss):
         return 0.0
 
     try:
@@ -236,7 +237,9 @@ class CVSSEPSSReassessment:
 
         """
         # Handle missing data
-        if cvss_score is None or pd.isna(cvss_score):
+        if cvss_score is None or (
+            isinstance(cvss_score, float) and cvss_score != cvss_score
+        ):
             return "Unknown", "Missing CVSS score"
 
         # Validate CVSS score is in valid range
@@ -540,7 +543,7 @@ class CVSSEPSSReassessment:
 
 
 def reassess_vulnerabilities(
-    df: pd.DataFrame,
+    df: pl.DataFrame,
     cvss_score_col: str = "cvss_score",
     cvss_vector_col: str = "cvss_vector",
     epss_score_col: str = "epss_score",
@@ -548,7 +551,7 @@ def reassess_vulnerabilities(
     exposure_risk_factor_col: str | None = None,
     asset_value_risk_factor_col: str | None = None,
     original_severity_col: str | None = None,
-) -> pd.DataFrame:
+) -> pl.DataFrame:
     """Reassess all vulnerabilities in a DataFrame.
 
     Args:
@@ -566,7 +569,7 @@ def reassess_vulnerabilities(
     """
     reassessor = CVSSEPSSReassessment()
 
-    def reassess_row(row: pd.Series) -> tuple[str, str]:
+    def reassess_row(row: dict[str, Any]) -> tuple[str, str]:
         """Reassess a single vulnerability."""
         # Use .get() for Series, which returns NaN if column doesn't exist
         cvss_score = row.get(cvss_score_col, None)
@@ -591,7 +594,8 @@ def reassess_vulnerabilities(
 
         # If CVSS score is missing, fallback to original severity
         if (
-            cvss_score is None or pd.isna(cvss_score)
+            cvss_score is None
+            or (isinstance(cvss_score, float) and cvss_score != cvss_score)
         ) and original_severity is not None:
             return (
                 original_severity,
@@ -620,14 +624,20 @@ def reassess_vulnerabilities(
         f"  EPSS score column: {epss_score_col} (exists: {epss_score_col in df.columns})",
     )
 
-    results = df.apply(reassess_row, axis=1, result_type="expand")
-    df["severity_reassessed"] = results[0]
-    df["reassessment_reason"] = results[1]
+    # Apply reassessment to each row using to_dicts()
+    results = [reassess_row(row) for row in df.to_dicts()]
+    severities = [r[0] for r in results]
+    reasons = [r[1] for r in results]
 
-    critical_count = (df["severity_reassessed"] == "Critical").sum()
-    high_count = (df["severity_reassessed"] == "High").sum()
-    medium_count = (df["severity_reassessed"] == "Medium").sum()
-    unknown_count = (df["severity_reassessed"] == "Unknown").sum()
+    df = df.with_columns(
+        pl.Series("severity_reassessed", severities),
+        pl.Series("reassessment_reason", reasons),
+    )
+
+    critical_count = df.filter(pl.col("severity_reassessed") == "Critical").height
+    high_count = df.filter(pl.col("severity_reassessed") == "High").height
+    medium_count = df.filter(pl.col("severity_reassessed") == "Medium").height
+    unknown_count = df.filter(pl.col("severity_reassessed") == "Unknown").height
 
     logger.info(
         f"Reassessment complete. Critical: {critical_count}, High: {high_count}, "

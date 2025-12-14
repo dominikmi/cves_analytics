@@ -13,8 +13,9 @@ These features can be used as weak signals in Bayesian risk assessment.
 import logging
 import re
 from enum import Enum
+from typing import Any
 
-import pandas as pd
+import polars as pl
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -558,19 +559,19 @@ def extract_nlp_features(description: str | None) -> NLPVulnFeatures:
 
 
 def enrich_with_nlp_features(
-    df: pd.DataFrame, description_col: str = "description"
-) -> pd.DataFrame:
-    """Add NLP-extracted features to a DataFrame.
+    df: pl.DataFrame, description_col: str = "description"
+) -> pl.DataFrame:
+    """Add NLP-extracted features to a Polars DataFrame.
 
     Args:
-        df: DataFrame with vulnerability data
+        df: Polars DataFrame with vulnerability data
         description_col: Column containing CVE descriptions
 
     Returns:
         DataFrame with added NLP feature columns
 
     """
-    if df.empty or description_col not in df.columns:
+    if df.is_empty() or description_col not in df.columns:
         logger.warning(f"Cannot extract NLP features: missing {description_col} column")
         return df
 
@@ -579,21 +580,21 @@ def enrich_with_nlp_features(
     extractor = VulnDescriptionExtractor()
 
     # Extract features for each row
-    features_list = []
-    for desc in df[description_col]:
+    features_list: list[dict[str, Any]] = []
+    for desc in df[description_col].to_list():
         features = extractor.extract(desc)
         features_list.append(features.to_dict())
 
-    # Convert to DataFrame and merge
-    features_df = pd.DataFrame(features_list)
+    # Convert to DataFrame and merge with explicit schema inference
+    features_df = pl.DataFrame(features_list, infer_schema_length=len(features_list))
 
     # Add columns to original DataFrame
     for col in features_df.columns:
-        df[col] = features_df[col].values
+        df = df.with_columns(features_df[col].alias(col))
 
     # Log statistics
-    attack_count = df["nlp_primary_attack"].notna().sum()
-    auth_known = df["nlp_requires_auth"].notna().sum()
+    attack_count = df.filter(pl.col("nlp_primary_attack").is_not_null()).height
+    auth_known = df.filter(pl.col("nlp_requires_auth").is_not_null()).height
     avg_confidence = df["nlp_confidence"].mean()
 
     logger.info(

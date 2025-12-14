@@ -114,7 +114,7 @@ def load_cvev5_cve_data(
     start_year: int,
     end_year: int,
     directory: str,
-    cve_ids: list[str] = None,
+    cve_ids: list[str] | None = None,
 ) -> pl.DataFrame:
     """Load CVE v5 data into a Polars DataFrame with optimized filtering.
 
@@ -150,7 +150,7 @@ def load_cvev5_cve_data(
         return _load_specific_cves(cve_dir, cve_ids)
 
     # Collect JSON files with year filtering
-    json_files = []
+    json_files: list[Path] = []
     for year in range(start_year, end_year + 1):
         year_dir = cve_dir / str(year)
         if year_dir.exists():

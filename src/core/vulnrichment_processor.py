@@ -4,8 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
-
 from src.utils.error_handling import error_handler
 from src.utils.logging_config import get_logger
 
@@ -132,12 +130,12 @@ def get_cve_vulnrichment(cve_id: str) -> list[dict[str, Any]] | None:
 
 @error_handler()
 def update_row_with_vulnrichment_details(
-    row: pd.Series,
-) -> pd.Series:
-    """Update a DataFrame row with vulnerability enrichment details.
+    row: dict[str, Any],
+) -> dict[str, Any]:
+    """Update a dictionary row with vulnerability enrichment details.
 
     Args:
-        row: DataFrame row to update
+        row: Dictionary row to update
 
     Returns:
         Updated row with enrichment details

@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Any
 
-import pandas as pd
+import polars as pl
 
 from src.analysis.attack_scenario_analyzer import AttackScenarioAnalyzer
 from src.core.vulnerability_analyzer import AttackChainAnalyzer
@@ -17,42 +17,62 @@ class AttackAnalyzer:
 
     def analyze(
         self,
-        enriched_results: pd.DataFrame,
+        enriched_results: pl.DataFrame,
         scenario: dict[str, Any],
     ) -> dict[str, Any]:
         """Analyze attack scenarios and vulnerability dependencies."""
         start_time = time.time()
 
         try:
-            if enriched_results.empty:
+            if enriched_results.is_empty():
                 self.logger.warning("No vulnerabilities to analyze")
                 return {}
 
             self.logger.info("Starting attack scenario analysis")
 
             # Prepare data for attack chain analysis
-            analysis_df = enriched_results.copy()
+            analysis_df = enriched_results.clone()
 
             # Map column names for analyzer
             if "cve_id" not in analysis_df.columns:
-                analysis_df["cve_id"] = analysis_df.get("vuln_id", "Unknown")
+                if "vuln_id" in analysis_df.columns:
+                    analysis_df = analysis_df.with_columns(
+                        pl.col("vuln_id").alias("cve_id")
+                    )
+                else:
+                    analysis_df = analysis_df.with_columns(
+                        pl.lit("Unknown").alias("cve_id")
+                    )
             # Add required columns for analyzer
             if "impact" not in analysis_df.columns:
-                analysis_df["impact"] = analysis_df.get(
-                    "severity_reassessed",
-                    "Unknown",
-                )
+                if "severity_reassessed" in analysis_df.columns:
+                    analysis_df = analysis_df.with_columns(
+                        pl.col("severity_reassessed").alias("impact")
+                    )
+                else:
+                    analysis_df = analysis_df.with_columns(
+                        pl.lit("Unknown").alias("impact")
+                    )
             if "cwe" not in analysis_df.columns:
-                analysis_df["cwe"] = analysis_df.get("cwe_id", "")
+                if "cwe_id" in analysis_df.columns:
+                    analysis_df = analysis_df.with_columns(
+                        pl.col("cwe_id").alias("cwe")
+                    )
+                else:
+                    analysis_df = analysis_df.with_columns(pl.lit("").alias("cwe"))
             if "severity" not in analysis_df.columns:
-                analysis_df["severity"] = analysis_df.get(
-                    "severity_reassessed",
-                    "Unknown",
-                )
+                if "severity_reassessed" in analysis_df.columns:
+                    analysis_df = analysis_df.with_columns(
+                        pl.col("severity_reassessed").alias("severity")
+                    )
+                else:
+                    analysis_df = analysis_df.with_columns(
+                        pl.lit("Unknown").alias("severity")
+                    )
 
             # Remove duplicates
             original_count = len(analysis_df)
-            analysis_df = analysis_df.drop_duplicates(subset=["cve_id"], keep="first")
+            analysis_df = analysis_df.unique(subset=["cve_id"], keep="first")
             if len(analysis_df) < original_count:
                 self.logger.info(
                     f"Removed {original_count - len(analysis_df)} duplicate CVEs",
@@ -70,8 +90,11 @@ class AttackAnalyzer:
                     "Low": 1,
                     "Negligible": 0,
                 }
-                analysis_df["severity_order"] = (
-                    analysis_df["severity"].map(severity_order).fillna(0)
+                analysis_df = analysis_df.with_columns(
+                    pl.col("severity")
+                    .replace(severity_order)
+                    .fill_null(0)
+                    .alias("severity_order")
                 )
 
                 # Add CVSS score column (use highest available)
@@ -81,17 +104,20 @@ class AttackAnalyzer:
                     "cvss_v4_0_score",
                     "cvss_v2_0_score",
                 ]
-                analysis_df["cvss_score"] = 0
+                analysis_df = analysis_df.with_columns(pl.lit(0.0).alias("cvss_score"))
                 for col in cvss_columns:
                     if col in analysis_df.columns:
-                        analysis_df["cvss_score"] = analysis_df["cvss_score"].fillna(
-                            0,
-                        ) + analysis_df[col].fillna(0)
+                        analysis_df = analysis_df.with_columns(
+                            (
+                                pl.col("cvss_score").fill_null(0)
+                                + pl.col(col).fill_null(0)
+                            ).alias("cvss_score")
+                        )
 
                 # Sort by severity first, then CVSS score
-                analysis_df = analysis_df.sort_values(
+                analysis_df = analysis_df.sort(
                     ["severity_order", "cvss_score"],
-                    ascending=[False, False],
+                    descending=[True, True],
                 ).head(max_vulnerabilities)
 
                 self.logger.info(
@@ -110,7 +136,7 @@ class AttackAnalyzer:
             graph_stats = {}
 
             try:
-                if not analysis_df.empty:
+                if not analysis_df.is_empty():
                     self.logger.info("Initializing attack chain analyzer...")
                     analyzer = AttackChainAnalyzer(analysis_df)
 
@@ -143,26 +169,24 @@ class AttackAnalyzer:
             self.logger.info("Identifying critical vulnerabilities...")
             critical_vulns = []
             if "severity_reassessed" in enriched_results.columns:
-                critical_vulns = enriched_results[
-                    enriched_results["severity_reassessed"] == "Critical"
-                ].to_dict("records")
+                critical_vulns = enriched_results.filter(
+                    pl.col("severity_reassessed") == "Critical"
+                ).to_dicts()
 
             # Get high severity vulnerabilities
             high_vulns = []
             if "severity_reassessed" in enriched_results.columns:
-                high_vulns = enriched_results[
-                    enriched_results["severity_reassessed"] == "High"
-                ].to_dict("records")
+                high_vulns = enriched_results.filter(
+                    pl.col("severity_reassessed") == "High"
+                ).to_dicts()
 
             # Identify entry point vulnerabilities (can be exploited without prior compromise)
             entry_points = []
-            if not analysis_df.empty:
+            if not analysis_df.is_empty():
                 try:
-                    for _, row in analysis_df.iterrows():
-                        cve_id = row["cve_id"]
-                        # Entry points are vulnerabilities that don't require prior compromise
-                        # This is a simplified check - in reality, this would be more complex
-                        entry_points.append(cve_id)
+                    # Entry points are vulnerabilities that don't require prior compromise
+                    # This is a simplified check - in reality, this would be more complex
+                    entry_points = analysis_df["cve_id"].to_list()
                 except Exception:
                     pass
 

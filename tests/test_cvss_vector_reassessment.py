@@ -2,7 +2,7 @@
 
 import unittest
 
-import pandas as pd
+import polars as pl
 
 from src.core.cvss_parser import CVSSParser
 from src.core.cvss_vector_reassessment import (
@@ -254,7 +254,7 @@ class TestReassessVulnerabilities(unittest.TestCase):
             ],
             "epss_score": [0.6, 0.1, 0.1],
         }
-        df = pd.DataFrame(data)
+        df = pl.DataFrame(data)
         result = reassess_vulnerabilities(df)
 
         self.assertIn("severity_reassessed", result.columns)

@@ -24,7 +24,7 @@ def extract_threat_indicators_from_nvd(cve_data: dict[str, Any]) -> dict[str, An
         Dictionary with threat indicators
 
     """
-    indicators = {
+    indicators: dict[str, Any] = {
         "has_exploit_poc": False,
         "has_metasploit": False,
         "has_vendor_advisory": False,
@@ -218,7 +218,10 @@ def get_threat_summary(enriched_results: pl.DataFrame) -> dict[str, Any]:
         if "has_metasploit" in enriched_results.columns
         else 0,
         "high_epss_count": enriched_results.select(
-            (pl.col("epss_score") >= 0.5).sum()
+            (
+                pl.col("epss_score").cast(pl.Float64, strict=False).fill_null(0.0)
+                >= 0.5
+            ).sum()
         ).item()
         if "epss_score" in enriched_results.columns
         else 0,
