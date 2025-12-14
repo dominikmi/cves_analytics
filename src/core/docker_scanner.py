@@ -93,7 +93,7 @@ class DockerImageScanner:
 
         """
         try:
-            cmd = [self.grype_binary_path, image_name, "--output", "json"]
+            cmd: list[str] = [self.grype_binary_path, image_name, "--output", "json"]
             logging.debug(f"Running: {cmd}")
 
             result = subprocess.run(

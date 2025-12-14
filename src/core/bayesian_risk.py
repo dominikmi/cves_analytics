@@ -1366,8 +1366,12 @@ def assess_vulnerabilities_bayesian(
 
     def assess_row(row: dict[str, Any]) -> dict[str, Any]:
         """Assess a single vulnerability."""
-        # Extract values
-        epss = row.get(epss_score_col)
+        # Extract values - convert to float for epss_score
+        epss_raw = row.get(epss_score_col)
+        try:
+            epss: float = float(epss_raw) if epss_raw is not None else 0.01
+        except (ValueError, TypeError):
+            epss = 0.01
         epss_percentile = row.get(epss_percentile_col) if epss_percentile_col else None
         cvss_vector = row.get(cvss_vector_col)
         cvss_score = row.get(cvss_score_col)
