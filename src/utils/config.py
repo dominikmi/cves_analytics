@@ -76,10 +76,11 @@ def initialize_config(config_path: Path | None = None) -> AppConfig:
 
     if config_path and config_path.exists():
         # Load from file if provided
-        import yaml
+        from ruamel.yaml import YAML
 
+        yaml = YAML(typ="safe")
         with open(config_path) as f:
-            config_data = yaml.safe_load(f)
+            config_data = yaml.load(f)
         config = AppConfig(**config_data)
     else:
         # Load from environment

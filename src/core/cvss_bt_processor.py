@@ -8,7 +8,7 @@ source for CVE attribution data. This dataset includes:
 - Exploit availability (ExploitDB, Metasploit, Nuclei, GitHub PoC)
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -49,8 +49,8 @@ class CVSSBTProcessor:
             return False
 
         # Check file age
-        file_mtime = datetime.fromtimestamp(cache_path.stat().st_mtime)
-        age_days = (datetime.now() - file_mtime).days
+        file_mtime = datetime.fromtimestamp(cache_path.stat().st_mtime, tz=UTC)
+        age_days = (datetime.now(tz=UTC) - file_mtime).days
         return age_days < self.cache_days
 
     def download(self, force: bool = False) -> Path | None:

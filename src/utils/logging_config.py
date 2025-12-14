@@ -1,7 +1,7 @@
 """Centralized logging configuration for CVEs Analytics."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -45,8 +45,8 @@ def setup_logger(
     logger.addHandler(console_handler)
 
     # File handler (DEBUG level)
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    current_time = datetime.now().strftime("%H:%M:%S")
+    current_date = datetime.now(tz=UTC).strftime("%Y-%m-%d")
+    current_time = datetime.now(tz=UTC).strftime("%H:%M:%S")
     log_file = log_path / f"app_{current_date}_{current_time}.log"
 
     file_handler = logging.FileHandler(log_file)

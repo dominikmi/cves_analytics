@@ -2,7 +2,7 @@
 
 import asyncio
 import gzip
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import aiohttp
@@ -140,7 +140,7 @@ def download_epss_scores_for_months(months: int, directory: str) -> list[str]:
         List of downloaded file paths
 
     """
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = datetime.now(tz=UTC).strftime("%Y-%m-%d")
     dir_path = Path(directory) / "EPSS"
     dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -148,7 +148,7 @@ def download_epss_scores_for_months(months: int, directory: str) -> list[str]:
     dates = []
     for i in range(months):
         date = (
-            datetime.strptime(today_date, "%Y-%m-%d").replace(day=1)
+            datetime.strptime(today_date, "%Y-%m-%d").replace(day=1, tzinfo=UTC)
             - relativedelta.relativedelta(months=i)
         ).strftime("%Y-%m-%d")
         dates.append(date)
@@ -197,11 +197,11 @@ def epss_time_machine(number: int, directory: str, unit: str = "months") -> list
     dir_path = Path(directory) / "EPSS"
     dir_path.mkdir(parents=True, exist_ok=True)
 
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = datetime.now(tz=UTC).strftime("%Y-%m-%d")
     files = []
 
     for i in range(number):
-        date = datetime.strptime(today_date, "%Y-%m-%d")
+        date = datetime.strptime(today_date, "%Y-%m-%d").replace(tzinfo=UTC)
 
         if unit == "months":
             # For months, set to 1st of month and subtract months

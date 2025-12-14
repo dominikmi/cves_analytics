@@ -33,7 +33,7 @@ class CVSSMetric(str, Enum):
     UI = "UI"  # User Interaction
     S = "S"  # Scope
     C = "C"  # Confidentiality Impact
-    INTEGRITY = "I"  # Integrity Impact  # noqa: E741
+    INTEGRITY = "I"  # Integrity Impact
     A = "A"  # Availability Impact
 
 

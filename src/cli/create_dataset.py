@@ -4,7 +4,7 @@
 import argparse
 import sys
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -95,7 +95,7 @@ def main() -> None:
     cves = cves.sort_values(by="cve_id")
     logger.info(f"Sort complete in {time.time() - start_time:.2f}s")
 
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = datetime.now(tz=UTC).strftime("%Y-%m-%d")
 
     # Save raw CVE data
     start_time = time.time()

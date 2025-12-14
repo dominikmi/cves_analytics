@@ -1,7 +1,7 @@
 """CVE v5 data processing module from GitHub."""
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,7 +33,7 @@ def download_cvev5_cve_data(start_year: int, end_year: int, directory: str) -> N
     cve_dir.mkdir(parents=True, exist_ok=True)
 
     # Check if today's zip file already exists
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(tz=UTC).strftime("%Y-%m-%d")
     today_zip = cve_dir / f"{today}_all_CVEs_at_midnight.zip"
 
     if today_zip.exists():

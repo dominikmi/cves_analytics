@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +28,7 @@ def _get_cwe_cache_file(data_dir: str) -> Path:
         Path to CWE baseline cache file
 
     """
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(tz=UTC).strftime("%Y-%m-%d")
     return Path(data_dir) / f"CWE_baseline_{today}.json"
 
 

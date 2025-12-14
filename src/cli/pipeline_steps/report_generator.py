@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +45,7 @@ class ReportGenerator:
             report.append("VULNERABILITY ASSESSMENT REPORT")
             report.append("=" * 80)
             report.append(
-                f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
+                f"Generated: {datetime.now(tz=UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}\n",
             )
 
             # PHASE 1: Executive Summary
@@ -409,7 +409,7 @@ class ReportGenerator:
 
             # Save report
             report_text = "\n".join(report)
-            timestamp_file = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            timestamp_file = datetime.now(tz=UTC).strftime("%Y-%m-%d_%H-%M-%S")
             report_path = Path(output_dir) / f"report_{timestamp_file}.txt"
 
             with open(report_path, "w") as f:
@@ -709,7 +709,6 @@ class ReportGenerator:
             self.logger.info("Generating PDF vulnerability assessment report")
 
             # Import PDF generation libraries
-            import os
             from pathlib import Path
 
             import matplotlib.pyplot as plt
@@ -798,9 +797,8 @@ class ReportGenerator:
                         plt.tight_layout()
 
                         # Save the plot
-                        heatmap_path = os.path.join(
-                            plots_dir,
-                            "team_vulnerability_heatmap.png",
+                        heatmap_path = str(
+                            Path(plots_dir) / "team_vulnerability_heatmap.png"
                         )
                         plt.savefig(heatmap_path, dpi=300, bbox_inches="tight")
                         plt.close()
@@ -812,7 +810,7 @@ class ReportGenerator:
                 return None
 
             # Create PDF document
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%d_%H-%M-%S")
             pdf_path = (
                 Path(output_dir) / f"vulnerability_assessment_report_{timestamp}.pdf"
             )
@@ -862,7 +860,7 @@ class ReportGenerator:
             story.append(Paragraph("VULNERABILITY ASSESSMENT REPORT", title_style))
             story.append(
                 Paragraph(
-                    f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"Generated: {datetime.now(tz=UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}",
                     normal_style,
                 ),
             )
@@ -1106,48 +1104,47 @@ class ReportGenerator:
                             code_style,
                         ),
                     )
-            else:
-                # Show existing attack chain analysis if available
-                if attack_analysis and isinstance(attack_analysis, dict):
-                    # Existing attack chain information
-                    critical_paths = attack_analysis.get("critical_paths", [])
-                    attack_chains = attack_analysis.get("attack_chains", [])
-                    entry_points = attack_analysis.get(
-                        "entry_point_vulnerabilities",
-                        [],
-                    )
+            # Show existing attack chain analysis if available
+            elif attack_analysis and isinstance(attack_analysis, dict):
+                # Existing attack chain information
+                critical_paths = attack_analysis.get("critical_paths", [])
+                attack_chains = attack_analysis.get("attack_chains", [])
+                entry_points = attack_analysis.get(
+                    "entry_point_vulnerabilities",
+                    [],
+                )
 
-                    if critical_paths or attack_chains or entry_points:
-                        story.append(Paragraph("Attack Chain Analysis:", normal_style))
-                        if critical_paths:
-                            story.append(
-                                Paragraph(
-                                    f"  Critical Attack Paths: {len(critical_paths)}",
-                                    code_style,
-                                ),
-                            )
-                        if attack_chains:
-                            story.append(
-                                Paragraph(
-                                    f"  Total Attack Chains: {len(attack_chains)}",
-                                    code_style,
-                                ),
-                            )
-                        if entry_points:
-                            story.append(
-                                Paragraph(
-                                    f"  Entry Point Vulnerabilities: {len(entry_points)}",
-                                    code_style,
-                                ),
-                            )
-                    else:
+                if critical_paths or attack_chains or entry_points:
+                    story.append(Paragraph("Attack Chain Analysis:", normal_style))
+                    if critical_paths:
                         story.append(
-                            Paragraph("No attack scenarios identified", normal_style),
+                            Paragraph(
+                                f"  Critical Attack Paths: {len(critical_paths)}",
+                                code_style,
+                            ),
+                        )
+                    if attack_chains:
+                        story.append(
+                            Paragraph(
+                                f"  Total Attack Chains: {len(attack_chains)}",
+                                code_style,
+                            ),
+                        )
+                    if entry_points:
+                        story.append(
+                            Paragraph(
+                                f"  Entry Point Vulnerabilities: {len(entry_points)}",
+                                code_style,
+                            ),
                         )
                 else:
                     story.append(
                         Paragraph("No attack scenarios identified", normal_style),
                     )
+            else:
+                story.append(
+                    Paragraph("No attack scenarios identified", normal_style),
+                )
 
             story.append(Spacer(1, 0.3 * inch))
 
@@ -1213,11 +1210,11 @@ class ReportGenerator:
 
             # Generate and add team heatmap
             heatmap_path = None
-            if plots_dir and os.path.exists(plots_dir):
+            if plots_dir and Path(plots_dir).exists():
                 heatmap_path = generate_team_heatmap(enriched_results, plots_dir)
 
             # Add plots if directory is provided
-            if plots_dir and os.path.exists(plots_dir):
+            if plots_dir and Path(plots_dir).exists():
                 plot_files = [
                     "severity_distribution.png",
                     "cvss_distribution.png",
@@ -1229,14 +1226,14 @@ class ReportGenerator:
                 ]
 
                 # Add team heatmap if generated
-                if heatmap_path and os.path.exists(heatmap_path):
+                if heatmap_path and Path(heatmap_path).exists():
                     plot_files.insert(0, "team_vulnerability_heatmap.png")
 
                 story.append(Paragraph("DATA VISUALIZATIONS", heading_style))
 
                 for plot_file in plot_files:
-                    plot_path = os.path.join(plots_dir, plot_file)
-                    if os.path.exists(plot_path):
+                    plot_path = str(Path(plots_dir) / plot_file)
+                    if Path(plot_path).exists():
                         # Add plot title
                         title = plot_file.replace(".png", "").replace("_", " ").title()
                         story.append(Paragraph(title, subheading_style))

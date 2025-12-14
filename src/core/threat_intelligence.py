@@ -53,7 +53,7 @@ def extract_threat_indicators_from_nvd(cve_data: dict[str, Any]) -> dict[str, An
 
     # Extract threat keywords from description
     description = ""
-    if "descriptions" in cve_data and cve_data["descriptions"]:
+    if cve_data.get("descriptions"):
         description = cve_data["descriptions"][0].get("value", "").lower()
 
     threat_keywords = [

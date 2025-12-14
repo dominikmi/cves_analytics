@@ -15,7 +15,7 @@ from src.utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 # Load environment variables
-env_path = Path(".") / ".env"
+env_path = Path(".env")
 load_dotenv(dotenv_path=env_path)
 
 
