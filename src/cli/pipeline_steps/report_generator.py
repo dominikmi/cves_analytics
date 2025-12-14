@@ -15,7 +15,7 @@ from src.core.vulnerability_analyzer import AttackChainAnalyzer
 class ReportGenerator:
     """Generates vulnerability assessment reports."""
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger) -> None:
         """Initialize the report generator."""
         self.logger = logger
         self.remediation_planner = RemediationPlanner()

@@ -28,7 +28,7 @@ class ScenarioGenerator:
         self,
         config_path: str = "config/services.yaml",
         scenario_config: ScenarioConfig | None = None,
-    ):
+    ) -> None:
         """Initialize the scenario generator.
 
         Args:

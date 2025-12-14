@@ -11,7 +11,7 @@ from src.core.vulnerability_analyzer import AttackChainAnalyzer
 class AttackAnalyzer:
     """Analyzes attack scenarios and vulnerability chains."""
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger) -> None:
         """Initialize the attack analyzer."""
         self.logger = logger
 

@@ -8,7 +8,7 @@ from src.cli.pipeline import VulnerabilityAssessmentPipeline
 from src.utils.config import AppConfig
 
 
-def main():
+def main() -> None:
     """Main entry point for the pipeline."""
     parser = argparse.ArgumentParser(
         description="Run full vulnerability assessment pipeline",

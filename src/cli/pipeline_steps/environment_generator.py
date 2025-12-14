@@ -8,7 +8,7 @@ from src.simulation.scenario_generator import ScenarioGenerator
 class EnvironmentGenerator:
     """Generates simulated environments for vulnerability assessment."""
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger) -> None:
         """Initialize the environment generator."""
         self.logger = logger
 

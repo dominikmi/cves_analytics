@@ -208,7 +208,7 @@ class CVSSEPSSReassessment:
        - Impact: Lateral movement and privilege escalation potential
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the reassessment engine."""
         self.parser = CVSSParser()
 

@@ -15,6 +15,8 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 
+import pandas as pd
+
 logger = logging.getLogger(__name__)
 
 
@@ -317,7 +319,7 @@ class VulnDescriptionExtractor:
     This is a rule-based approach optimized for speed and interpretability.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the extractor with compiled regex patterns."""
         # Compile all patterns for efficiency
         self._attack_patterns: dict[AttackType, list[re.Pattern]] = {}
@@ -554,7 +556,9 @@ def extract_nlp_features(description: str | None) -> NLPVulnFeatures:
     return extractor.extract(description)
 
 
-def enrich_with_nlp_features(df, description_col: str = "description"):
+def enrich_with_nlp_features(
+    df: pd.DataFrame, description_col: str = "description"
+) -> pd.DataFrame:
     """Add NLP-extracted features to a DataFrame.
 
     Args:
@@ -565,8 +569,6 @@ def enrich_with_nlp_features(df, description_col: str = "description"):
         DataFrame with added NLP feature columns
 
     """
-    import pandas as pd
-
     if df.empty or description_col not in df.columns:
         logger.warning(f"Cannot extract NLP features: missing {description_col} column")
         return df

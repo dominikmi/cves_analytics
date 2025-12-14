@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class CVEv5Loader:
     """Optimized CVE v5 data loader with caching and progress tracking."""
 
-    def __init__(self, cache_dir: str = "./data/.cache"):
+    def __init__(self, cache_dir: str = "./data/.cache") -> None:
         """Initialize the loader with optional caching."""
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)

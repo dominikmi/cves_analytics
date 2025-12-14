@@ -14,7 +14,7 @@ from src.utils.logging_config import setup_logger
 class VulnerabilityAssessmentPipeline:
     """Orchestrates the full vulnerability assessment pipeline."""
 
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig) -> None:
         """Initialize the pipeline."""
         self.config = config
         # Setup logger with configured log level
@@ -64,7 +64,7 @@ class VulnerabilityAssessmentPipeline:
             self.logger.error(f"Pipeline failed: {e!s}", exc_info=True)
             raise
 
-    def _execute_step(self, step_name: str, step_function):
+    def _execute_step(self, step_name: str, step_function) -> Any:
         """Execute a pipeline step with timing and error handling."""
         self.logger.info("=" * 80)
         self.logger.info(f"STEP: {step_name}")
@@ -83,7 +83,7 @@ class VulnerabilityAssessmentPipeline:
             self.logger.error(f"Step {step_name} failed after {duration:.2f}s")
             raise
 
-    def _generate_environment(self):
+    def _generate_environment(self) -> None:
         """Generate the simulated environment."""
         self.state["scenario"] = self.environment_generator.generate(
             self.config.org_size,
@@ -92,7 +92,7 @@ class VulnerabilityAssessmentPipeline:
             self.config.environment,
         )
 
-    def _scan_docker_images(self):
+    def _scan_docker_images(self) -> None:
         """Scan Docker images for vulnerabilities."""
         if "scenario" not in self.state:
             raise RuntimeError("Environment must be generated before scanning")
@@ -102,7 +102,7 @@ class VulnerabilityAssessmentPipeline:
             self.config.grype_binary_path,
         )
 
-    def _enrich_data(self):
+    def _enrich_data(self) -> None:
         """Enrich scan results with CVE and environment context."""
         if "scan_results" not in self.state:
             raise RuntimeError("Scan results must be available before enrichment")
@@ -116,7 +116,7 @@ class VulnerabilityAssessmentPipeline:
             self.config.data_path,
         )
 
-    def _analyze_attack_scenarios(self):
+    def _analyze_attack_scenarios(self) -> None:
         """Analyze attack scenarios and vulnerability chains."""
         if "enriched_results" not in self.state:
             raise RuntimeError("Enriched results must be available for analysis")
@@ -129,7 +129,7 @@ class VulnerabilityAssessmentPipeline:
             self.state["scenario"],
         )
 
-    def _generate_report(self):
+    def _generate_report(self) -> str:
         """Generate the final vulnerability assessment report."""
         required_keys = [
             "scenario",

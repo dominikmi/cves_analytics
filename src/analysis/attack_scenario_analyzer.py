@@ -64,7 +64,7 @@ class AttackPath:
 class AttackScenarioAnalyzer:
     """Analyzes vulnerability data to identify potential attack scenarios."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the attack scenario analyzer."""
         self.logger = logging.getLogger(self.__class__.__name__)
 

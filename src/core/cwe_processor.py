@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
+import pandas as pd
 import requests
 
 from src.utils.error_handling import error_handler
@@ -191,8 +192,6 @@ def get_cwe_name_and_description(cwe_id: str) -> dict[str, Any]:
 
     """
     # Handle special cases and NaN values
-    import pandas as pd
-
     if (
         pd.isna(cwe_id)
         or not cwe_id

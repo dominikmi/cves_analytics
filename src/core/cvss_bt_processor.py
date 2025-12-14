@@ -25,7 +25,7 @@ CVSS_BT_FILENAME = "cvss-bt.csv"
 class CVSSBTProcessor:
     """Processor for CVSS-BT dataset."""
 
-    def __init__(self, data_dir: str | Path, cache_days: int = 1):
+    def __init__(self, data_dir: str | Path, cache_days: int = 1) -> None:
         """Initialize the CVSS-BT processor.
 
         Args:
