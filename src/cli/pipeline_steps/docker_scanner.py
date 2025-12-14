@@ -11,7 +11,7 @@ from src.core.docker_scanner import DockerImageScanner
 class DockerScanner:
     """Scans Docker images for vulnerabilities using Grype."""
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger) -> None:
         """Initialize the Docker scanner."""
         self.logger = logger
 

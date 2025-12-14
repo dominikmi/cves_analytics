@@ -321,7 +321,7 @@ class SecurityControlsGenerator:
     - Environment type (dev/test/prod)
     """
 
-    def __init__(self, probabilities: ControlProbabilities | None = None):
+    def __init__(self, probabilities: ControlProbabilities | None = None) -> None:
         """Initialize the generator.
 
         Args:
@@ -703,7 +703,7 @@ class ServiceSecurityControlsGenerator:
         self,
         base_generator: SecurityControlsGenerator | None = None,
         base_maturity: SecurityMaturityLevel | str = SecurityMaturityLevel.DEFINED,
-    ):
+    ) -> None:
         """Initialize the service-level generator.
 
         Args:

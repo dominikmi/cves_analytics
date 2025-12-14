@@ -233,7 +233,7 @@ class SimSystem:
         sys_p_weights: dict[str, dict[str, float]] | None = None,
         win_svs: dict[str, float] | None = None,
         lin_svs: dict[str, float] | None = None,
-    ):
+    ) -> None:
         """Initialize the system simulator.
 
         Args:

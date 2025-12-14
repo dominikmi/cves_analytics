@@ -19,7 +19,7 @@ from src.simulation.security_controls import (
 class DataEnricher:
     """Enriches vulnerability scan results with CVE data and environment context."""
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger) -> None:
         """Initialize the data enricher."""
         self.logger = logger
 

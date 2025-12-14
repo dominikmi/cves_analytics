@@ -20,7 +20,7 @@ class ConfigurationError(CVEsAnalyticsError):
     """Raised when configuration is invalid."""
 
 
-def error_handler(default_return: Any = None, raise_on_error: bool = False):
+def error_handler(default_return: Any = None, raise_on_error: bool = False) -> Callable:
     """Decorator for standardized error handling.
 
     Args:
@@ -31,7 +31,7 @@ def error_handler(default_return: Any = None, raise_on_error: bool = False):
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
             except CVEsAnalyticsError:

@@ -6,6 +6,7 @@ import logging
 import subprocess
 
 import pandas as pd
+import requests
 
 from src.utils.config import get_config
 from src.utils.error_handling import error_handler
@@ -21,7 +22,7 @@ class DockerImageScanner:
         self,
         registry_url: str | None = None,
         grype_binary_path: str | None = None,
-    ):
+    ) -> None:
         """Initialize the Docker image scanner.
 
         Args:
@@ -59,8 +60,6 @@ class DockerImageScanner:
             return {}
 
         try:
-            import requests
-
             repos_url = f"{self.registry_url}/v2/_catalog"
             repos_response = requests.get(repos_url, timeout=10, verify=tls_verify)
             repos_response.raise_for_status()

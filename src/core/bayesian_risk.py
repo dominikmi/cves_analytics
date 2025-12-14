@@ -466,7 +466,7 @@ class BayesianRiskAssessor:
     Provides uncertainty quantification via credible intervals.
     """
 
-    def __init__(self, config: LikelihoodRatioConfig | None = None):
+    def __init__(self, config: LikelihoodRatioConfig | None = None) -> None:
         """Initialize the assessor with optional custom likelihood ratios.
 
         Args:

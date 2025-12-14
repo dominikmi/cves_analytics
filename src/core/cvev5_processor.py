@@ -1,6 +1,7 @@
 """CVE v5 data processing module from GitHub."""
 
 import json
+import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -96,8 +97,6 @@ def unzip_files(directory: str) -> None:
         directory: Base directory containing CVEV5 folder
 
     """
-    import zipfile
-
     cve_dir = Path(directory) / "CVEV5"
 
     for file_path in cve_dir.glob("*.zip"):

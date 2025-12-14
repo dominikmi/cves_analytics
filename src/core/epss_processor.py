@@ -154,7 +154,7 @@ def download_epss_scores_for_months(months: int, directory: str) -> list[str]:
         dates.append(date)
 
     # Download in parallel using async
-    async def download_all():
+    async def download_all() -> list[str | None]:
         async with aiohttp.ClientSession() as session:
             tasks = [_download_epss_async(session, date, directory) for date in dates]
             return await asyncio.gather(*tasks)

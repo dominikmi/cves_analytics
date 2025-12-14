@@ -24,7 +24,7 @@ class RemediationPlanner:
     # Work week hours
     WORK_WEEK_HOURS = 40
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize remediation planner."""
         self.logger = logger
 
