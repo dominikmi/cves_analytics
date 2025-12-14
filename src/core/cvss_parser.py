@@ -19,7 +19,7 @@ class CVSSParser:
             Value at the end of the key path, or None if not found
 
         """
-        current = data
+        current: Any = data
         for key in keys:
             if isinstance(current, dict):
                 current = current.get(key)
@@ -41,10 +41,10 @@ class CVSSParser:
 
         """
         base_metric = CVSSParser._safe_get(impact_data, "baseMetricV3")
-        if not base_metric:
+        if not base_metric or not isinstance(base_metric, dict):
             return {}
 
-        cvss_v3 = base_metric.get("cvssV3", {})
+        cvss_v3: dict[str, Any] = base_metric.get("cvssV3", {})
 
         return {
             "cvss_version": cvss_v3.get("version"),

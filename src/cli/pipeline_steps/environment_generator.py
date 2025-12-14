@@ -37,6 +37,11 @@ class EnvironmentGenerator:
             )
 
             duration = time.time() - start_time
+            # Ensure scenario is a dict (handle edge case where it might be str)
+            if not isinstance(scenario, dict):
+                raise ValueError(
+                    f"Expected dict from generate_scenario, got {type(scenario)}"
+                )
             services_count = len(scenario.get("services", []))
             self.logger.info(
                 f"Environment generated in {duration:.2f}s with {services_count} services",

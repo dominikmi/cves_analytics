@@ -64,7 +64,7 @@ class ScenarioConfig(BaseModel):
 
     # Security maturity level mapping based on organization characteristics
     # Maps (size, reach, industry, environment) to maturity level
-    MATURITY_LEVEL_MAPPING: dict[str, dict[str, Any]] = Field(
+    MATURITY_LEVEL_MAPPING: dict[str, Any] = Field(
         default_factory=lambda: {
             # Industry-based base maturity
             "industry": {

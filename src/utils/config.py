@@ -2,13 +2,9 @@
 
 from pathlib import Path
 
-# Try to import from pydantic-settings first (Pydantic v2)
-try:
-    from pydantic import Field
-    from pydantic_settings import BaseSettings
-except ImportError:
-    # Fallback to pydantic v1
-    from pydantic import BaseSettings, Field
+# Import from pydantic-settings (Pydantic v2)
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class AppConfig(BaseSettings):
