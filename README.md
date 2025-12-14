@@ -767,6 +767,7 @@ For issues, questions, or contributions, please open an issue or submit a pull r
 ### Current
 - ✅ CVE data management
 - ✅ EPSS and KEV integration
+- ✅ CWE integration (local lookup)
 - ✅ Docker image scanning
 - ✅ Vulnerability analysis
 - ✅ Scenario generation
@@ -778,6 +779,9 @@ For issues, questions, or contributions, please open an issue or submit a pull r
 - ✅ **Attack scenarios filtered by Bayesian risk** *(NEW)*
 
 ### Planned
+- [ ] Comprehensive visualization of Bayesian risk
+- [ ] Advanced attack chain analysis
+- [ ] PDF report generation
 - [ ] Web dashboard
 - [ ] API server
 - [ ] Custom likelihood ratio configuration UI
