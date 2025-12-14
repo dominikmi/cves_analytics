@@ -7,8 +7,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import yaml
 from faker import Faker
+from ruamel.yaml import YAML
 
 from src.simulation.scenario_config import DEFAULT_CONFIG, ScenarioConfig
 from src.simulation.security_controls import (
@@ -63,8 +63,9 @@ class ScenarioGenerator:
                 return {}
 
         try:
+            yaml = YAML(typ="safe")
             with open(config_path) as f:
-                config = yaml.safe_load(f) or {}
+                config = yaml.load(f) or {}
             logger.info(f"Loaded service catalog from {config_path}")
             return config
         except Exception as e:

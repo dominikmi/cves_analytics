@@ -36,6 +36,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "reportlab>=4.0.0",
     "spacy>=3.8.4",
+    "ruamel-yaml>=0.18.16",
 ]
 
 [dependency-groups]

@@ -2,11 +2,11 @@
 
 __all__ = [
     "cvss_parser",
-    "nvd_processor",
+    "cwe_processor",
+    "docker_scanner",
     "epss_processor",
     "kev_processor",
-    "cwe_processor",
-    "vulnrichment_processor",
-    "docker_scanner",
+    "nvd_processor",
     "vulnerability_analyzer",
+    "vulnrichment_processor",
 ]

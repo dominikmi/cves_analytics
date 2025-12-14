@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -436,7 +436,7 @@ class DataEnricher:
 
         try:
             # Load CVE v5 data
-            current_year = datetime.now().year
+            current_year = datetime.now(tz=UTC).year
             loader = CVEv5Loader(cache_dir=f"{data_path}/.cache")
             self.logger.info("Loading CVE v5 data with caching...")
             cve_v5_data = loader.load_cvev5_cve_data(
