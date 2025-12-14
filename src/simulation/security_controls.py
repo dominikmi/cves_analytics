@@ -21,7 +21,6 @@ Each control has:
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
@@ -48,8 +47,7 @@ class PatchManagementCadence(str, Enum):
     AD_HOC = "ad_hoc"
 
 
-@dataclass
-class ControlProbabilities:
+class ControlProbabilities(BaseModel):
     """Probability of each control being present at different maturity levels.
 
     These probabilities are derived from:
@@ -59,7 +57,7 @@ class ControlProbabilities:
     """
 
     # Network Controls
-    network_segmentation: dict[str, float] = field(
+    network_segmentation: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.1,
             "developing": 0.3,
@@ -69,7 +67,7 @@ class ControlProbabilities:
         },
     )
 
-    firewall: dict[str, float] = field(
+    firewall: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.5,
             "developing": 0.8,
@@ -79,7 +77,7 @@ class ControlProbabilities:
         },
     )
 
-    waf: dict[str, float] = field(
+    waf: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.05,
             "developing": 0.2,
@@ -89,7 +87,7 @@ class ControlProbabilities:
         },
     )
 
-    ids_ips: dict[str, float] = field(
+    ids_ips: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.1,
             "developing": 0.3,
@@ -100,7 +98,7 @@ class ControlProbabilities:
     )
 
     # Endpoint Controls
-    edr_xdr: dict[str, float] = field(
+    edr_xdr: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.05,
             "developing": 0.15,
@@ -110,7 +108,7 @@ class ControlProbabilities:
         },
     )
 
-    antivirus: dict[str, float] = field(
+    antivirus: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.6,
             "developing": 0.8,
@@ -121,7 +119,7 @@ class ControlProbabilities:
     )
 
     # Access Controls
-    mfa: dict[str, float] = field(
+    mfa: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.1,
             "developing": 0.3,
@@ -131,7 +129,7 @@ class ControlProbabilities:
         },
     )
 
-    privileged_access_mgmt: dict[str, float] = field(
+    privileged_access_mgmt: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.02,
             "developing": 0.1,
@@ -142,7 +140,7 @@ class ControlProbabilities:
     )
 
     # Security Operations
-    siem: dict[str, float] = field(
+    siem: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.05,
             "developing": 0.15,
@@ -152,7 +150,7 @@ class ControlProbabilities:
         },
     )
 
-    soc_24x7: dict[str, float] = field(
+    soc_24x7: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.01,
             "developing": 0.05,
@@ -163,7 +161,7 @@ class ControlProbabilities:
     )
 
     # Patch Management (probability of each cadence)
-    patch_daily: dict[str, float] = field(
+    patch_daily: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.01,
             "developing": 0.05,
@@ -173,7 +171,7 @@ class ControlProbabilities:
         },
     )
 
-    patch_weekly: dict[str, float] = field(
+    patch_weekly: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.05,
             "developing": 0.15,
@@ -183,7 +181,7 @@ class ControlProbabilities:
         },
     )
 
-    patch_monthly: dict[str, float] = field(
+    patch_monthly: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.3,
             "developing": 0.5,
@@ -193,7 +191,7 @@ class ControlProbabilities:
         },
     )
 
-    patch_quarterly: dict[str, float] = field(
+    patch_quarterly: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.4,
             "developing": 0.25,

@@ -1,20 +1,24 @@
 """Configuration constants for scenario generation."""
 
-from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import BaseModel, Field, model_validator
 
-@dataclass
-class ScenarioConfig:
+
+class ScenarioConfig(BaseModel):
     """Configuration for scenario generation."""
 
     # Network topology probabilities
-    PROD_FLAT_NETWORK_PROB: float = 0.1  # 10% chance prod is flat
-    DEV_SEGMENTED_NETWORK_PROB: float = 0.2  # 20% chance dev is segmented
+    PROD_FLAT_NETWORK_PROB: float = Field(
+        default=0.1, ge=0.0, le=1.0, description="10% chance prod is flat"
+    )
+    DEV_SEGMENTED_NETWORK_PROB: float = Field(
+        default=0.2, ge=0.0, le=1.0, description="20% chance dev is segmented"
+    )
 
     # Network policy misconfiguration probabilities
-    APP_TIER_UNRESTRICTED_PROB: float = 0.15
-    DB_EXPOSED_PROB: float = 0.1
+    APP_TIER_UNRESTRICTED_PROB: float = Field(default=0.15, ge=0.0, le=1.0)
+    DB_EXPOSED_PROB: float = Field(default=0.1, ge=0.0, le=1.0)
 
     # Security posture scoring (legacy - kept for backward compatibility)
     BASE_SCORE_MID_SIZE: int = 1
@@ -36,23 +40,23 @@ class ScenarioConfig:
     SECURITY_TRAINING_THRESHOLD: int = 3
 
     # CI/CD probability
-    CICD_PROBABILITY: float = 0.5
+    CICD_PROBABILITY: float = Field(default=0.5, ge=0.0, le=1.0)
 
     # Service generation parameters
-    SERVICES_SMALL_SIZE: int = 3
-    SERVICES_MID_SIZE: int = 6
-    SERVICES_GLOBAL_MULTIPLIER: float = 1.5
+    SERVICES_SMALL_SIZE: int = Field(default=3, ge=1)
+    SERVICES_MID_SIZE: int = Field(default=6, ge=1)
+    SERVICES_GLOBAL_MULTIPLIER: float = Field(default=1.5, ge=1.0)
 
     # Sidecar exporter probability
-    SIDECAR_PROBABILITY: float = 0.8
+    SIDECAR_PROBABILITY: float = Field(default=0.8, ge=0.0, le=1.0)
 
     # Hardcoded secrets parameters
-    SECRETS_PROBABILITY: float = 0.3
-    SECRET_TYPES: list = field(default_factory=list)
+    SECRETS_PROBABILITY: float = Field(default=0.3, ge=0.0, le=1.0)
+    SECRET_TYPES: list[str] = Field(default_factory=list)
 
     # Misconfigurations parameters
-    MISCONFIG_PROBABILITY: float = 0.4
-    MISCONFIG_TYPES: list = field(default_factory=list)
+    MISCONFIG_PROBABILITY: float = Field(default=0.4, ge=0.0, le=1.0)
+    MISCONFIG_TYPES: list[str] = Field(default_factory=list)
 
     # ==========================================================================
     # SECURITY MATURITY CONFIGURATION (NEW - for Bayesian risk assessment)
@@ -60,7 +64,7 @@ class ScenarioConfig:
 
     # Security maturity level mapping based on organization characteristics
     # Maps (size, reach, industry, environment) to maturity level
-    MATURITY_LEVEL_MAPPING: dict[str, dict[str, Any]] = field(
+    MATURITY_LEVEL_MAPPING: dict[str, dict[str, Any]] = Field(
         default_factory=lambda: {
             # Industry-based base maturity
             "industry": {
@@ -94,8 +98,9 @@ class ScenarioConfig:
         },
     )
 
-    def __post_init__(self) -> None:
-        """Initialize default lists."""
+    @model_validator(mode="after")
+    def set_default_lists(self) -> "ScenarioConfig":
+        """Initialize default lists if empty."""
         if not self.SECRET_TYPES:
             self.SECRET_TYPES = [
                 "api_key",
@@ -113,6 +118,7 @@ class ScenarioConfig:
                 "default_credentials",
                 "unencrypted_communication",
             ]
+        return self
 
     def get_maturity_level(
         self,

@@ -69,11 +69,11 @@ class TestScenarioConfig(unittest.TestCase):
         self.assertEqual(config.SERVICES_MID_SIZE, 6)
         self.assertEqual(config.SERVICES_GLOBAL_MULTIPLIER, 1.5)
 
-    def test_scenario_config_post_init(self):
-        """Test ScenarioConfig __post_init__ method."""
+    def test_scenario_config_empty_lists_populated(self):
+        """Test ScenarioConfig populates empty lists via model_validator."""
+        # Pydantic model_validator runs automatically on instantiation
         config = ScenarioConfig(SECRET_TYPES=[], MISCONFIG_TYPES=[])
-        config.__post_init__()
 
-        # Should populate with defaults
+        # Should populate with defaults via model_validator
         self.assertGreater(len(config.SECRET_TYPES), 0)
         self.assertGreater(len(config.MISCONFIG_TYPES), 0)
