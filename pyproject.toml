@@ -65,3 +65,27 @@ known-first-party = ["src"]
 # E501 line length - many files have complex expressions that are hard to break
 "src/**/*.py" = ["E501"]
 "tests/**/*.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+disallow_untyped_defs = false
+# Packages without type stubs
+[[tool.mypy.overrides]]
+module = [
+    "polars.*",
+    "faker.*",
+    "networkx.*",
+    "aiohttp.*",
+    "ruamel.*",
+    "reportlab.*",
+    "matplotlib.*",
+    "numpy.*",
+    "dotenv.*",
+    "pydantic_settings.*",
+    "requests.*",
+    "dateutil.*",
+]
+ignore_missing_imports = true

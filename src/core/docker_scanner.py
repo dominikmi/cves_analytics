@@ -148,6 +148,10 @@ class DockerImageScanner:
             logging.error(f"Invalid image name rejected: {image_name!r}")
             return pl.DataFrame()
 
+        if not self.grype_binary_path:
+            logging.error("Grype binary path not configured")
+            return pl.DataFrame()
+
         try:
             cmd: list[str] = [self.grype_binary_path, image_name, "--output", "json"]
             logging.debug(f"Running: {cmd}")

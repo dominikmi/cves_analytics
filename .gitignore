@@ -195,3 +195,4 @@ tagger_parser_ud/
 notebooks/*
 .ruff_cache
 .vscode
+*plan.txt
