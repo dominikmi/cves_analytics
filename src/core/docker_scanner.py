@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 import subprocess
 
 import polars as pl
@@ -13,6 +14,56 @@ from src.utils.error_handling import error_handler
 from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# Regex pattern for valid Docker image names
+# Matches: registry/repo:tag, repo:tag, repo@sha256:digest
+# Allows: alphanumeric, dots, dashes, underscores, slashes, colons, @
+IMAGE_NAME_PATTERN = re.compile(
+    r"^[a-zA-Z0-9]"  # Must start with alphanumeric
+    r"[a-zA-Z0-9._\-/:@]*"  # Followed by valid chars
+    r"$"
+)
+
+
+def validate_image_name(image_name: str) -> bool:
+    """Validate Docker image name to prevent command injection.
+
+    Args:
+        image_name: Docker image name to validate
+
+    Returns:
+        True if valid, False otherwise
+
+    """
+    if not image_name or not isinstance(image_name, str):
+        return False
+
+    # Check length (reasonable limit)
+    if len(image_name) > 256:
+        return False
+
+    # Check for shell metacharacters that could enable injection
+    dangerous_chars = [
+        ";",
+        "&",
+        "|",
+        "$",
+        "`",
+        "(",
+        ")",
+        "{",
+        "}",
+        "<",
+        ">",
+        "\\",
+        "\n",
+        "\r",
+    ]
+    if any(char in image_name for char in dangerous_chars):
+        return False
+
+    # Validate against pattern
+    return bool(IMAGE_NAME_PATTERN.match(image_name))
 
 
 class DockerImageScanner:
@@ -45,11 +96,11 @@ class DockerImageScanner:
             logger.error(f"Failed to initialize DockerImageScanner: {e}")
 
     @error_handler()
-    def list_images_and_tags(self, tls_verify: bool = False) -> dict[str, list[str]]:
+    def list_images_and_tags(self, tls_verify: bool = True) -> dict[str, list[str]]:
         """Get images and tags from a Docker registry.
 
         Args:
-            tls_verify: Whether to verify TLS certificates
+            tls_verify: Whether to verify TLS certificates (default: True for security)
 
         Returns:
             Dictionary mapping repository names to tag lists
@@ -92,6 +143,15 @@ class DockerImageScanner:
             Polars DataFrame with vulnerability scan results
 
         """
+        # Validate image name to prevent command injection
+        if not validate_image_name(image_name):
+            logging.error(f"Invalid image name rejected: {image_name!r}")
+            return pl.DataFrame()
+
+        if not self.grype_binary_path:
+            logging.error("Grype binary path not configured")
+            return pl.DataFrame()
+
         try:
             cmd: list[str] = [self.grype_binary_path, image_name, "--output", "json"]
             logging.debug(f"Running: {cmd}")

@@ -2,7 +2,6 @@
 """Scan Docker images for vulnerabilities using Grype."""
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -10,6 +9,7 @@ import polars as pl
 from dotenv import load_dotenv
 
 from src.core.docker_scanner import DockerImageScanner
+from src.utils.config import get_config
 from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -52,8 +52,9 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Get Grype binary path from environment
-    grype_binary_path = os.getenv("GRYPE_BINARY_PATH")
+    # Get Grype binary path from config
+    config = get_config()
+    grype_binary_path = config.grype_binary_path
 
     # Initialize scanner
     scanner = DockerImageScanner(

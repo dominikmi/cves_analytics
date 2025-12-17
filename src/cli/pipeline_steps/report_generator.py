@@ -260,7 +260,15 @@ class ReportGenerator:
                         top_vulns = enriched_results.sort(
                             "risk_sort", descending=True
                         ).head(20)
-                    elif "cvss_score" in enriched_results.columns:
+                    # Remove duplicate CVE-image pairs before ranking
+                    if image_col:
+                        enriched_rank = enriched_results.unique(
+                            subset=[cve_col, image_col]
+                        )
+                    else:
+                        enriched_rank = enriched_results.unique(subset=[cve_col])
+
+                    if "risk_sort" in enriched_rank.columns:
                         enriched_results = enriched_results.with_columns(
                             pl.col("cvss_score").fill_null(-1).alias("risk_sort")
                         )
@@ -315,9 +323,13 @@ class ReportGenerator:
                             report.append(f"   Attack Context: {context_str}")
 
                         # CVSS Details
+                        cvss_vector = row.get("cvss_vector")
                         cvss_score = row.get("cvss_score")
                         if cvss_score is not None:
-                            report.append(f"   CVSS Score: {cvss_score}")
+                            if cvss_vector:
+                                report.append(f"   CVSS: {cvss_score} ({cvss_vector})")
+                            else:
+                                report.append(f"   CVSS Score: {cvss_score}")
 
                         # Add CWE and MITRE ATT&CK tactic if available
                         cwe = row.get("cwe_id", "")
@@ -420,11 +432,25 @@ class ReportGenerator:
                     ]
 
                     # Format and add to report
+                    # Header
                     report.append(
                         "Ownership\\Risk".ljust(20)
                         + " ".join(str(col).ljust(10) for col in col_order),
                     )
-                    for owner, cats in ownership_risk.items():
+
+                    # Sort owners by weighted risk (Critical*5 + High*3 + Medium*1)
+                    def _weight(c: dict[str, int]) -> int:
+                        return (
+                            c.get("Critical", 0) * 5
+                            + c.get("High", 0) * 3
+                            + c.get("Medium", 0)
+                        )
+
+                    for owner, cats in sorted(
+                        ownership_risk.items(),
+                        key=lambda t: _weight(t[1]),
+                        reverse=True,
+                    ):
                         row_str = str(owner).ljust(20) + " ".join(
                             str(cats.get(col, 0)).ljust(10) for col in col_order
                         )
@@ -593,7 +619,24 @@ class ReportGenerator:
         self,
         enriched_results: pl.DataFrame,
     ) -> list[str]:
-        """Generate risk-based prioritization section using Bayesian risk assessment."""
+        """Generate risk-based prioritization section using Bayesian risk assessment.
+
+        Quick-win enhancements:
+        1. Deduplicate rows by CVE+image to avoid double counting.
+        2. Include CVSS vector breakdown when available.
+        """
+
+        def _deduplicate(df: pl.DataFrame) -> pl.DataFrame:
+            """Remove duplicate CVE entries for the same image/service."""
+            key_cols: list[str] = []
+            for col in ("cve_id", "vuln_id"):
+                if col in df.columns:
+                    key_cols.append(col)
+                    break
+            if "image" in df.columns:
+                key_cols.append("image")
+            return df.unique(subset=key_cols) if key_cols else df
+
         report = []
         report.append("RISK-BASED PRIORITIZATION (Bayesian)")
         report.append("-" * 80)
@@ -602,8 +645,9 @@ class ReportGenerator:
             report.append("No vulnerability data available")
             return report
 
-        # Categorize by risk
-        risk_categories = categorize_by_risk(enriched_results)
+        # Categorize by risk and deduplicate within each bucket
+        _cats = categorize_by_risk(enriched_results)
+        risk_categories = {k: _deduplicate(v) for k, v in _cats.items()}
 
         # Check if we have Bayesian risk scores
         has_bayesian = "bayesian_risk_score" in enriched_results.columns
@@ -635,11 +679,13 @@ class ReportGenerator:
                     report.append(
                         f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%} [{ci_low:.1%}-{ci_high:.1%}] in {service}",
                     )
-                    report.append(f"      CVSS: {cvss:.1f}, EPSS: {epss:.2%}")
+                    report.append(
+                        f"      CVSS: {cvss:.1f} ({row.get('cvss_vector', 'N/A')}), EPSS: {epss:.2%}"
+                    )
                 else:
                     risk_score = row.get("risk_score", 0) or 0
                     report.append(
-                        f"  {idx}. {cve_id} - Risk: {risk_score:.1f} (CVSS:{cvss:.1f} EPSS:{epss:.2f}) in {service}",
+                        f"  {idx}. {cve_id} - Risk: {risk_score:.1f} /10 (CVSS:{cvss:.1f} EPSS:{epss:.2f}) in {service}",
                     )
         report.append("")
 
