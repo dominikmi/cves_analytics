@@ -1,12 +1,19 @@
 """Application templates for real-world multi-component applications.
 
-This module defines realistic application architectures that group services
-into cohesive applications, enabling kill-chain analysis across components.
+This module loads realistic application architectures from YAML configuration
+that group services into cohesive applications, enabling kill-chain analysis
+across components.
 """
 
 from enum import Enum
+from pathlib import Path
 
 from pydantic import BaseModel, Field
+from ruamel.yaml import YAML
+
+from src.utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ApplicationType(str, Enum):
@@ -62,415 +69,212 @@ class ApplicationTemplate(BaseModel):
     )  # (source, destination) pairs
 
 
-# =============================================================================
-# REAL-WORLD APPLICATION TEMPLATES
-# =============================================================================
+def _load_application_templates(
+    config_path: str = "config/services.yaml",
+) -> dict[str, ApplicationTemplate]:
+    """Load application templates from YAML configuration.
 
-ECOMMERCE_APP = ApplicationTemplate(
-    name="E-Commerce Platform",
-    type=ApplicationType.ECOMMERCE,
-    description="Online store with product catalog, shopping cart, and payment processing",
-    components=[
-        ApplicationComponent(
-            name="nginx-ingress",
-            role=ComponentRole.INGRESS,
-            service_category="proxy",
-            exposure="internet-facing",
-            asset_value="high",
-            required=True,
-        ),
-        ApplicationComponent(
-            name="web-frontend",
-            role=ComponentRole.FRONTEND,
-            service_category="web_server",
-            exposure="internet-facing",
-            asset_value="high",
-            required=True,
-            depends_on=["nginx-ingress"],
-        ),
-        ApplicationComponent(
-            name="api-backend",
-            role=ComponentRole.BACKEND,
-            service_category="app_server",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["web-frontend"],
-        ),
-        ApplicationComponent(
-            name="product-database",
-            role=ComponentRole.DATABASE,
-            service_category="database",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["api-backend"],
-        ),
-        ApplicationComponent(
-            name="session-cache",
-            role=ComponentRole.CACHE,
-            service_category="database",  # Redis in database category
-            exposure="internal",
-            asset_value="medium",
-            required=False,
-            depends_on=["api-backend"],
-        ),
-        ApplicationComponent(
-            name="payment-service",
-            role=ComponentRole.PAYMENT,
-            service_category="payment_gateway",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["api-backend"],
-        ),
-    ],
-    kill_chain_stages={
-        "initial_access": ["ingress", "frontend"],
-        "execution": ["frontend", "backend"],
-        "lateral_movement": ["backend", "database", "cache", "payment"],
-        "exfiltration": ["database", "payment"],
-    },
-    data_flow=[
-        ("nginx-ingress", "web-frontend"),
-        ("web-frontend", "api-backend"),
-        ("api-backend", "product-database"),
-        ("api-backend", "session-cache"),
-        ("api-backend", "payment-service"),
-    ],
-)
+    Args:
+        config_path: Path to YAML configuration file
 
-FINANCIAL_SERVICES_APP = ApplicationTemplate(
-    name="Financial Services Platform",
-    type=ApplicationType.FINANCIAL_SERVICES,
-    description="Banking/trading platform with high security requirements",
-    components=[
-        ApplicationComponent(
-            name="load-balancer",
-            role=ComponentRole.INGRESS,
-            service_category="proxy",
-            exposure="internet-facing",
-            asset_value="high",
-            required=True,
-        ),
-        ApplicationComponent(
-            name="api-gateway",
-            role=ComponentRole.BACKEND,
-            service_category="app_server",
-            exposure="dmz",
-            asset_value="high",
-            required=True,
-            depends_on=["load-balancer"],
-        ),
-        ApplicationComponent(
-            name="auth-service",
-            role=ComponentRole.AUTH,
-            service_category="auth_service",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["api-gateway"],
-        ),
-        ApplicationComponent(
-            name="transaction-processor",
-            role=ComponentRole.BACKEND,
-            service_category="app_server",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["api-gateway", "auth-service"],
-        ),
-        ApplicationComponent(
-            name="financial-database",
-            role=ComponentRole.DATABASE,
-            service_category="database",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["transaction-processor"],
-        ),
-        ApplicationComponent(
-            name="reporting-service",
-            role=ComponentRole.BACKEND,
-            service_category="financial_reporting",
-            exposure="internal",
-            asset_value="high",
-            required=False,
-            depends_on=["financial-database"],
-        ),
-        ApplicationComponent(
-            name="audit-log",
-            role=ComponentRole.MESSAGING,
-            service_category="messaging",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["transaction-processor"],
-        ),
-    ],
-    kill_chain_stages={
-        "initial_access": ["ingress"],
-        "execution": ["backend"],
-        "lateral_movement": ["auth", "backend", "database", "messaging"],
-        "exfiltration": ["database", "messaging"],
-    },
-    data_flow=[
-        ("load-balancer", "api-gateway"),
-        ("api-gateway", "auth-service"),
-        ("api-gateway", "transaction-processor"),
-        ("transaction-processor", "financial-database"),
-        ("transaction-processor", "audit-log"),
-        ("financial-database", "reporting-service"),
-    ],
-)
+    Returns:
+        Dictionary mapping application type to ApplicationTemplate
 
-CONSULTING_APP = ApplicationTemplate(
-    name="Consulting Services Platform",
-    type=ApplicationType.CONSULTING,
-    description="Project management and collaboration platform",
-    components=[
-        ApplicationComponent(
-            name="reverse-proxy",
-            role=ComponentRole.INGRESS,
-            service_category="proxy",
-            exposure="internet-facing",
-            asset_value="medium",
-            required=True,
-        ),
-        ApplicationComponent(
-            name="web-app",
-            role=ComponentRole.FRONTEND,
-            service_category="web_server",
-            exposure="internet-facing",
-            asset_value="medium",
-            required=True,
-            depends_on=["reverse-proxy"],
-        ),
-        ApplicationComponent(
-            name="api-server",
-            role=ComponentRole.BACKEND,
-            service_category="app_server",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["web-app"],
-        ),
-        ApplicationComponent(
-            name="project-database",
-            role=ComponentRole.DATABASE,
-            service_category="database",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["api-server"],
-        ),
-        ApplicationComponent(
-            name="message-queue",
-            role=ComponentRole.MESSAGING,
-            service_category="messaging",
-            exposure="internal",
-            asset_value="medium",
-            required=False,
-            depends_on=["api-server"],
-        ),
-        ApplicationComponent(
-            name="ci-cd-pipeline",
-            role=ComponentRole.CICD,
-            service_category="cicd",
-            exposure="internal",
-            asset_value="high",
-            required=False,
-        ),
-        ApplicationComponent(
-            name="monitoring-stack",
-            role=ComponentRole.MONITORING,
-            service_category="monitoring",
-            exposure="internal",
-            asset_value="low",
-            required=False,
-        ),
-    ],
-    kill_chain_stages={
-        "initial_access": ["ingress", "frontend"],
-        "execution": ["frontend", "backend", "cicd"],
-        "lateral_movement": ["backend", "database", "messaging", "cicd"],
-        "exfiltration": ["database", "cicd"],
-    },
-    data_flow=[
-        ("reverse-proxy", "web-app"),
-        ("web-app", "api-server"),
-        ("api-server", "project-database"),
-        ("api-server", "message-queue"),
-        ("ci-cd-pipeline", "api-server"),
-    ],
-)
+    """
+    config_file = Path(config_path)
 
-SAAS_PLATFORM_APP = ApplicationTemplate(
-    name="SaaS Platform",
-    type=ApplicationType.SAAS_PLATFORM,
-    description="Multi-tenant SaaS application with microservices",
-    components=[
-        ApplicationComponent(
-            name="api-gateway",
-            role=ComponentRole.INGRESS,
-            service_category="proxy",
-            exposure="internet-facing",
-            asset_value="high",
-            required=True,
-        ),
-        ApplicationComponent(
-            name="auth-service",
-            role=ComponentRole.AUTH,
-            service_category="auth_service",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["api-gateway"],
-        ),
-        ApplicationComponent(
-            name="user-service",
-            role=ComponentRole.BACKEND,
-            service_category="app_server",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["auth-service"],
-        ),
-        ApplicationComponent(
-            name="business-logic",
-            role=ComponentRole.BACKEND,
-            service_category="app_server",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["user-service"],
-        ),
-        ApplicationComponent(
-            name="primary-database",
-            role=ComponentRole.DATABASE,
-            service_category="database",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["user-service", "business-logic"],
-        ),
-        ApplicationComponent(
-            name="cache-layer",
-            role=ComponentRole.CACHE,
-            service_category="database",
-            exposure="internal",
-            asset_value="medium",
-            required=False,
-            depends_on=["business-logic"],
-        ),
-        ApplicationComponent(
-            name="event-bus",
-            role=ComponentRole.MESSAGING,
-            service_category="messaging",
-            exposure="internal",
-            asset_value="medium",
-            required=True,
-            depends_on=["business-logic"],
-        ),
-    ],
-    kill_chain_stages={
-        "initial_access": ["ingress"],
-        "execution": ["auth", "backend"],
-        "lateral_movement": ["backend", "database", "cache", "messaging"],
-        "exfiltration": ["database"],
-    },
-    data_flow=[
-        ("api-gateway", "auth-service"),
-        ("auth-service", "user-service"),
-        ("user-service", "business-logic"),
-        ("business-logic", "primary-database"),
-        ("business-logic", "cache-layer"),
-        ("business-logic", "event-bus"),
-    ],
-)
+    # Try relative to current directory first
+    if not config_file.exists():
+        # Try relative to project root
+        current_dir = Path(__file__).parent.parent.parent
+        config_file = current_dir / config_path
+        if not config_file.exists():
+            logger.warning(f"Config file not found at {config_path}")
+            return {}
 
-DATA_ANALYTICS_APP = ApplicationTemplate(
-    name="Data Analytics Platform",
-    type=ApplicationType.DATA_ANALYTICS,
-    description="Big data processing and analytics platform",
-    components=[
-        ApplicationComponent(
-            name="web-interface",
-            role=ComponentRole.FRONTEND,
-            service_category="web_server",
-            exposure="internet-facing",
-            asset_value="medium",
-            required=True,
-        ),
-        ApplicationComponent(
-            name="api-backend",
-            role=ComponentRole.BACKEND,
-            service_category="app_server",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["web-interface"],
-        ),
-        ApplicationComponent(
-            name="data-warehouse",
-            role=ComponentRole.DATABASE,
-            service_category="data_processing",
-            exposure="internal",
-            asset_value="critical",
-            required=True,
-            depends_on=["api-backend"],
-        ),
-        ApplicationComponent(
-            name="processing-engine",
-            role=ComponentRole.BACKEND,
-            service_category="data_processing",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["data-warehouse"],
-        ),
-        ApplicationComponent(
-            name="metadata-db",
-            role=ComponentRole.DATABASE,
-            service_category="database",
-            exposure="internal",
-            asset_value="high",
-            required=True,
-            depends_on=["api-backend"],
-        ),
-        ApplicationComponent(
-            name="visualization",
-            role=ComponentRole.FRONTEND,
-            service_category="financial_reporting",
-            exposure="internal",
-            asset_value="medium",
-            required=False,
-            depends_on=["api-backend"],
-        ),
-    ],
-    kill_chain_stages={
-        "initial_access": ["frontend"],
-        "execution": ["backend"],
-        "lateral_movement": ["backend", "database"],
-        "exfiltration": ["database"],
-    },
-    data_flow=[
-        ("web-interface", "api-backend"),
-        ("api-backend", "data-warehouse"),
-        ("api-backend", "metadata-db"),
-        ("data-warehouse", "processing-engine"),
-        ("api-backend", "visualization"),
-    ],
-)
+    try:
+        yaml = YAML(typ="safe")
+        with open(config_file) as f:
+            config = yaml.load(f) or {}
 
-# Template registry
-APPLICATION_TEMPLATES: dict[ApplicationType, ApplicationTemplate] = {
-    ApplicationType.ECOMMERCE: ECOMMERCE_APP,
-    ApplicationType.FINANCIAL_SERVICES: FINANCIAL_SERVICES_APP,
-    ApplicationType.CONSULTING: CONSULTING_APP,
-    ApplicationType.SAAS_PLATFORM: SAAS_PLATFORM_APP,
-    ApplicationType.DATA_ANALYTICS: DATA_ANALYTICS_APP,
-}
+        applications_config = config.get("applications", {})
+        if not applications_config:
+            logger.warning("No applications section found in config")
+            return {}
+
+        templates = {}
+        for app_key, app_data in applications_config.items():
+            try:
+                # Parse components
+                components = []
+                for comp_data in app_data.get("components", []):
+                    component = ApplicationComponent(
+                        name=comp_data["name"],
+                        role=ComponentRole(comp_data["role"]),
+                        service_category=comp_data["service_category"],
+                        exposure=comp_data.get("exposure", "internal"),
+                        asset_value=comp_data.get("asset_value", "medium"),
+                        required=comp_data.get("required", True),
+                        depends_on=comp_data.get("depends_on", []),
+                    )
+                    components.append(component)
+
+                # Parse kill-chain stages
+                kill_chain_stages = app_data.get("kill_chain_stages", {})
+
+                # Parse data flow
+                data_flow = [tuple(flow) for flow in app_data.get("data_flow", [])]
+
+                # Create template
+                template = ApplicationTemplate(
+                    name=app_data["name"],
+                    type=ApplicationType(app_data["type"]),
+                    description=app_data["description"],
+                    components=components,
+                    kill_chain_stages=kill_chain_stages,
+                    data_flow=data_flow,
+                )
+                templates[app_key] = template
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to parse application template '{app_key}': {e}",
+                    exc_info=True,
+                )
+                continue
+
+        logger.info(f"Loaded {len(templates)} application templates from {config_file}")
+        return templates
+
+    except Exception as e:
+        logger.error(f"Error loading application templates: {e}", exc_info=True)
+        return {}
+
+
+# Load templates from YAML on module import
+_APPLICATION_TEMPLATES_CACHE: dict[str, ApplicationTemplate] | None = None
+
+
+def _get_templates() -> dict[str, ApplicationTemplate]:
+    """Get application templates, loading from YAML if not cached.
+
+    Returns:
+        Dictionary of application templates
+
+    """
+    global _APPLICATION_TEMPLATES_CACHE
+    if _APPLICATION_TEMPLATES_CACHE is None:
+        _APPLICATION_TEMPLATES_CACHE = _load_application_templates()
+    return _APPLICATION_TEMPLATES_CACHE
+
+
+# Legacy template constants for backward compatibility
+# These are now loaded from YAML but exposed as module-level variables
+def _get_ecommerce_template() -> ApplicationTemplate:
+    templates = _get_templates()
+    return templates.get(
+        "ecommerce",
+        ApplicationTemplate(
+            name="E-Commerce Platform",
+            type=ApplicationType.ECOMMERCE,
+            description="Online store with product catalog, shopping cart, and payment processing",
+            components=[],
+        ),
+    )
+
+
+ECOMMERCE_APP = _get_ecommerce_template()
+
+
+def _get_financial_services_template() -> ApplicationTemplate:
+    templates = _get_templates()
+    return templates.get(
+        "financial_services",
+        ApplicationTemplate(
+            name="Financial Services Platform",
+            type=ApplicationType.FINANCIAL_SERVICES,
+            description="Banking/trading platform with high security requirements",
+            components=[],
+        ),
+    )
+
+
+FINANCIAL_SERVICES_APP = _get_financial_services_template()
+
+
+def _get_consulting_template() -> ApplicationTemplate:
+    templates = _get_templates()
+    return templates.get(
+        "consulting",
+        ApplicationTemplate(
+            name="Consulting Services Platform",
+            type=ApplicationType.CONSULTING,
+            description="Project management and collaboration platform",
+            components=[],
+        ),
+    )
+
+
+CONSULTING_APP = _get_consulting_template()
+
+
+def _get_saas_platform_template() -> ApplicationTemplate:
+    templates = _get_templates()
+    return templates.get(
+        "saas_platform",
+        ApplicationTemplate(
+            name="SaaS Platform",
+            type=ApplicationType.SAAS_PLATFORM,
+            description="Multi-tenant SaaS application with microservices",
+            components=[],
+        ),
+    )
+
+
+SAAS_PLATFORM_APP = _get_saas_platform_template()
+
+
+def _get_data_analytics_template() -> ApplicationTemplate:
+    templates = _get_templates()
+    return templates.get(
+        "data_analytics",
+        ApplicationTemplate(
+            name="Data Analytics Platform",
+            type=ApplicationType.DATA_ANALYTICS,
+            description="Big data processing and analytics platform",
+            components=[],
+        ),
+    )
+
+
+DATA_ANALYTICS_APP = _get_data_analytics_template()
+
+
+# Template registry - now loaded from YAML
+def get_application_templates() -> dict[ApplicationType, ApplicationTemplate]:
+    """Get all application templates.
+
+    Returns:
+        Dictionary mapping ApplicationType to ApplicationTemplate
+
+    """
+    templates = _get_templates()
+    return {
+        ApplicationType.ECOMMERCE: templates.get("ecommerce", ECOMMERCE_APP),
+        ApplicationType.FINANCIAL_SERVICES: templates.get(
+            "financial_services", FINANCIAL_SERVICES_APP
+        ),
+        ApplicationType.CONSULTING: templates.get("consulting", CONSULTING_APP),
+        ApplicationType.SAAS_PLATFORM: templates.get(
+            "saas_platform", SAAS_PLATFORM_APP
+        ),
+        ApplicationType.DATA_ANALYTICS: templates.get(
+            "data_analytics", DATA_ANALYTICS_APP
+        ),
+    }
+
+
+APPLICATION_TEMPLATES = get_application_templates()
 
 
 def get_template_for_industry(industry: str) -> ApplicationTemplate:
@@ -483,6 +287,26 @@ def get_template_for_industry(industry: str) -> ApplicationTemplate:
         ApplicationTemplate for the industry
 
     """
+    # Load industry mapping from YAML if available
+    try:
+        yaml = YAML(typ="safe")
+        config_file = Path("config/services.yaml")
+        if not config_file.exists():
+            config_file = Path(__file__).parent.parent.parent / "config/services.yaml"
+
+        with open(config_file) as f:
+            config = yaml.load(f) or {}
+
+        industry_mapping_yaml = config.get("industry_mapping", {})
+        if industry_mapping_yaml and industry in industry_mapping_yaml:
+            app_key = industry_mapping_yaml[industry]
+            templates = _get_templates()
+            if app_key in templates:
+                return templates[app_key]
+    except Exception as e:
+        logger.debug(f"Could not load industry mapping from YAML: {e}")
+
+    # Fallback to hardcoded mapping
     industry_mapping = {
         "on-line-store": ApplicationType.ECOMMERCE,
         "financial-services": ApplicationType.FINANCIAL_SERVICES,
@@ -492,7 +316,7 @@ def get_template_for_industry(industry: str) -> ApplicationTemplate:
     }
 
     app_type = industry_mapping.get(industry, ApplicationType.CONSULTING)
-    return APPLICATION_TEMPLATES[app_type]
+    return get_application_templates()[app_type]
 
 
 def get_all_templates() -> list[ApplicationTemplate]:
@@ -502,4 +326,4 @@ def get_all_templates() -> list[ApplicationTemplate]:
         List of all ApplicationTemplate instances
 
     """
-    return list(APPLICATION_TEMPLATES.values())
+    return list(get_application_templates().values())
