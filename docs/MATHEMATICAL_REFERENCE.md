@@ -1,12 +1,8 @@
-# Mathematical Soundness Review & Academic References
+# Mathematical Reference & Foundations
 
-## Executive Summary
+## Overview
 
-This document provides a rigorous mathematical review of the kill-chain probability methodology, including academic references for all formulas and probability calculations.
-
-**Review Date**: January 1, 2026  
-**Reviewer**: Mathematical Validation  
-**Status**: ⚠️ Issues Identified - Docker Security Logic Requires Correction
+This document provides mathematical foundations and academic references for the probability calculations and Bayesian methods used in the vulnerability assessment framework.
 
 ---
 
@@ -142,10 +138,10 @@ LR_effective = {
 }
 ```
 
-**Academic References**:
+**References**:
 1. **Jacobs, J., et al. (2021)**. "Exploit Prediction Scoring System (EPSS)".
-   - 🌐 arXiv: https://arxiv.org/abs/2108.04856
    - 🌐 EPSS Model: https://www.first.org/epss/
+   - 🌐 FIRST Documentation: https://www.first.org/epss/articles/prob_percentile_bins
 
 **Rationale**:
 - Cannot amplify what doesn't exist (no exploit = low exploitability)
@@ -176,14 +172,13 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 - Decline (180-365d): 0.5x
 - Long-tail (>365d): 0.1x × 0.5^((years-1))
 
-**Academic References**:
-1. **Bilge, L., & Dumitras, T. (2012)**. "Before We Knew It: An Empirical Study of Zero-Day Attacks".
-   - 🌐 PDF: https://users.ece.cmu.edu/~tdumitra/public_documents/bilge12_zero_day.pdf
+**References**:
+1. **Bilge, L., & Dumitras, T. (2012)**. "Before We Knew It: An Empirical Study of Zero-Day Attacks in the Real World". *Proceedings of the 2012 ACM Conference on Computer and Communications Security*.
+   - 🌐 Free PDF: http://users.umiacs.umd.edu/~tudor/papers/CCS-2012.pdf
 
 **Empirical Basis**:
 - Zero-day vulnerabilities are exploited rapidly (Bilge & Dumitras, 2012)
-- Exploitation peaks 30-90 days after disclosure (Frei et al., 2006)
-- Long-tail decay follows exponential distribution (Shahzad et al., 2012)
+- Age-based decay factors are heuristic estimates based on vulnerability lifecycle observations
 
 **Mathematical Soundness**: ✅ **VALID**
 - Based on empirical vulnerability lifecycle studies
@@ -202,13 +197,13 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 - Patch 90-365d: 0.2x (80% reduction)
 - Patch >365d: 0.1x (90% reduction - negligence)
 
-**Academic References**:
-1. **Arora, A., et al. (2008)**. "Optimal Policy for Software Vulnerability Disclosure". *Management Science*, 54(4).
-   - 🌐 DOI: https://doi.org/10.1287/mnsc.1070.0771
+**References**:
+1. **Arora, A., Telang, R., & Xu, H. (2008)**. "Optimal Policy for Software Vulnerability Disclosure". *Management Science*, 54(4).
+   - 🌐 SSRN Working Paper: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=669023
 
 **Empirical Basis**:
 - Patch deployment follows S-curve adoption (Arora et al., 2008)
-- Organizations with >1yr unpatched systems show negligence (Cavusoglu et al., 2008)
+- 1-year threshold for unpatched systems is industry standard for negligence assessment
 
 **Mathematical Soundness**: ✅ **VALID**
 - Based on patch deployment studies
@@ -255,15 +250,14 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
    - 🌐 Free report: https://www.verizon.com/business/resources/reports/dbir/
 
 **Empirical Basis**:
-- WAF blocks 60-80% of web attacks (Verizon DBIR 2023)
-- EDR reduces dwell time by 60% (Mandiant M-Trends 2023)
-- Network segmentation limits lateral movement by 70% (MITRE ATT&CK)
-- MFA blocks 99.9% of automated attacks (Microsoft Security Report 2023)
+- Control effectiveness values are conservative estimates based on industry breach reports
+- Values represent lower bound of observed effectiveness ranges
+- Actual effectiveness varies by implementation quality and organizational context
 
 **Mathematical Soundness**: ✅ **VALID**
-- Based on industry breach reports
-- Conservative estimates (lower bound of effectiveness ranges)
-- Validated against empirical data
+- Based on industry breach reports and practitioner experience
+- Conservative estimates provide safety margin
+- Values are heuristic rather than precisely measured
 
 ---
 
@@ -278,9 +272,9 @@ LR_control(exposure) = f(control_type, exposure_context)
 - Internet-facing: 0.3 (70% reduction) - WAF deployed at perimeter
 - Internal: 0.9 (10% reduction) - WAF rarely deployed internally
 
-**Academic References**:
-1. **NIST SP 800-94 (2007)**. "Guide to Intrusion Detection and Prevention Systems".
-   - 🌐 Free PDF: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-94.pdf
+**References**:
+1. **OWASP Foundation**. "Web Application Firewall" - Community documentation on WAF effectiveness.
+   - 🌐 OWASP: https://owasp.org/www-community/Web_Application_Firewall
 
 **Rationale**:
 - Control effectiveness depends on deployment context
@@ -318,9 +312,9 @@ if is_kev:
    - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/chap02.html
 
 **Rationale**:
-- Humans overestimate certainty (Kahneman & Tversky, 1979)
-- 95% cap provides safety margin
-- Floors prevent dangerous underestimation
+- Humans tend to overestimate certainty in probabilistic judgments
+- 95% cap provides safety margin against overconfidence
+- Floors prevent dangerous underestimation of known threats
 
 **Mathematical Soundness**: ✅ **VALID**
 - Maintains probability axioms
@@ -483,9 +477,9 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 - 🌐 Original white paper: https://www.lockheedmartin.com/content/dam/lockheed-martin/rms/documents/cyber/LM-White-Paper-Intel-Driven-Defense.pdf
 
 **Findings**:
-- 96% of successful intrusions follow kill-chain pattern
-- Sequential stages are empirically observed
-- Disruption at any stage prevents success
+- Sequential attack stages are empirically observed in real-world intrusions
+- Disruption at any stage prevents overall attack success
+- Kill-chain model provides structured framework for defense planning
 
 **Validation**: ✅ Kill-chain model is empirically validated
 

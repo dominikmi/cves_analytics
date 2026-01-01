@@ -216,7 +216,7 @@ cves_analytics/
 ├── docs/                         # Technical documentation
 │   ├── BAYESIAN_RISK_ASSESSMENT.md
 │   ├── EXTENDED_KILL_CHAIN_METHOD.md  # Kill-chain methodology ✨
-│   ├── MATHEMATICAL_REVIEW.md
+│   ├── MATHEMATICAL_REFERENCE.md
 │   └── SECURITY_CONTROLS_GUIDE.md
 └── pyproject.toml               # Project configuration
 ```
@@ -344,7 +344,7 @@ pytest tests/ -v
 - **[DEMO_REPORT.md](DEMO_REPORT.md)** - Example vulnerability assessment report with kill-chain analysis
 - **[docs/BAYESIAN_RISK_ASSESSMENT.md](docs/BAYESIAN_RISK_ASSESSMENT.md)** - Bayesian methodology
 - **[docs/EXTENDED_KILL_CHAIN_METHOD.md](docs/EXTENDED_KILL_CHAIN_METHOD.md)** - Kill-chain probability analysis ✨
-- **[docs/MATHEMATICAL_REVIEW.md](docs/MATHEMATICAL_REVIEW.md)** - Mathematical foundations
+- **[docs/MATHEMATICAL_REFERENCE.md](docs/MATHEMATICAL_REFERENCE.md)** - Mathematical foundations and references
 - **[docs/SECURITY_CONTROLS_GUIDE.md](docs/SECURITY_CONTROLS_GUIDE.md)** - Security controls configuration
 - **[TEST_COVERAGE.md](TEST_COVERAGE.md)** - Test coverage details
 
