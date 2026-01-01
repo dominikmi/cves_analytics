@@ -27,6 +27,7 @@ class ReportGenerator:
         enriched_results: pl.DataFrame,
         attack_analysis: dict[str, Any],
         output_dir: str,
+        kill_chain_analysis: dict[str, Any] | None = None,
     ) -> str:
         """Generate a comprehensive vulnerability assessment report."""
         start_time = time.time()
@@ -53,6 +54,11 @@ class ReportGenerator:
                 self._generate_executive_summary(enriched_results, attack_analysis),
             )
             report.append("")
+
+            # Kill-Chain Analysis (NEW)
+            if kill_chain_analysis and not kill_chain_analysis.get("error"):
+                report.extend(self._generate_kill_chain_analysis(kill_chain_analysis))
+                report.append("")
 
             # PHASE 1: Risk-Based Prioritization
             report.extend(self._generate_risk_prioritization(enriched_results))
@@ -612,6 +618,129 @@ class ReportGenerator:
         report.append(
             f"High Exploitation Probability (EPSS>=0.5): {threat_summary['high_epss_count']}",
         )
+
+        return report
+
+    def _generate_kill_chain_analysis(
+        self,
+        kill_chain_analysis: dict[str, Any],
+    ) -> list[str]:
+        """Generate kill-chain analysis section.
+
+        Args:
+            kill_chain_analysis: Kill-chain analysis results
+
+        Returns:
+            List of report lines
+
+        """
+        report = []
+        report.append("KILL-CHAIN PROBABILITY ANALYSIS")
+        report.append("-" * 80)
+
+        application = kill_chain_analysis.get("application", {})
+        kill_chain = kill_chain_analysis.get("kill_chain", {})
+        docker_security = kill_chain_analysis.get("docker_security", {})
+
+        if not application or not kill_chain:
+            report.append("Kill-chain analysis not available")
+            return report
+
+        # Application overview
+        report.append(f"Application: {application.get('name', 'Unknown')}")
+        report.append(f"Type: {application.get('type', 'Unknown')}")
+        report.append(f"Description: {application.get('description', 'N/A')}")
+        report.append(f"Components: {application.get('component_count', 0)}")
+        report.append("")
+
+        # Component list
+        components = application.get("components", [])
+        if components:
+            report.append("Application Components:")
+            for comp in components:
+                report.append(
+                    f"  - {comp['name']} ({comp['role']}): {comp['image']} "
+                    f"[{comp['exposure']}, {comp['asset_value']} value]"
+                )
+            report.append("")
+
+        # Kill-chain probability
+        total_prob = kill_chain.get("total_probability", 0)
+        threat_level = kill_chain.get("threat_level", "Unknown")
+        bottleneck = kill_chain.get("bottleneck_stage", "Unknown")
+        critical_path = kill_chain.get("critical_path", [])
+
+        report.append("KILL-CHAIN SUCCESS PROBABILITY")
+        report.append(f"Overall Probability: {total_prob:.1%}")
+        report.append(f"Threat Level: {threat_level}")
+        report.append(f"Bottleneck Stage: {bottleneck}")
+        if critical_path:
+            report.append(f"Critical Path: {' → '.join(critical_path)}")
+        report.append("")
+
+        # Stage-by-stage analysis
+        stages = kill_chain.get("stages", [])
+        if stages:
+            report.append("STAGE-BY-STAGE ANALYSIS:")
+            for stage in stages:
+                stage_name = stage.get("name", "Unknown")
+                base_prob = stage.get("base_probability", 0)
+                cond_prob = stage.get("conditional_probability", 0)
+                components = stage.get("components", [])
+                factors = stage.get("contributing_factors", {})
+
+                report.append(f"\n{stage_name}:")
+                report.append(f"  Base Probability: {base_prob:.1%}")
+                report.append(f"  Conditional Probability: {cond_prob:.1%}")
+                if components:
+                    report.append(f"  Affected Components: {', '.join(components)}")
+
+                # Contributing factors
+                if factors:
+                    report.append("  Contributing Factors:")
+                    for factor_name, factor_value in factors.items():
+                        if factor_value < 1.0:
+                            reduction = (1 - factor_value) * 100
+                            report.append(
+                                f"    - {factor_name}: {factor_value:.2f} ({reduction:.0f}% reduction)"
+                            )
+                        elif factor_value > 1.0:
+                            increase = (factor_value - 1) * 100
+                            report.append(
+                                f"    - {factor_name}: {factor_value:.2f} ({increase:.0f}% increase)"
+                            )
+                        else:
+                            report.append(
+                                f"    - {factor_name}: {factor_value:.2f} (neutral)"
+                            )
+
+        # Docker security impact
+        report.append("")
+        report.append("DOCKER SECURITY POSTURE:")
+        report.append(
+            f"  Good Practices: {'Yes' if docker_security.get('good_practices') else 'No'}"
+        )
+        report.append(f"  Impact: {docker_security.get('impact', 'Unknown')}")
+
+        # Interpretation
+        report.append("")
+        report.append("INTERPRETATION:")
+        if total_prob >= 0.40:
+            report.append(
+                "  ⚠️  CRITICAL: High probability of successful kill-chain execution."
+            )
+            report.append("  Immediate action required to address vulnerabilities.")
+        elif total_prob >= 0.15:
+            report.append("  ⚠️  HIGH: Significant probability of successful attack.")
+            report.append("  Prioritize remediation of bottleneck stage.")
+        elif total_prob >= 0.05:
+            report.append("  ⚠️  MEDIUM: Moderate probability of successful attack.")
+            report.append("  Address vulnerabilities in critical path components.")
+        else:
+            report.append(
+                "  ✓  LOW: Low probability of successful kill-chain execution."
+            )
+            report.append("  Maintain current security posture and monitor.")
 
         return report
 
