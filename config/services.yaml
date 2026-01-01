@@ -173,15 +173,15 @@ monitoring:
     image: grafana/grafana
     versions:
       - grafana/grafana:latest
-      - grafana/grafana:8.0
-      - grafana/grafana:7.5
+      - grafana/grafana:9.0.0
+      - grafana/grafana:8.5.0
     role: visualization
     exposure: internal
   - name: elasticsearch
-    image: elasticsearch:7.17
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
     versions:
-      - elasticsearch:7.17
-      - elasticsearch:6.8
+      - docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+      - docker.elastic.co/elasticsearch/elasticsearch:7.10.0
     role: siem_storage
     exposure: internal
 
@@ -239,7 +239,7 @@ financial_reporting:
     image: metabase/metabase:latest
     versions:
       - metabase/metabase:latest
-      - metabase/metabase:v0.41
+      - metabase/metabase:v0.44.0
     role: bi_tool
     exposure: internal
   - name: superset
@@ -278,7 +278,8 @@ cicd:
     image: gitlab/gitlab-runner:latest
     versions:
       - gitlab/gitlab-runner:latest
-    role: cicd_runner
+      - gitlab/gitlab-runner:v16.0.0
+    role: ci
     exposure: internal
   - name: drone-ci
     image: drone/drone:2
@@ -297,10 +298,10 @@ cicd:
 
 network_infra:
   - name: bastion-host
-    image: paramiko/bastion:latest
+    image: linuxserver/openssh-server:latest
     versions:
-      - paramiko/bastion:latest
-      - paramiko/bastion:v1.0
+      - linuxserver/openssh-server:latest
+      - linuxserver/openssh-server:9.3.0-r1-ls127
     role: bastion
     exposure: internet-facing
   - name: consul
@@ -390,3 +391,328 @@ exporters:
     exposure: internal
     target_role: load_balancer
     target_name_contains: nginx
+
+# =============================================================================
+# APPLICATION TEMPLATES
+# =============================================================================
+# Multi-component application architectures for kill-chain analysis
+
+applications:
+  ecommerce:
+    name: E-Commerce Platform
+    type: ecommerce
+    description: Online store with product catalog, shopping cart, and payment processing
+    components:
+      - name: nginx-ingress
+        role: ingress
+        service_category: proxy
+        exposure: internet-facing
+        asset_value: high
+        required: true
+      - name: web-frontend
+        role: frontend
+        service_category: web_server
+        exposure: internet-facing
+        asset_value: high
+        required: true
+        depends_on: [nginx-ingress]
+      - name: api-backend
+        role: backend
+        service_category: app_server
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [web-frontend]
+      - name: product-database
+        role: database
+        service_category: database
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [api-backend]
+      - name: session-cache
+        role: cache
+        service_category: database
+        exposure: internal
+        asset_value: medium
+        required: false
+        depends_on: [api-backend]
+      - name: payment-service
+        role: payment
+        service_category: payment_gateway
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [api-backend]
+    kill_chain_stages:
+      initial_access: [ingress, frontend]
+      execution: [frontend, backend]
+      lateral_movement: [backend, database, cache, payment]
+      exfiltration: [database, payment]
+    data_flow:
+      - [nginx-ingress, web-frontend]
+      - [web-frontend, api-backend]
+      - [api-backend, product-database]
+      - [api-backend, session-cache]
+      - [api-backend, payment-service]
+
+  financial_services:
+    name: Financial Services Platform
+    type: financial_services
+    description: Banking/trading platform with high security requirements
+    components:
+      - name: load-balancer
+        role: ingress
+        service_category: proxy
+        exposure: internet-facing
+        asset_value: high
+        required: true
+      - name: api-gateway
+        role: backend
+        service_category: app_server
+        exposure: dmz
+        asset_value: high
+        required: true
+        depends_on: [load-balancer]
+      - name: auth-service
+        role: auth
+        service_category: auth_service
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [api-gateway]
+      - name: transaction-processor
+        role: backend
+        service_category: app_server
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [api-gateway, auth-service]
+      - name: financial-database
+        role: database
+        service_category: database
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [transaction-processor]
+      - name: reporting-service
+        role: backend
+        service_category: financial_reporting
+        exposure: internal
+        asset_value: high
+        required: false
+        depends_on: [financial-database]
+      - name: audit-log
+        role: messaging
+        service_category: messaging
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [transaction-processor]
+    kill_chain_stages:
+      initial_access: [ingress]
+      execution: [backend]
+      lateral_movement: [auth, backend, database, messaging]
+      exfiltration: [database, messaging]
+    data_flow:
+      - [load-balancer, api-gateway]
+      - [api-gateway, auth-service]
+      - [api-gateway, transaction-processor]
+      - [transaction-processor, financial-database]
+      - [transaction-processor, audit-log]
+      - [financial-database, reporting-service]
+
+  consulting:
+    name: Consulting Services Platform
+    type: consulting
+    description: Project management and collaboration platform
+    components:
+      - name: reverse-proxy
+        role: ingress
+        service_category: proxy
+        exposure: internet-facing
+        asset_value: medium
+        required: true
+      - name: web-app
+        role: frontend
+        service_category: web_server
+        exposure: internet-facing
+        asset_value: medium
+        required: true
+        depends_on: [reverse-proxy]
+      - name: api-server
+        role: backend
+        service_category: app_server
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [web-app]
+      - name: project-database
+        role: database
+        service_category: database
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [api-server]
+      - name: message-queue
+        role: messaging
+        service_category: messaging
+        exposure: internal
+        asset_value: medium
+        required: false
+        depends_on: [api-server]
+      - name: ci-cd-pipeline
+        role: cicd
+        service_category: cicd
+        exposure: internal
+        asset_value: high
+        required: false
+      - name: monitoring-stack
+        role: monitoring
+        service_category: monitoring
+        exposure: internal
+        asset_value: low
+        required: false
+    kill_chain_stages:
+      initial_access: [ingress, frontend]
+      execution: [frontend, backend, cicd]
+      lateral_movement: [backend, database, messaging, cicd]
+      exfiltration: [database, cicd]
+    data_flow:
+      - [reverse-proxy, web-app]
+      - [web-app, api-server]
+      - [api-server, project-database]
+      - [api-server, message-queue]
+      - [ci-cd-pipeline, api-server]
+
+  saas_platform:
+    name: SaaS Platform
+    type: saas_platform
+    description: Multi-tenant SaaS application with microservices
+    components:
+      - name: api-gateway
+        role: ingress
+        service_category: proxy
+        exposure: internet-facing
+        asset_value: high
+        required: true
+      - name: auth-service
+        role: auth
+        service_category: auth_service
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [api-gateway]
+      - name: user-service
+        role: backend
+        service_category: app_server
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [auth-service]
+      - name: business-logic
+        role: backend
+        service_category: app_server
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [user-service]
+      - name: primary-database
+        role: database
+        service_category: database
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [user-service, business-logic]
+      - name: cache-layer
+        role: cache
+        service_category: database
+        exposure: internal
+        asset_value: medium
+        required: false
+        depends_on: [business-logic]
+      - name: event-bus
+        role: messaging
+        service_category: messaging
+        exposure: internal
+        asset_value: medium
+        required: true
+        depends_on: [business-logic]
+    kill_chain_stages:
+      initial_access: [ingress]
+      execution: [auth, backend]
+      lateral_movement: [backend, database, cache, messaging]
+      exfiltration: [database]
+    data_flow:
+      - [api-gateway, auth-service]
+      - [auth-service, user-service]
+      - [user-service, business-logic]
+      - [business-logic, primary-database]
+      - [business-logic, cache-layer]
+      - [business-logic, event-bus]
+
+  data_analytics:
+    name: Data Analytics Platform
+    type: data_analytics
+    description: Big data processing and analytics platform
+    components:
+      - name: web-interface
+        role: frontend
+        service_category: web_server
+        exposure: internet-facing
+        asset_value: medium
+        required: true
+      - name: api-backend
+        role: backend
+        service_category: app_server
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [web-interface]
+      - name: data-warehouse
+        role: database
+        service_category: data_processing
+        exposure: internal
+        asset_value: critical
+        required: true
+        depends_on: [api-backend]
+      - name: processing-engine
+        role: backend
+        service_category: data_processing
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [data-warehouse]
+      - name: metadata-db
+        role: database
+        service_category: database
+        exposure: internal
+        asset_value: high
+        required: true
+        depends_on: [api-backend]
+      - name: visualization
+        role: frontend
+        service_category: financial_reporting
+        exposure: internal
+        asset_value: medium
+        required: false
+        depends_on: [api-backend]
+    kill_chain_stages:
+      initial_access: [frontend]
+      execution: [backend]
+      lateral_movement: [backend, database]
+      exfiltration: [database]
+    data_flow:
+      - [web-interface, api-backend]
+      - [api-backend, data-warehouse]
+      - [api-backend, metadata-db]
+      - [data-warehouse, processing-engine]
+      - [api-backend, visualization]
+
+# Industry to application mapping
+industry_mapping:
+  on-line-store: ecommerce
+  financial-services: financial_services
+  consulting: consulting
+  saas: saas_platform
+  data-analytics: data_analytics

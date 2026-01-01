@@ -764,7 +764,7 @@ class ScenarioGenerator:
             {
                 "name": "git-repository",
                 "role": "vcs",
-                "image": "gitea:latest",
+                "image": "gitea/gitea:latest",
                 "zone": "internal" if is_segmented else "flat_network",
                 "port": 3000,
                 "exposure": "internal",
@@ -789,7 +789,7 @@ class ScenarioGenerator:
             {
                 "name": "artifact-registry",
                 "role": "registry",
-                "image": "registry:latest",
+                "image": "registry:2.8",
                 "zone": "app_tier" if is_segmented else "flat_network",
                 "port": 5000,
                 "exposure": "internal",

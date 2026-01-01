@@ -27,6 +27,7 @@ class ReportGenerator:
         enriched_results: pl.DataFrame,
         attack_analysis: dict[str, Any],
         output_dir: str,
+        kill_chain_analysis: dict[str, Any] | None = None,
     ) -> str:
         """Generate a comprehensive vulnerability assessment report."""
         start_time = time.time()
@@ -53,6 +54,11 @@ class ReportGenerator:
                 self._generate_executive_summary(enriched_results, attack_analysis),
             )
             report.append("")
+
+            # Kill-Chain Analysis (NEW)
+            if kill_chain_analysis and not kill_chain_analysis.get("error"):
+                report.extend(self._generate_kill_chain_analysis(kill_chain_analysis))
+                report.append("")
 
             # PHASE 1: Risk-Based Prioritization
             report.extend(self._generate_risk_prioritization(enriched_results))
@@ -614,6 +620,309 @@ class ReportGenerator:
         )
 
         return report
+
+    def _generate_kill_chain_analysis(
+        self,
+        kill_chain_analysis: dict[str, Any],
+    ) -> list[str]:
+        """Generate kill-chain analysis section.
+
+        Args:
+            kill_chain_analysis: Kill-chain analysis results
+
+        Returns:
+            List of report lines
+
+        """
+        report = []
+        report.append("KILL-CHAIN PROBABILITY ANALYSIS")
+        report.append("-" * 80)
+
+        application = kill_chain_analysis.get("application", {})
+        kill_chain = kill_chain_analysis.get("kill_chain", {})
+        docker_security = kill_chain_analysis.get("docker_security", {})
+
+        if not application or not kill_chain:
+            report.append("Kill-chain analysis not available")
+            return report
+
+        # Application overview
+        report.append(f"Application: {application.get('name', 'Unknown')}")
+        report.append(f"Type: {application.get('type', 'Unknown')}")
+        report.append(f"Description: {application.get('description', 'N/A')}")
+        report.append(f"Components: {application.get('component_count', 0)}")
+        report.append("")
+
+        # Component list
+        components = application.get("components", [])
+        if components:
+            report.append("Application Components:")
+            for comp in components:
+                # Handle both string and dict formats
+                if isinstance(comp, str):
+                    report.append(f"  - {comp}")
+                else:
+                    report.append(
+                        f"  - {comp['name']} ({comp['role']}): {comp['image']} "
+                        f"[{comp['exposure']}, {comp['asset_value']} value]"
+                    )
+            report.append("")
+
+        # Kill-chain probability
+        total_prob = kill_chain.get("total_probability", 0)
+        threat_level = kill_chain.get("threat_level", "Unknown")
+        bottleneck = kill_chain.get("bottleneck_stage", "Unknown")
+        critical_path = kill_chain.get("critical_path", [])
+
+        report.append("KILL-CHAIN SUCCESS PROBABILITY")
+        report.append(f"Overall Probability: {total_prob:.1%}")
+        report.append(f"Threat Level: {threat_level}")
+        report.append(f"Bottleneck Stage: {bottleneck}")
+        if critical_path:
+            report.append(f"Critical Path: {' → '.join(critical_path)}")
+        report.append("")
+
+        # Stage-by-stage analysis
+        stages = kill_chain.get("stages", [])
+        if stages:
+            report.append("STAGE-BY-STAGE ANALYSIS:")
+            for stage in stages:
+                stage_name = stage.get("name", "Unknown")
+                base_prob = stage.get("base_probability", 0)
+                cond_prob = stage.get("conditional_probability", 0)
+                components = stage.get("components", [])
+                factors = stage.get("contributing_factors", {})
+
+                report.append(f"\n{stage_name}:")
+                report.append(f"  Base Probability: {base_prob:.1%}")
+                report.append(f"  Conditional Probability: {cond_prob:.1%}")
+                if components:
+                    report.append(f"  Affected Components: {', '.join(components)}")
+
+                # Contributing factors
+                if factors:
+                    report.append("  Contributing Factors:")
+                    for factor_name, factor_value in factors.items():
+                        if factor_value < 1.0:
+                            reduction = (1 - factor_value) * 100
+                            report.append(
+                                f"    - {factor_name}: {factor_value:.2f} ({reduction:.0f}% reduction)"
+                            )
+                        elif factor_value > 1.0:
+                            increase = (factor_value - 1) * 100
+                            report.append(
+                                f"    - {factor_name}: {factor_value:.2f} ({increase:.0f}% increase)"
+                            )
+                        else:
+                            report.append(
+                                f"    - {factor_name}: {factor_value:.2f} (neutral)"
+                            )
+
+        # Docker security impact
+        report.append("")
+        report.append("DOCKER SECURITY POSTURE:")
+        report.append(
+            f"  Good Practices: {'Yes' if docker_security.get('good_practices') else 'No'}"
+        )
+        report.append(f"  Impact: {docker_security.get('impact', 'Unknown')}")
+
+        # Key Insights
+        report.append("")
+        report.append("KEY INSIGHTS:")
+        insights = self._generate_kill_chain_insights(
+            stages, bottleneck, total_prob, docker_security
+        )
+        for insight in insights:
+            report.append(f"  • {insight}")
+
+        # Interpretation
+        report.append("")
+        report.append("INTERPRETATION:")
+
+        # Overall risk assessment
+        if total_prob >= 0.40:
+            report.append(
+                "  ⚠️  CRITICAL: High probability of successful kill-chain execution."
+            )
+            report.append("  Immediate action required to address vulnerabilities.")
+        elif total_prob >= 0.15:
+            report.append("  ⚠️  HIGH: Significant probability of successful attack.")
+            report.append("  Prioritize remediation of bottleneck stage.")
+        elif total_prob >= 0.05:
+            report.append("  ⚠️  MEDIUM: Moderate probability of successful attack.")
+            report.append("  Address vulnerabilities in critical path components.")
+        else:
+            report.append(
+                "  ✓  LOW: Low probability of successful kill-chain execution."
+            )
+            report.append("  However, individual stages require attention:")
+
+        # Stage-specific recommendations
+        stage_recommendations = self._generate_stage_recommendations(
+            stages, docker_security
+        )
+        if stage_recommendations:
+            report.append("")
+            report.append("RECOMMENDED ACTIONS:")
+            for rec in stage_recommendations:
+                report.append(f"  • {rec}")
+
+        return report
+
+    def _generate_stage_recommendations(
+        self,
+        stages: list[dict],
+        docker_security: dict,
+    ) -> list[str]:
+        """Generate stage-specific remediation recommendations."""
+        recommendations = []
+
+        if not stages:
+            return recommendations
+
+        # Extract stage probabilities
+        stage_probs = {
+            stage.get("name", ""): stage.get("conditional_probability", 0)
+            for stage in stages
+        }
+
+        # Initial Access recommendations
+        initial_prob = stage_probs.get("Initial Access", 0)
+        if initial_prob > 0.20:
+            recommendations.append(
+                f"Initial Access ({initial_prob:.1%}): Strengthen perimeter defenses - implement WAF, enhance IDS/IPS, enforce MFA"
+            )
+        elif initial_prob > 0.10:
+            recommendations.append(
+                f"Initial Access ({initial_prob:.1%}): Review and update perimeter security controls"
+            )
+
+        # Execution recommendations
+        execution_prob = stage_probs.get("Execution", 0)
+        if not docker_security.get("good_practices", True) and execution_prob > 0.60:
+            recommendations.append(
+                f"Execution ({execution_prob:.1%}): CRITICAL - Implement Docker security best practices (non-root users, read-only filesystems, capability dropping)"
+            )
+        elif execution_prob > 0.70:
+            recommendations.append(
+                f"Execution ({execution_prob:.1%}): Harden container runtime and implement application sandboxing"
+            )
+
+        # Lateral Movement recommendations
+        lateral_prob = stage_probs.get("Lateral Movement", 0)
+        if lateral_prob > 0.60:
+            recommendations.append(
+                f"Lateral Movement ({lateral_prob:.1%}): Implement network segmentation and micro-segmentation between services"
+            )
+        elif lateral_prob > 0.40:
+            recommendations.append(
+                f"Lateral Movement ({lateral_prob:.1%}): Enhance network isolation and implement zero-trust networking"
+            )
+
+        # Objective Achievement recommendations
+        objective_prob = stage_probs.get("Objective Achievement", 0)
+        if objective_prob > 0.80:
+            recommendations.append(
+                f"Objective Achievement ({objective_prob:.1%}): Implement data encryption at rest, enhance access controls, deploy DLP solutions"
+            )
+
+        return recommendations
+
+    def _generate_kill_chain_insights(
+        self,
+        stages: list[dict],
+        bottleneck: str,
+        total_prob: float,
+        docker_security: dict,
+    ) -> list[str]:
+        """Generate dynamic insights based on kill-chain analysis results."""
+        insights = []
+
+        if not stages:
+            return insights
+
+        # Find stage probabilities
+        stage_probs = {
+            stage.get("name", ""): stage.get("conditional_probability", 0)
+            for stage in stages
+        }
+
+        # Bottleneck analysis
+        bottleneck_prob = stage_probs.get(bottleneck, 0)
+        if bottleneck_prob < 0.10:
+            insights.append(
+                f"Bottleneck Stage: {bottleneck} ({bottleneck_prob:.1%}) - hardest stage to breach, strong defensive position"
+            )
+        elif bottleneck_prob < 0.30:
+            insights.append(
+                f"Bottleneck Stage: {bottleneck} ({bottleneck_prob:.1%}) - moderate barrier to attack progression"
+            )
+        else:
+            insights.append(
+                f"Bottleneck Stage: {bottleneck} ({bottleneck_prob:.1%}) - weak barrier, requires strengthening"
+            )
+
+        # Docker security impact
+        if not docker_security.get("good_practices", True):
+            execution_prob = stage_probs.get("Execution", 0)
+            if execution_prob > 0.60:
+                insights.append(
+                    "Security Impact: Poor Docker practices significantly increase execution risk"
+                )
+            else:
+                insights.append(
+                    "Security Impact: Poor Docker practices detected, but mitigated by other controls"
+                )
+        else:
+            insights.append(
+                "Security Impact: Good Docker security practices reduce execution risk"
+            )
+
+        # Lateral movement analysis
+        lateral_prob = stage_probs.get("Lateral Movement", 0)
+        if lateral_prob > 0.60:
+            insights.append(
+                f"Network Isolation: High lateral movement probability ({lateral_prob:.1%}) suggests flat network topology"
+            )
+        elif lateral_prob > 0.30:
+            insights.append(
+                f"Network Isolation: Moderate lateral movement probability ({lateral_prob:.1%}) indicates partial segmentation"
+            )
+        else:
+            insights.append(
+                f"Network Isolation: Low lateral movement probability ({lateral_prob:.1%}) shows effective network segmentation"
+            )
+
+        # Overall threat assessment
+        if total_prob < 0.05:
+            insights.append(
+                "Threat Level: Negligible overall risk despite individual stage vulnerabilities"
+            )
+        elif total_prob < 0.15:
+            insights.append(
+                "Threat Level: Low overall risk, but monitor for changes in threat landscape"
+            )
+        elif total_prob < 0.40:
+            insights.append(
+                "Threat Level: Moderate overall risk, prioritize remediation of high-probability stages"
+            )
+        else:
+            insights.append(
+                "Threat Level: High overall risk, immediate action required across all stages"
+            )
+
+        # Initial access insights
+        initial_prob = stage_probs.get("Initial Access", 0)
+        if initial_prob < 0.05:
+            insights.append(
+                f"Initial Access: Strong perimeter defenses ({initial_prob:.1%}) effectively prevent unauthorized entry"
+            )
+        elif initial_prob > 0.20:
+            insights.append(
+                f"Initial Access: Weak perimeter defenses ({initial_prob:.1%}) require immediate attention"
+            )
+
+        return insights
 
     def _generate_risk_prioritization(
         self,

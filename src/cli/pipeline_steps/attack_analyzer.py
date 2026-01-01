@@ -5,6 +5,7 @@ from typing import Any
 import polars as pl
 
 from src.analysis.attack_scenario_analyzer import AttackScenarioAnalyzer
+from src.cli.pipeline_steps.kill_chain_analyzer import KillChainAnalyzer
 from src.core.vulnerability_analyzer import AttackChainAnalyzer
 
 
@@ -190,10 +191,18 @@ class AttackAnalyzer:
                 except Exception:
                     pass
 
-            # NEW: Analyze scenario-based attack paths
+            # Analyze scenario-based attack paths
             self.logger.info("Analyzing scenario-based attack paths...")
             scenario_analyzer = AttackScenarioAnalyzer()
             scenario_analysis = scenario_analyzer.analyze(enriched_results, scenario)
+
+            # Analyze kill-chain probabilities
+            self.logger.info("Analyzing kill-chain probabilities...")
+            kill_chain_analyzer = KillChainAnalyzer(self.logger)
+            service_catalog = self._load_service_catalog()
+            kill_chain_analysis = kill_chain_analyzer.analyze(
+                scenario, enriched_results, service_catalog
+            )
 
             duration = time.time() - start_time
             self.logger.info(f"Vulnerability analysis completed in {duration:.2f}s")
@@ -209,7 +218,8 @@ class AttackAnalyzer:
                 "high_vulnerabilities": high_vulns,
                 "entry_point_vulnerabilities": entry_points[:10],  # Top 10 entry points
                 "total_vulnerabilities": len(enriched_results),
-                "scenario_analysis": scenario_analysis,  # NEW: Include scenario analysis
+                "scenario_analysis": scenario_analysis,
+                "kill_chain_analysis": kill_chain_analysis,  # NEW: Include kill-chain analysis
             }
 
         except Exception as e:
@@ -218,3 +228,17 @@ class AttackAnalyzer:
                 exc_info=True,
             )
             raise
+
+    def _load_service_catalog(self) -> dict[str, Any]:
+        """Load service catalog from config/services.yaml."""
+        from pathlib import Path
+
+        import yaml
+
+        config_path = Path("config/services.yaml")
+        if not config_path.exists():
+            self.logger.warning("services.yaml not found, returning empty catalog")
+            return {}
+
+        with open(config_path) as f:
+            return yaml.safe_load(f)

@@ -1,0 +1,1099 @@
+# Security Controls Configuration
+# Likelihood Ratio (LR) values for Bayesian risk calculation
+# LR < 1.0: Control REDUCES exploitation probability
+# LR = 1.0: Control has NO EFFECT
+# LR > 1.0: Factor INCREASES exploitation probability
+#
+# Interpretation:
+# - LR = 0.1: 90% reduction in exploitation odds
+# - LR = 0.3: 70% reduction in exploitation odds
+# - LR = 0.5: 50% reduction in exploitation odds
+# - LR = 0.7: 30% reduction in exploitation odds
+# - LR = 0.9: 10% reduction in exploitation odds
+#
+# References:
+# - Verizon DBIR 2024: https://www.verizon.com/business/resources/reports/dbir/
+# - IBM Cost of Data Breach 2024: https://www.ibm.com/reports/data-breach
+# - MITRE ATT&CK Mitigations: https://attack.mitre.org/mitigations/enterprise/
+
+# =============================================================================
+# NETWORK CONTROLS
+# =============================================================================
+network_controls:
+  # Web Application Firewall - blocks OWASP Top 10 attacks
+  waf:
+    default: 0.4  # 60% reduction - blocks common web attacks
+    description: "Blocks SQL injection, XSS, and other web attacks"
+    
+  # Intrusion Detection/Prevention System - detects known attack patterns
+  ids_ips:
+    default: 0.5  # 50% reduction - signature-based detection
+    description: "Detects and blocks known attack signatures"
+    
+  # Network Segmentation - limits lateral movement
+  network_segmentation:
+    default: 0.3  # 70% reduction - strongest network control
+    description: "Isolates network zones to prevent lateral movement"
+    
+  # Traditional Firewall - blocks unauthorized network access
+  firewall:
+    default: 0.5  # 50% reduction - basic network filtering
+    description: "Blocks unauthorized network connections"
+    
+  # Next-Generation Firewall (NGFW) - deep packet inspection
+  ngfw:
+    default: 0.4  # 60% reduction - application-aware filtering
+    description: "Next-gen firewall with deep packet inspection"
+    
+  # Zero Trust Network Access (ZTNA)
+  zero_trust:
+    default: 0.3  # 70% reduction - verify every access
+    description: "Zero trust architecture with continuous verification"
+    
+  # Virtual Private Network (VPN) with MFA
+  vpn_with_mfa:
+    default: 0.4  # 60% reduction - secure remote access
+    description: "VPN with multi-factor authentication"
+    
+  # Network Access Control (NAC)
+  network_access_control:
+    default: 0.5  # 50% reduction - device posture checking
+    description: "Controls network access based on device compliance"
+    
+  # DDoS Protection
+  ddos_protection:
+    default: 0.6  # 40% reduction - availability protection
+    description: "DDoS mitigation and traffic scrubbing"
+    
+  # DNS Security (DNSSEC, DNS Filtering)
+  dns_security:
+    default: 0.6  # 40% reduction - prevents DNS attacks
+    description: "DNSSEC and malicious domain filtering"
+
+# =============================================================================
+# ENDPOINT CONTROLS
+# =============================================================================
+endpoint_controls:
+  # Endpoint Detection & Response / Extended Detection & Response
+  edr_xdr:
+    default: 0.4  # 60% reduction - behavioral detection
+    description: "Detects and blocks malicious endpoint activity"
+    
+  # Traditional Antivirus - signature-based malware detection
+  antivirus:
+    default: 0.7  # 30% reduction - limited effectiveness
+    description: "Signature-based malware detection (legacy)"
+    
+  # Host-based Firewall - local network filtering
+  host_firewall:
+    default: 0.6  # 40% reduction - local protection
+    description: "Filters network traffic at the host level"
+    
+  # Application Whitelisting / Allow-listing
+  application_whitelisting:
+    default: 0.3  # 70% reduction - only approved apps run
+    description: "Only pre-approved applications can execute"
+    
+  # Device Encryption (Full Disk Encryption)
+  device_encryption:
+    default: 0.5  # 50% reduction - protects data at rest
+    description: "Full disk encryption on endpoints"
+    
+  # USB/Removable Media Control
+  usb_control:
+    default: 0.6  # 40% reduction - prevents physical data theft
+    description: "Controls and monitors removable media usage"
+    
+  # Endpoint Patch Management
+  endpoint_patching:
+    default: 0.4  # 60% reduction - keeps endpoints updated
+    description: "Automated endpoint patch deployment"
+    
+  # Mobile Device Management (MDM)
+  mobile_device_management:
+    default: 0.5  # 50% reduction - mobile security
+    description: "Manages and secures mobile devices"
+
+# =============================================================================
+# ACCESS CONTROLS
+# =============================================================================
+access_controls:
+  # Multi-Factor Authentication - mitigates credential attacks
+  mfa:
+    default: 0.3  # 70% reduction - highly effective
+    description: "Requires multiple authentication factors"
+    
+  # Privileged Access Management - limits privilege escalation
+  privileged_access_mgmt:
+    default: 0.4  # 60% reduction - controls admin access
+    description: "Manages and monitors privileged account access"
+    
+  # Role-Based Access Control - least privilege principle
+  rbac:
+    default: 0.6  # 40% reduction - reduces attack surface
+    description: "Enforces least privilege access policies"
+    
+  # Single Sign-On (SSO) with MFA
+  sso_with_mfa:
+    default: 0.35  # 65% reduction - centralized auth with MFA
+    description: "Single sign-on with multi-factor authentication"
+    
+  # Just-In-Time (JIT) Access
+  jit_access:
+    default: 0.4  # 60% reduction - temporary elevated privileges
+    description: "Time-limited privileged access provisioning"
+    
+  # Password Policy Enforcement
+  password_policy:
+    default: 0.7  # 30% reduction - basic credential protection
+    description: "Strong password requirements and rotation"
+    
+  # Privileged Session Management
+  privileged_session_mgmt:
+    default: 0.5  # 50% reduction - monitors admin sessions
+    description: "Records and monitors privileged user sessions"
+    
+  # Identity and Access Management (IAM)
+  iam_platform:
+    default: 0.5  # 50% reduction - centralized identity management
+    description: "Centralized identity and access management"
+
+# =============================================================================
+# SECURITY OPERATIONS
+# =============================================================================
+security_operations:
+  # Security Information & Event Management - log aggregation & analysis
+  siem:
+    default: 0.6  # 40% reduction - detection capability
+    description: "Aggregates and analyzes security events"
+    
+  # 24x7 Security Operations Center - continuous monitoring
+  soc_24x7:
+    default: 0.5  # 50% reduction - human analysis
+    description: "Continuous security monitoring and response"
+    
+  # Incident Response Plan - reduces impact (not likelihood)
+  incident_response_plan:
+    default: 0.7  # 30% reduction - faster containment
+    description: "Documented procedures for security incidents"
+    
+  # Security Orchestration, Automation and Response (SOAR)
+  soar:
+    default: 0.5  # 50% reduction - automated response
+    description: "Automated incident response and orchestration"
+    
+  # Threat Intelligence Platform
+  threat_intelligence:
+    default: 0.6  # 40% reduction - proactive threat awareness
+    description: "Threat intelligence feeds and analysis"
+    
+  # Vulnerability Management Program
+  vulnerability_management:
+    default: 0.5  # 50% reduction - systematic vuln tracking
+    description: "Regular vulnerability scanning and remediation"
+    
+  # Security Awareness Training
+  security_awareness_training:
+    default: 0.7  # 30% reduction - reduces human error
+    description: "Regular security training for employees"
+    
+  # Penetration Testing (Annual)
+  penetration_testing:
+    default: 0.6  # 40% reduction - identifies weaknesses
+    description: "Regular penetration testing and red team exercises"
+
+# =============================================================================
+# DATA PROTECTION
+# =============================================================================
+data_protection:
+  # Data Loss Prevention - prevents data exfiltration
+  data_loss_prevention:
+    default: 0.3  # 70% reduction - blocks data theft
+    description: "Monitors and blocks unauthorized data transfers"
+    
+  # Encryption at Rest - protects stored data
+  encryption_at_rest:
+    default: 0.5  # 50% reduction - data less useful if stolen
+    description: "Encrypts data stored on disk"
+    
+  # Backup & Recovery - enables recovery from ransomware
+  backup_recovery:
+    default: 0.6  # 40% reduction - reduces ransomware impact
+    description: "Regular backups enable recovery from attacks"
+
+# =============================================================================
+# APPLICATION SECURITY
+# =============================================================================
+application_security:
+  # Secure Software Development Lifecycle - reduces vulnerabilities
+  secure_sdlc:
+    default: 0.6  # 40% reduction - prevents vulnerabilities
+    description: "Security integrated into development process"
+    
+  # Code Review - catches vulnerabilities before deployment
+  code_review:
+    default: 0.7  # 30% reduction - human review
+    description: "Manual security review of source code"
+    
+  # Static/Dynamic Application Security Testing
+  sast_dast:
+    default: 0.6  # 40% reduction - automated scanning
+    description: "Automated security testing of applications"
+    
+  # Web Application Firewall with OWASP rules
+  waf_owasp:
+    default: 0.35  # 65% reduction - OWASP rule-based protection
+    description: "WAF with OWASP Core Rule Set"
+    
+  # API Gateway with rate limiting and authentication
+  api_gateway:
+    default: 0.5  # 50% reduction - API protection
+    description: "API gateway with rate limiting and auth"
+    
+  # Input Validation and Sanitization
+  input_validation:
+    default: 0.5  # 50% reduction - prevents injection attacks
+    description: "Server-side input validation and sanitization"
+    
+  # Content Security Policy (CSP)
+  content_security_policy:
+    default: 0.7  # 30% reduction - mitigates XSS
+    description: "Browser-enforced content security policy"
+    
+  # Software Composition Analysis (SCA)
+  software_composition_analysis:
+    default: 0.6  # 40% reduction - identifies vulnerable dependencies
+    description: "Scans for vulnerable third-party components"
+
+# =============================================================================
+# DOCKER/CONTAINER SECURITY
+# =============================================================================
+docker_security:
+  # Good Docker practices (non-root, read-only FS, seccomp, AppArmor)
+  good_practices:
+    rce_protection: 0.3  # 70% reduction - limits RCE damage
+    privesc_protection: 0.2  # 80% reduction - already non-root
+    container_escape_protection: 0.4  # 60% reduction - seccomp/AppArmor
+    general_hardening: 0.5  # 50% reduction - default for other vulns
+    description: "Non-root user, read-only FS, seccomp, AppArmor enabled"
+    
+  # Poor Docker practices (root user, writable FS, no seccomp)
+  poor_practices:
+    rce_no_protection: 1.3  # 30% INCREASE - root containers with full capabilities, privileged mode
+    privesc_minimal: 1.2  # 20% INCREASE - already root, easier privilege escalation
+    container_escape_no_protection: 1.3  # 30% INCREASE - no seccomp/AppArmor, unrestricted syscalls
+    minimal_hardening: 1.2  # 20% INCREASE - writable filesystem, no security profiles
+    description: "Root user, writable FS, no seccomp/AppArmor (INSECURE - PENALIZED)"
+    
+  # Docker network isolation
+  network_isolation:
+    good_practices: 0.5  # 50% reduction - network policies, user namespaces, isolated networks
+    poor_practices: 1.2  # 20% INCREASE - shared network namespace, host networking, no policies
+    description: "Container network isolation and policies"
+
+# =============================================================================
+# PATCH MANAGEMENT
+# =============================================================================
+patch_management:
+  # Patch cadence affects exposure window
+  patch_daily:
+    default: 0.2  # 80% reduction - minimal exposure
+    description: "Patches applied within 24 hours"
+    
+  patch_weekly:
+    default: 0.4  # 60% reduction - short exposure
+    description: "Patches applied within 7 days"
+    
+  patch_monthly:
+    default: 0.7  # 30% reduction - moderate exposure
+    description: "Patches applied within 30 days"
+    
+  patch_quarterly:
+    default: 0.9  # 10% reduction - long exposure
+    description: "Patches applied within 90 days"
+    
+  patch_never:
+    default: 1.5  # 50% INCREASE - unpatched systems are highly vulnerable
+    description: "No patching policy or patches never applied"
+
+# =============================================================================
+# EXPOSURE CONTEXT (LR > 1.0 = INCREASES risk)
+# =============================================================================
+exposure_context:
+  # Network exposure affects attack surface
+  internet_facing:
+    default: 2.5  # 150% INCREASE - directly accessible
+    description: "Service directly accessible from internet"
+    
+  dmz:
+    default: 1.8  # 80% INCREASE - some protection
+    description: "Service in DMZ with limited protection"
+    
+  internal:
+    default: 0.6  # 40% reduction - internal network only
+    description: "Service accessible only from internal network"
+    
+  restricted:
+    default: 0.3  # 70% reduction - limited access
+    description: "Service in restricted zone with strict access"
+    
+  air_gapped:
+    default: 0.1  # 90% reduction - no network connectivity
+    description: "Physically isolated from networks"
+
+# =============================================================================
+# THREAT INDICATORS (LR > 1.0 = INCREASES risk)
+# =============================================================================
+threat_indicators:
+  # Known exploitation increases risk significantly
+  kev_listed:
+    default: 3.0  # 200% INCREASE - CISA Known Exploited Vulnerabilities
+    description: "Listed in CISA KEV catalog (active exploitation)"
+    
+  public_exploit:
+    default: 2.0  # 100% INCREASE - exploit code available
+    description: "Public exploit code available (PoC exists)"
+    
+  metasploit_module:
+    default: 2.5  # 150% INCREASE - weaponized in Metasploit
+    description: "Metasploit module exists (easy exploitation)"
+    
+  weaponized:
+    default: 4.0  # 300% INCREASE - actively used in attacks
+    description: "Actively weaponized in attack campaigns"
+    
+  apt_interest:
+    default: 2.0  # 100% INCREASE - APT groups targeting
+    description: "Known APT group interest in vulnerability"
+    
+  ransomware_associated:
+    default: 3.0  # 200% INCREASE - used in ransomware
+    description: "Associated with ransomware campaigns"
+
+# =============================================================================
+# CVSS VECTOR MODIFIERS
+# =============================================================================
+cvss_modifiers:
+  # Attack Vector (AV) - how vulnerability is exploited
+  attack_vector:
+    network:
+      internet: 2.0  # Network-accessible from internet
+      internal: 1.0  # Network-accessible internally
+      restricted: 0.5  # Network-accessible in restricted zone
+    adjacent:
+      internet: 1.5  # Adjacent network from internet
+      internal: 1.2  # Adjacent network internally
+      restricted: 0.8  # Adjacent network in restricted zone
+    local:
+      internet: 0.3  # Local access from internet (rare)
+      internal: 0.5  # Local access internally
+      restricted: 0.7  # Local access in restricted zone
+    physical:
+      internet: 0.1  # Physical access from internet (very rare)
+      internal: 0.2  # Physical access internally
+      restricted: 0.3  # Physical access in restricted zone
+      
+  # Attack Complexity (AC) - conditions beyond attacker control
+  attack_complexity:
+    low: 1.5  # No special conditions needed
+    high: 0.5  # Special conditions required
+    
+  # Privileges Required (PR) - authentication level needed
+  privileges_required:
+    none: 1.8  # Unauthenticated attack
+    low: 1.0  # Basic user privileges
+    high: 0.5  # Admin privileges needed
+    
+  # User Interaction (UI) - requires user action
+  user_interaction:
+    none: 1.5  # No user interaction needed
+    required: 0.7  # User must take action
+
+# =============================================================================
+# CONDITIONAL LIKELIHOOD RATIOS (Context-Dependent)
+# =============================================================================
+# These values vary based on deployment context
+conditional_controls:
+  # WAF effectiveness varies by exposure
+  waf:
+    internet_facing: 0.3  # 70% reduction - WAF at perimeter
+    dmz: 0.4  # 60% reduction - WAF in DMZ
+    internal: 0.9  # 10% reduction - WAF rarely internal
+    restricted: 0.8  # 20% reduction - limited WAF coverage
+    
+  # IDS/IPS more effective at perimeter
+  ids_ips:
+    internet_facing: 0.4  # 60% reduction - catches inbound attacks
+    dmz: 0.45  # 55% reduction - DMZ monitoring
+    internal: 0.7  # 30% reduction - less visibility
+    restricted: 0.5  # 50% reduction - focused monitoring
+    
+  # Network segmentation critical for internal zones
+  network_segmentation:
+    internet_facing: 0.5  # 50% reduction - limits blast radius
+    dmz: 0.4  # 60% reduction - DMZ isolation
+    internal: 0.3  # 70% reduction - prevents lateral movement
+    restricted: 0.2  # 80% reduction - critical for restricted
+    
+  # MFA critical for external access
+  mfa:
+    internet_facing: 0.2  # 80% reduction - blocks credential attacks
+    dmz: 0.25  # 75% reduction - DMZ authentication
+    internal: 0.5  # 50% reduction - internal auth often bypassed
+    restricted: 0.2  # 80% reduction - critical for restricted
+    
+  # EDR/XDR equally effective everywhere
+  edr_xdr:
+    internet_facing: 0.4  # 60% reduction - endpoint protection
+    dmz: 0.4  # 60% reduction - consistent coverage
+    internal: 0.4  # 60% reduction - same effectiveness
+    restricted: 0.35  # 65% reduction - enhanced monitoring
+    
+  # SIEM more valuable for internet-facing (more attack surface)
+  siem:
+    internet_facing: 0.5  # 50% reduction - high-value monitoring
+    dmz: 0.55  # 45% reduction - DMZ logging
+    internal: 0.7  # 30% reduction - less critical
+    restricted: 0.4  # 60% reduction - critical zone monitoring
+
+# =============================================================================
+# KILL-CHAIN STAGE SPECIFIC CONTROLS
+# =============================================================================
+kill_chain_controls:
+  # Initial Access stage
+  initial_access:
+    waf: 0.3  # 70% reduction - blocks web attacks
+    ids_ips: 0.4  # 60% reduction - detects intrusion attempts
+    mfa: 0.5  # 50% reduction - prevents credential abuse
+    
+  # Execution stage
+  execution:
+    edr_xdr: 0.4  # 60% reduction - blocks malicious execution
+    waf: 0.6  # 40% reduction - limited execution protection
+    docker_good_rce: 0.3  # 70% reduction - good Docker practices (non-root, read-only, capabilities dropped)
+    docker_poor_rce_no_protection: 1.0  # NO reduction - baseline (no Docker hardening)
+    docker_poor_rce_root_access: 1.3  # 30% INCREASE - root containers, privileged mode, no restrictions
+    
+  # Lateral Movement stage
+  lateral_movement:
+    network_segmentation: 0.3  # 70% reduction - micro-segmentation, VLANs, firewalls between zones
+    edr_xdr: 0.5  # 50% reduction - detects lateral movement attempts
+    siem: 0.6  # 40% reduction - logs and alerts on lateral movement
+    docker_good_network: 0.5  # 50% reduction - network policies, user namespaces, isolated networks
+    docker_poor_network: 1.2  # 20% INCREASE - shared network namespace, host networking, no policies
+    flat_network: 1.3  # 30% INCREASE - no segmentation, all systems on same subnet, unrestricted movement
+    
+  # Objective Achievement stage
+  objective_achievement:
+    data_loss_prevention: 0.3  # 70% reduction - blocks exfiltration
+    encryption_at_rest: 0.5  # 50% reduction - data less useful
+    backup_recovery: 0.6  # 40% reduction - enables recovery
+    siem: 0.7  # 30% reduction - detection only
+
+# =============================================================================
+# TEMPORAL FACTORS (Patch Availability)
+# =============================================================================
+temporal_factors:
+  # Days since patch released affects exploitation probability
+  no_patch: 1.0  # No reduction - no patch available
+  patch_0_7_days: 0.8  # 20% reduction - patch just released
+  patch_7_30_days: 0.5  # 50% reduction - patch available
+  patch_30_90_days: 0.3  # 70% reduction - patch widely deployed
+  patch_90_365_days: 0.2  # 80% reduction - most systems patched
+  patch_over_1_year: 0.1  # 90% reduction - negligence if unpatched
+
+# =============================================================================
+# PROBABILITY BOUNDS
+# =============================================================================
+probability_bounds:
+  # Maximum probability cap (avoid overconfidence)
+  max_probability: 0.95  # 95% cap - never 100% certain
+  
+  # Minimum probability floors (prevent underestimation)
+  kev_floor: 0.05  # 5% minimum for KEV vulnerabilities
+  zero_day_critical_floor: 0.05  # 5% minimum for zero-day CVSS >= 9.0
+  negligence_floor: 0.02  # 2% minimum for unpatched >1yr CVSS >= 7.0
+
+# =============================================================================
+# CONTROL CORRELATIONS (Dependencies & Co-occurrence)
+# =============================================================================
+# Models realistic organizational behavior where certain controls tend to be
+# implemented together (or not at all). This reflects security maturity levels
+# and organizational investment patterns.
+#
+# Structure:
+#   control_name:
+#     positive_correlations:  # If this control exists, these are more likely
+#       - control: other_control_name
+#         probability: 0.8  # 80% chance other control also exists
+#     negative_correlations:  # If this control is missing, these are less likely
+#       - control: other_control_name
+#         probability: 0.3  # Only 30% chance other control exists
+#
+# Interpretation:
+# - High maturity orgs implement controls in suites (defense in depth)
+# - Low maturity orgs have gaps across related controls
+# - Some controls are prerequisites for others (e.g., SIEM needed for SOAR)
+
+control_correlations:
+  # Access Control Suite - typically implemented together
+  mfa:
+    positive_correlations:
+      - control: sso_with_mfa
+        probability: 0.75  # SSO often includes MFA
+      - control: privileged_access_mgmt
+        probability: 0.70  # PAM orgs usually have MFA
+      - control: iam_platform
+        probability: 0.65  # IAM platforms support MFA
+      - control: vpn_with_mfa
+        probability: 0.80  # VPN+MFA go together
+    negative_correlations:
+      - control: jit_access
+        probability: 0.20  # JIT rare without MFA
+      - control: zero_trust
+        probability: 0.15  # Zero trust requires MFA
+  
+  sso_with_mfa:
+    positive_correlations:
+      - control: mfa
+        probability: 0.95  # SSO+MFA implies MFA everywhere
+      - control: iam_platform
+        probability: 0.80  # SSO needs IAM platform
+      - control: rbac
+        probability: 0.70  # SSO orgs use RBAC
+    negative_correlations:
+      - control: password_policy
+        probability: 0.40  # Less focus on passwords with SSO
+  
+  privileged_access_mgmt:
+    positive_correlations:
+      - control: mfa
+        probability: 0.85  # PAM requires MFA
+      - control: privileged_session_mgmt
+        probability: 0.75  # Session mgmt part of PAM
+      - control: jit_access
+        probability: 0.60  # JIT often part of PAM
+      - control: siem
+        probability: 0.70  # PAM logs to SIEM
+    negative_correlations:
+      - control: password_policy
+        probability: 0.30  # PAM reduces password reliance
+  
+  jit_access:
+    positive_correlations:
+      - control: privileged_access_mgmt
+        probability: 0.80  # JIT usually part of PAM
+      - control: mfa
+        probability: 0.90  # JIT requires strong auth
+      - control: iam_platform
+        probability: 0.70  # JIT needs IAM
+    negative_correlations:
+      - control: rbac
+        probability: 0.40  # JIT replaces static RBAC
+  
+  # Network Security Suite
+  zero_trust:
+    positive_correlations:
+      - control: mfa
+        probability: 0.95  # Zero trust requires MFA
+      - control: network_segmentation
+        probability: 0.85  # Micro-segmentation
+      - control: edr_xdr
+        probability: 0.80  # Endpoint visibility needed
+      - control: iam_platform
+        probability: 0.75  # Identity-centric
+      - control: siem
+        probability: 0.80  # Logging essential
+    negative_correlations:
+      - control: vpn_with_mfa
+        probability: 0.30  # Zero trust replaces VPN
+  
+  network_segmentation:
+    positive_correlations:
+      - control: ngfw
+        probability: 0.70  # NGFW enforces segmentation
+      - control: network_access_control
+        probability: 0.65  # NAC supports segmentation
+      - control: siem
+        probability: 0.60  # Monitor segment traffic
+      - control: zero_trust
+        probability: 0.50  # Micro-segmentation
+  
+  ngfw:
+    positive_correlations:
+      - control: ids_ips
+        probability: 0.80  # NGFW includes IPS
+      - control: network_segmentation
+        probability: 0.65  # NGFW enforces zones
+      - control: dns_security
+        probability: 0.60  # DNS filtering
+    negative_correlations:
+      - control: firewall
+        probability: 0.20  # NGFW replaces traditional FW
+  
+  # Endpoint Security Suite
+  edr_xdr:
+    positive_correlations:
+      - control: siem
+        probability: 0.75  # EDR logs to SIEM
+      - control: soar
+        probability: 0.60  # EDR triggers SOAR
+      - control: endpoint_patching
+        probability: 0.70  # Patch mgmt with EDR
+      - control: application_whitelisting
+        probability: 0.55  # Advanced endpoint controls
+      - control: device_encryption
+        probability: 0.65  # Endpoint security suite
+    negative_correlations:
+      - control: antivirus
+        probability: 0.30  # EDR replaces traditional AV
+  
+  application_whitelisting:
+    positive_correlations:
+      - control: edr_xdr
+        probability: 0.70  # Part of endpoint suite
+      - control: endpoint_patching
+        probability: 0.65  # Managed endpoints
+      - control: mobile_device_management
+        probability: 0.60  # Device management
+  
+  # Security Operations Suite
+  siem:
+    positive_correlations:
+      - control: soc_24x7
+        probability: 0.80  # SIEM needs SOC
+      - control: edr_xdr
+        probability: 0.70  # EDR logs to SIEM
+      - control: ids_ips
+        probability: 0.65  # IDS logs to SIEM
+      - control: threat_intelligence
+        probability: 0.60  # Threat intel enriches SIEM
+      - control: soar
+        probability: 0.50  # SOAR automates SIEM alerts
+      - control: incident_response_plan
+        probability: 0.75  # IR uses SIEM
+  
+  soc_24x7:
+    positive_correlations:
+      - control: siem
+        probability: 0.90  # SOC needs SIEM
+      - control: edr_xdr
+        probability: 0.75  # SOC monitors endpoints
+      - control: threat_intelligence
+        probability: 0.70  # SOC uses threat intel
+      - control: incident_response_plan
+        probability: 0.85  # SOC executes IR
+      - control: soar
+        probability: 0.60  # SOC uses automation
+  
+  soar:
+    positive_correlations:
+      - control: siem
+        probability: 0.95  # SOAR needs SIEM
+      - control: soc_24x7
+        probability: 0.80  # SOC uses SOAR
+      - control: edr_xdr
+        probability: 0.70  # SOAR orchestrates EDR
+      - control: threat_intelligence
+        probability: 0.65  # SOAR uses threat intel
+    negative_correlations:
+      - control: incident_response_plan
+        probability: 0.50  # SOAR automates manual IR
+  
+  threat_intelligence:
+    positive_correlations:
+      - control: siem
+        probability: 0.75  # Threat intel feeds SIEM
+      - control: soc_24x7
+        probability: 0.70  # SOC uses threat intel
+      - control: soar
+        probability: 0.60  # SOAR uses threat intel
+      - control: vulnerability_management
+        probability: 0.65  # Vuln mgmt uses threat intel
+  
+  vulnerability_management:
+    positive_correlations:
+      - control: endpoint_patching
+        probability: 0.80  # Vuln scanning drives patching
+      - control: penetration_testing
+        probability: 0.65  # Mature security programs
+      - control: siem
+        probability: 0.60  # Vuln data to SIEM
+      - control: threat_intelligence
+        probability: 0.55  # Threat-informed vuln mgmt
+  
+  # Application Security Suite
+  secure_sdlc:
+    positive_correlations:
+      - control: code_review
+        probability: 0.80  # Part of SDLC
+      - control: sast_dast
+        probability: 0.75  # Automated testing in SDLC
+      - control: software_composition_analysis
+        probability: 0.70  # SCA in SDLC
+      - control: penetration_testing
+        probability: 0.60  # Testing phase
+  
+  sast_dast:
+    positive_correlations:
+      - control: secure_sdlc
+        probability: 0.70  # Part of SDLC
+      - control: code_review
+        probability: 0.65  # Complement each other
+      - control: software_composition_analysis
+        probability: 0.75  # DevSecOps suite
+      - control: api_gateway
+        probability: 0.55  # API security focus
+  
+  software_composition_analysis:
+    positive_correlations:
+      - control: sast_dast
+        probability: 0.75  # DevSecOps tools
+      - control: secure_sdlc
+        probability: 0.70  # Part of SDLC
+      - control: vulnerability_management
+        probability: 0.65  # Vuln tracking
+  
+  waf:
+    positive_correlations:
+      - control: waf_owasp
+        probability: 0.80  # OWASP rules common
+      - control: api_gateway
+        probability: 0.60  # API protection
+      - control: ids_ips
+        probability: 0.55  # Perimeter defense
+      - control: siem
+        probability: 0.60  # WAF logs to SIEM
+  
+  api_gateway:
+    positive_correlations:
+      - control: waf
+        probability: 0.65  # API protection
+      - control: mfa
+        probability: 0.70  # API auth
+      - control: siem
+        probability: 0.60  # API logging
+  
+  # Data Protection Suite
+  data_loss_prevention:
+    positive_correlations:
+      - control: encryption_at_rest
+        probability: 0.75  # Data protection suite
+      - control: siem
+        probability: 0.70  # DLP alerts to SIEM
+      - control: usb_control
+        probability: 0.65  # Prevent data exfil
+      - control: device_encryption
+        probability: 0.70  # Endpoint data protection
+  
+  encryption_at_rest:
+    positive_correlations:
+      - control: device_encryption
+        probability: 0.80  # Encryption everywhere
+      - control: data_loss_prevention
+        probability: 0.65  # Data protection
+      - control: backup_recovery
+        probability: 0.70  # Encrypted backups
+  
+  backup_recovery:
+    positive_correlations:
+      - control: encryption_at_rest
+        probability: 0.75  # Encrypted backups
+      - control: incident_response_plan
+        probability: 0.70  # Recovery in IR
+      - control: siem
+        probability: 0.55  # Backup monitoring
+  
+  # Patch Management
+  endpoint_patching:
+    positive_correlations:
+      - control: vulnerability_management
+        probability: 0.85  # Vuln scanning drives patching
+      - control: edr_xdr
+        probability: 0.65  # Endpoint management
+      - control: mobile_device_management
+        probability: 0.60  # Device patching
+  
+  # Training & Testing
+  security_awareness_training:
+    positive_correlations:
+      - control: incident_response_plan
+        probability: 0.70  # Training includes IR
+      - control: penetration_testing
+        probability: 0.55  # Mature programs
+      - control: vulnerability_management
+        probability: 0.60  # Security culture
+  
+  penetration_testing:
+    positive_correlations:
+      - control: vulnerability_management
+        probability: 0.75  # Testing validates vuln mgmt
+      - control: secure_sdlc
+        probability: 0.65  # Testing in SDLC
+      - control: incident_response_plan
+        probability: 0.70  # Red team exercises
+      - control: soc_24x7
+        probability: 0.60  # SOC responds to tests
+
+# =============================================================================
+# CONTROL MATURITY LEVELS
+# =============================================================================
+# Organizations typically implement controls in stages based on security maturity.
+# This helps generate realistic scenarios where control presence correlates with
+# organizational maturity level.
+#
+# Maturity Levels (based on NIST Cybersecurity Framework):
+# - Level 1 (Initial): Ad-hoc, reactive security
+# - Level 2 (Managed): Risk-informed, some policies
+# - Level 3 (Defined): Formal policies, repeatable processes
+# - Level 4 (Quantitatively Managed): Measured and controlled
+# - Level 5 (Optimizing): Continuous improvement
+
+control_maturity_levels:
+  level_1_initial:
+    # Basic controls - ad-hoc, reactive security
+    # Reality: Many orgs lack even basic controls
+    typical_controls:
+      - firewall
+      - antivirus
+      - password_policy
+    probability: 0.40  # Only 40% chance - many orgs lack basics
+    description: "Ad-hoc security, reactive, no formal program"
+  
+  level_2_managed:
+    # Risk-aware controls - some policies exist
+    # Reality: Starting to invest but inconsistent
+    typical_controls:
+      - mfa
+      - backup_recovery
+      - endpoint_patching
+      - ids_ips
+      - security_awareness_training
+    probability: 0.55  # 55% chance - inconsistent implementation
+    description: "Risk-informed, some policies, inconsistent enforcement"
+  
+  level_3_defined:
+    # Formal security program - repeatable processes
+    # Reality: Mature orgs with dedicated security teams
+    typical_controls:
+      - edr_xdr
+      - siem
+      - vulnerability_management
+      - network_segmentation
+      - incident_response_plan
+      - rbac
+      - encryption_at_rest
+      - waf
+    probability: 0.70  # 70% chance - formal program in place
+    description: "Formal policies, repeatable processes, dedicated security team"
+  
+  level_4_quantitatively_managed:
+    # Measured and controlled - metrics-driven
+    # Reality: Well-funded enterprises with mature programs
+    typical_controls:
+      - soc_24x7
+      - privileged_access_mgmt
+      - data_loss_prevention
+      - threat_intelligence
+      - penetration_testing
+      - secure_sdlc
+      - sast_dast
+      - ngfw
+      - network_access_control
+    probability: 0.75  # 75% chance - well-resourced programs
+    description: "Measured and controlled, metrics-driven, well-funded"
+  
+  level_5_optimizing:
+    # Continuous improvement - cutting-edge
+    # Reality: Only most mature orgs (FAANG, finance, defense)
+    typical_controls:
+      - soar
+      - zero_trust
+      - jit_access
+      - application_whitelisting
+      - software_composition_analysis
+      - api_gateway
+      - privileged_session_mgmt
+      - threat_intelligence
+    probability: 0.65  # 65% chance - even mature orgs don't have everything
+    description: "Continuous improvement, cutting-edge, industry-leading"
+
+# =============================================================================
+# SECTOR-SPECIFIC MATURITY ADJUSTMENTS
+# =============================================================================
+# Different sectors have different security investment levels and regulatory
+# requirements. This adjusts maturity probabilities based on sector.
+#
+# Multipliers applied to base maturity probabilities:
+# - <1.0: Underinvested sectors (reduces probability)
+# - >1.0: Well-invested sectors (increases probability)
+#
+# Academic & Industry References:
+# 1. Verizon (2024). "Data Breach Investigations Report"
+#    - https://www.verizon.com/business/resources/reports/dbir/
+#    - Sector-specific breach statistics and control adoption rates
+#    - Note: 2024 DBIR released May 2024, covers 2023 breach data
+#
+# 2. IBM Security (2024). "Cost of a Data Breach Report"
+#    - https://www.ibm.com/reports/data-breach
+#    - Security investment by sector, breach costs by industry
+#    - Released July 2024, covers global breach cost data
+#
+# 3. SANS Institute (2024). "Cybersecurity Survey Reports"
+#    - https://www.sans.org/white-papers/
+#    - Security spending and control adoption by sector
+#
+# 4. Cybersecurity & Infrastructure Security Agency (CISA)
+#    - https://www.cisa.gov/topics/critical-infrastructure-security-and-resilience
+#    - Critical infrastructure sector profiles and security guidance
+#
+# 5. Center for Internet Security (CIS) (2024). "CIS Controls"
+#    - https://www.cisecurity.org/controls
+#    - Control implementation guidance and adoption patterns
+#
+# 6. National Institute of Standards and Technology (NIST)
+#    - https://www.nist.gov/cyberframework/industry-resources
+#    - Cybersecurity Framework adoption by sector
+#
+# 7. ENISA (European Union Agency for Cybersecurity) (2024)
+#    - https://www.enisa.europa.eu/topics/threat-risk-management
+#    - Threat landscape and sector-specific security assessments
+
+sector_maturity_adjustments:
+  # Well-invested sectors (strong security culture)
+  financial_services:
+    multiplier: 1.3  # 30% increase - heavily regulated
+    typical_maturity: 4  # Usually Level 4
+    description: "Banks, insurance, fintech - heavily regulated, high investment"
+    references:
+      - "Verizon DBIR 2024: https://www.verizon.com/business/resources/reports/dbir/"
+      - "IBM Cost of Data Breach 2024: https://www.ibm.com/reports/data-breach"
+      - "FFIEC Cybersecurity Assessment Tool: https://www.ffiec.gov/cyberassessmenttool.htm"
+      - "PCI Security Standards: https://www.pcisecuritystandards.org/"
+  
+  defense_government:
+    multiplier: 1.4  # 40% increase - national security requirements
+    typical_maturity: 5  # Usually Level 5
+    description: "Defense contractors, government agencies - highest security"
+    references:
+      - "NIST SP 800-171: https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final"
+      - "CMMC Model: https://dodcio.defense.gov/CMMC/Model/"
+      - "FedRAMP: https://www.fedramp.gov/"
+      - "DoD Zero Trust Strategy: https://dodcio.defense.gov/Portals/0/Documents/Library/DoD-ZTStrategy.pdf"
+  
+  technology:
+    multiplier: 1.2  # 20% increase - security-aware culture
+    typical_maturity: 4  # Usually Level 4
+    description: "Tech companies, SaaS providers - security-aware"
+    references:
+      - "Verizon DBIR 2023: https://www.verizon.com/business/resources/reports/dbir/"
+      - "SOC 2 Compliance: https://www.aicpa.org/interestareas/frc/assuranceadvisoryservices/aicpasoc2report"
+      - "Cloud Security Alliance: https://cloudsecurityalliance.org/research/guidance/"
+  
+  healthcare_pharma:
+    multiplier: 0.9  # 10% decrease - HIPAA but underinvested
+    typical_maturity: 2  # Usually Level 2
+    description: "Hospitals, clinics, pharma - HIPAA required but underinvested"
+    references:
+      - "Verizon DBIR 2023: https://www.verizon.com/business/resources/reports/dbir/"
+      - "HHS Breach Portal: https://ocrportal.hhs.gov/ocr/breach/breach_report.jsf"
+      - "HIPAA Security Rule: https://www.hhs.gov/hipaa/for-professionals/security/"
+      - "IBM Cost of Data Breach 2023: https://www.ibm.com/reports/data-breach"
+  
+  # Underinvested sectors (weak security culture)
+  education:
+    multiplier: 0.6  # 40% decrease - chronically underfunded
+    typical_maturity: 1  # Usually Level 1
+    description: "Schools, universities - chronically underfunded"
+    references:
+      - "Verizon DBIR 2023: https://www.verizon.com/business/resources/reports/dbir/"
+      - "K12 Security Information Exchange: https://www.k12six.org/"
+      - "Educause Cybersecurity Program: https://www.educause.edu/focus-areas-and-initiatives/policy-and-security/cybersecurity-program"
+      - "MS-ISAC K-12 Cybersecurity: https://www.cisecurity.org/ms-isac/services/k-12-cybersecurity"
+  
+  small_business:
+    multiplier: 0.5  # 50% decrease - no dedicated security
+    typical_maturity: 1  # Usually Level 1
+    description: "SMBs <500 employees - no dedicated security staff"
+    references:
+      - "Verizon DBIR 2023: https://www.verizon.com/business/resources/reports/dbir/"
+      - "NIST Small Business Cybersecurity: https://www.nist.gov/itl/smallbusinesscyber"
+      - "CISA Small Business Guide: https://www.cisa.gov/resources-tools/resources/cybersecurity-guide-small-businesses"
+      - "FTC Cybersecurity for Small Business: https://www.ftc.gov/business-guidance/small-businesses/cybersecurity"
+  
+  retail_hospitality:
+    multiplier: 0.7  # 30% decrease - PCI-DSS but minimal investment
+    typical_maturity: 2  # Usually Level 2
+    description: "Retail, restaurants, hotels - PCI-DSS but minimal beyond compliance"
+    references:
+      - "Verizon DBIR 2023: https://www.verizon.com/business/resources/reports/dbir/"
+      - "PCI DSS v4.0: https://www.pcisecuritystandards.org/document_library/"
+      - "Verizon Payment Security Report: https://www.verizon.com/business/resources/reports/payment-security-report/"
+      - "National Retail Federation Security: https://nrf.com/topics/loss-prevention-and-security"
+  
+  manufacturing:
+    multiplier: 0.8  # 20% decrease - OT security challenges
+    typical_maturity: 2  # Usually Level 2
+    description: "Manufacturing, industrial - OT/IT convergence challenges"
+    references:
+      - "Verizon DBIR 2023: https://www.verizon.com/business/resources/reports/dbir/"
+      - "CISA ICS Advisories: https://www.cisa.gov/news-events/cybersecurity-advisories"
+      - "NIST Manufacturing Profile: https://www.nist.gov/cyberframework/manufacturing-profile"
+      - "Dragos ICS/OT Report: https://www.dragos.com/resources/"
+  
+  # Moderate investment sectors
+  energy_utilities:
+    multiplier: 1.0  # No change - NERC CIP but legacy systems
+    typical_maturity: 3  # Usually Level 3
+    description: "Power, oil & gas, water - regulated but legacy infrastructure"
+    references:
+      - "NERC CIP Standards: https://www.nerc.com/pa/Stand/Pages/CIPStandards.aspx"
+      - "CISA Energy Sector: https://www.cisa.gov/topics/critical-infrastructure-security-and-resilience/critical-infrastructure-sectors/energy-sector"
+      - "DOE Cybersecurity Capability Maturity Model: https://www.energy.gov/ceser/cybersecurity-capability-maturity-model-c2m2"
+      - "ICS-CERT Advisories: https://www.cisa.gov/news-events/cybersecurity-advisories"
+  
+  telecommunications:
+    multiplier: 1.1  # 10% increase - critical infrastructure
+    typical_maturity: 3  # Usually Level 3
+    description: "Telecom, ISPs - critical infrastructure, moderate investment"
+    references:
+      - "CISA Communications Sector: https://www.cisa.gov/topics/critical-infrastructure-security-and-resilience/critical-infrastructure-sectors/communications-sector"
+      - "FCC CSRIC Best Practices: https://www.fcc.gov/general/communications-security-reliability-and-interoperability-council"
+      - "Verizon DBIR 2024: https://www.verizon.com/business/resources/reports/dbir/"
+      - "NIST Telecom Profile: https://www.nist.gov/cyberframework/industry-resources"
+  
+  media_entertainment:
+    multiplier: 0.75  # 25% decrease - IP protection focus only
+    typical_maturity: 2  # Usually Level 2
+    description: "Media, entertainment, gaming - IP protection but limited security"
+    references:
+      - "Verizon DBIR 2024: https://www.verizon.com/business/resources/reports/dbir/"
+      - "MPAA Content Security: https://www.motionpictures.org/what-we-do/advancing-creativity/additional-resources/content-security/"
+      - "Cloud Security Alliance Media: https://cloudsecurityalliance.org/"
+  
+  nonprofit:
+    multiplier: 0.55  # 45% decrease - severely underfunded
+    typical_maturity: 1  # Usually Level 1
+    description: "Nonprofits, charities, NGOs - severely underfunded"
+    references:
+      - "NTEN Cybersecurity: https://www.nten.org/"
+      - "CISA Nonprofit Cybersecurity: https://www.cisa.gov/resources-tools/groups/nonprofit-organizations"
+      - "Verizon DBIR 2024: https://www.verizon.com/business/resources/reports/dbir/"
+      - "National Council of Nonprofits: https://www.councilofnonprofits.org/tools-resources/cybersecurity-nonprofits"
+
+# =============================================================================
+# METADATA
+# =============================================================================
+metadata:
+  version: "1.2"
+  project_version: "0.2.0"
+  last_updated: "2026-01-01"
+  description: "Security control effectiveness parameters for Bayesian risk calculation with control correlation modeling"
+  note: "Config version (1.2) tracks security controls schema changes. Project version (0.2.0) tracks overall application version."
+  references:
+    - "Verizon DBIR 2024: https://www.verizon.com/business/resources/reports/dbir/"
+    - "IBM Cost of Data Breach 2024: https://www.ibm.com/reports/data-breach"
+    - "MITRE ATT&CK: https://attack.mitre.org/mitigations/enterprise/"
+    - "NIST SP 800-53: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+    - "NIST SP 800-190: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-190.pdf"
+    - "NIST Cybersecurity Framework: https://www.nist.gov/cyberframework"
