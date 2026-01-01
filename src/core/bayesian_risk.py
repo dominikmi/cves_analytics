@@ -30,13 +30,13 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any
 
 import polars as pl
 from pydantic import BaseModel, Field, field_validator
 
 from src.utils.logging_config import get_logger
+from src.utils.security_controls_config import get_security_controls_config
 
 logger = get_logger(__name__)
 
@@ -44,88 +44,91 @@ logger = get_logger(__name__)
 # =============================================================================
 # LIKELIHOOD RATIO TABLES
 # =============================================================================
-# These values are derived from security research and can be overridden via config.
-# Sources: MITRE ATT&CK effectiveness data, NIST SP 800-53 control effectiveness,
-# empirical studies on control efficacy.
+
+# Load configuration once at module level
+_config = get_security_controls_config()
 
 
-class SecurityControlLR(float, Enum):
-    """Likelihood ratios for security controls.
+def get_control_lr(control_name: str) -> float:
+    """Get likelihood ratio for a security control from config.
 
-    LR < 1 means the control REDUCES exploitation probability.
-    Values derived from:
-    - MITRE ATT&CK mitigations effectiveness
-    - NIST SP 800-53 control families
-    - Industry benchmarks (Verizon DBIR, Mandiant M-Trends)
+    Args:
+        control_name: Name of the control (e.g., 'network_segmentation', 'mfa')
 
-    Interpretation:
-    - LR = 0.1: Control reduces exploitation odds by 90%
-    - LR = 0.5: Control reduces exploitation odds by 50%
-    - LR = 1.0: Control has no effect
+    Returns:
+        Likelihood ratio (LR < 1 reduces risk)
     """
+    # Try all control categories
+    categories = [
+        "network_controls",
+        "endpoint_controls",
+        "access_controls",
+        "security_operations",
+        "data_protection",
+        "application_security",
+        "patch_management",
+    ]
 
-    # Network Controls
-    NETWORK_SEGMENTATION = 0.3  # Limits lateral movement significantly
-    FIREWALL = 0.5  # Blocks unauthorized network access
-    WAF = 0.4  # Blocks common web attacks (OWASP Top 10)
-    IDS_IPS = 0.5  # Detects/blocks known attack patterns
+    for category in categories:
+        try:
+            return _config.get_control_value(category, control_name)
+        except (KeyError, ValueError):
+            continue
 
-    # Endpoint Controls
-    EDR_XDR = 0.4  # Detects/blocks endpoint exploitation
-    ANTIVIRUS = 0.7  # Basic malware detection
-    HOST_FIREWALL = 0.6  # Local network filtering
-
-    # Access Controls
-    MFA = 0.3  # Mitigates credential-based attacks
-    PRIVILEGED_ACCESS_MGMT = 0.4  # Limits privilege escalation
-    RBAC = 0.6  # Reduces attack surface via least privilege
-
-    # Patch Management
-    PATCH_DAILY = 0.2  # Minimal exposure window
-    PATCH_WEEKLY = 0.4  # Short exposure window
-    PATCH_MONTHLY = 0.7  # Moderate exposure window
-    PATCH_QUARTERLY = 0.9  # Long exposure window
-
-    # Security Operations
-    SIEM = 0.6  # Detection capability
-    SOC_24X7 = 0.5  # Continuous monitoring
-    INCIDENT_RESPONSE_PLAN = 0.7  # Reduces impact, not likelihood
-
-    # Application Security
-    SECURE_SDLC = 0.6  # Reduces vulnerability introduction
-    CODE_REVIEW = 0.7  # Catches vulnerabilities pre-deployment
-    SAST_DAST = 0.6  # Automated security testing
-
-    # Physical/Environmental
-    AIR_GAPPED = 0.05  # Severely limits network attack surface
-    PHYSICAL_SECURITY = 0.8  # Prevents physical access attacks
+    # Fallback to 1.0 (no effect) if not found
+    logger.warning(f"Control '{control_name}' not found in config, using LR=1.0")
+    return 1.0
 
 
-class ExposureLR(float, Enum):
-    """Likelihood ratios for exposure context.
+def get_exposure_lr(exposure: str) -> float:
+    """Get likelihood ratio for exposure context from config.
 
-    LR > 1 means exposure INCREASES exploitation probability.
+    Args:
+        exposure: Exposure type (e.g., 'internet-facing', 'internal')
+
+    Returns:
+        Likelihood ratio (LR > 1 increases risk)
     """
+    try:
+        return _config.get_control_value(
+            "exposure_context", exposure.lower().replace("-", "_")
+        )
+    except (KeyError, ValueError):
+        # Fallback values
+        exposure_map = {
+            "internet-facing": 2.5,
+            "internet_facing": 2.5,
+            "dmz": 1.8,
+            "internal": 0.6,
+            "restricted": 0.3,
+            "air-gapped": 0.1,
+            "air_gapped": 0.1,
+        }
+        return exposure_map.get(exposure.lower(), 1.0)
 
-    INTERNET_FACING = 2.5  # Directly accessible from internet
-    DMZ = 1.8  # In DMZ, some protection
-    INTERNAL = 0.6  # Internal network only
-    RESTRICTED = 0.3  # Restricted zone, limited access
-    AIR_GAPPED = 0.1  # No network connectivity
 
+def get_threat_indicator_lr(indicator: str) -> float:
+    """Get likelihood ratio for threat indicator from config.
 
-class ThreatIndicatorLR(float, Enum):
-    """Likelihood ratios for threat indicators.
+    Args:
+        indicator: Threat indicator type (e.g., 'kev_listed', 'public_exploit')
 
-    LR > 1 means indicator INCREASES exploitation probability.
+    Returns:
+        Likelihood ratio (LR > 1 increases risk)
     """
-
-    KEV_LISTED = 3.0  # CISA Known Exploited Vulnerabilities
-    PUBLIC_EXPLOIT = 2.0  # Exploit code publicly available
-    METASPLOIT_MODULE = 2.5  # Metasploit module exists
-    WEAPONIZED = 4.0  # Actively weaponized in campaigns
-    APT_INTEREST = 2.0  # Known APT interest in this vuln
-    RANSOMWARE_ASSOCIATED = 3.0  # Associated with ransomware campaigns
+    try:
+        return _config.get_control_value("threat_indicators", indicator.lower())
+    except (KeyError, ValueError):
+        # Fallback values
+        indicator_map = {
+            "kev_listed": 3.0,
+            "public_exploit": 2.0,
+            "metasploit_module": 2.5,
+            "weaponized": 4.0,
+            "apt_interest": 2.0,
+            "ransomware_associated": 3.0,
+        }
+        return indicator_map.get(indicator.lower(), 1.0)
 
 
 class CVSSVectorLR:
@@ -823,8 +826,8 @@ class BayesianRiskAssessor:
                     )
                 continue
 
-            # Use exposure-conditional LR for security controls
-            lr = ExposureConditionalControlLR.get_lr(control, exposure)
+            # Use config-based LR for security controls
+            lr = get_control_lr(control)
             if lr != 1.0:
                 total_log_lr += math.log(lr)
                 control_name = control.replace("_", " ").title()
@@ -833,7 +836,7 @@ class BayesianRiskAssessor:
                     (
                         f"Control: {control_name}",
                         lr,
-                        f"reduces risk by {reduction:.0f}% (for {exposure})",
+                        f"reduces risk by {reduction:.0f}%",
                     ),
                 )
 

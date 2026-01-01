@@ -12,6 +12,11 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from src.utils.security_controls_config import get_security_controls_config
+
+# Load config once at module level
+_config = get_security_controls_config()
+
 
 class TemporalFactors(BaseModel):
     """Temporal factors affecting exploitation probability."""
@@ -72,15 +77,10 @@ def calculate_age_factor(days_since_disclosure: int, is_zero_day: bool) -> float
 
 
 def calculate_patch_factor(days_since_patch: int | None) -> float:
-    """Calculate patch availability factor.
+    """Calculate patch availability factor from config.
 
-    Patch availability reduces exploitation probability:
-    - No patch: 1.0x (no reduction)
-    - Patch < 7d: 0.8x (20% reduction - patch just released)
-    - Patch 7-30d: 0.5x (50% reduction - patch available)
-    - Patch 30-90d: 0.3x (70% reduction - patch widely deployed)
-    - Patch 90-365d: 0.2x (80% reduction - most systems patched)
-    - Patch > 1yr: 0.1x (90% reduction - negligence if unpatched)
+    Patch availability reduces exploitation probability based on
+    values defined in security_controls.yaml temporal_factors section.
 
     Args:
         days_since_patch: Days since patch was released (None if no patch)
@@ -90,18 +90,21 @@ def calculate_patch_factor(days_since_patch: int | None) -> float:
 
     """
     if days_since_patch is None:
-        return 1.0  # No patch available
+        return _config.temporal_factors.get("no_patch", 1.0)
+
+    # Get thresholds and factors from config
+    temporal = _config.temporal_factors
 
     if days_since_patch <= 7:
-        return 0.8
+        return temporal.get("patch_lt_7d", 0.8)
     elif days_since_patch <= 30:
-        return 0.5
+        return temporal.get("patch_7_30d", 0.5)
     elif days_since_patch <= 90:
-        return 0.3
+        return temporal.get("patch_30_90d", 0.3)
     elif days_since_patch <= 365:
-        return 0.2
+        return temporal.get("patch_90_365d", 0.2)
     else:
-        return 0.1  # Extreme negligence
+        return temporal.get("patch_gt_1yr", 0.1)  # Extreme negligence
 
 
 def apply_temporal_adjustment(

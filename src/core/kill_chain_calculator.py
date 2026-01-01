@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from src.simulation.application_templates import (
     ApplicationTemplate,
 )
+from src.utils.security_controls_config import get_security_controls_config
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class KillChainCalculator:
     def __init__(self) -> None:
         """Initialize the kill-chain calculator."""
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = get_security_controls_config()
 
     def _is_remote_code_execution(self, vulnerability: dict[str, Any]) -> bool:
         """Detect if vulnerability is Remote Code Execution.
@@ -65,8 +67,18 @@ class KillChainCalculator:
             True if vulnerability enables remote code execution
         """
         # Check CVSS vector for network-accessible high impact
-        cvss_vector = vulnerability.get("cvss_vector", "")
-        if "AV:N" in cvss_vector and ("I:H" in cvss_vector or "A:H" in cvss_vector):
+        # Try multiple column name variations
+        cvss_vector = (
+            vulnerability.get("cvss_v3_1_vector")
+            or vulnerability.get("cvss_base_vector")
+            or vulnerability.get("cvss_vector")
+            or ""
+        )
+        if (
+            cvss_vector
+            and "AV:N" in cvss_vector
+            and ("I:H" in cvss_vector or "A:H" in cvss_vector or "C:H" in cvss_vector)
+        ):
             return True
 
         # Check CWE for code execution categories
@@ -90,8 +102,18 @@ class KillChainCalculator:
             True if vulnerability enables privilege escalation
         """
         # Check CVSS for privilege requirement changes
-        cvss_vector = vulnerability.get("cvss_vector", "")
-        if "PR:L" in cvss_vector and "I:H" in cvss_vector:
+        # Try multiple column name variations
+        cvss_vector = (
+            vulnerability.get("cvss_v3_1_vector")
+            or vulnerability.get("cvss_base_vector")
+            or vulnerability.get("cvss_vector")
+            or ""
+        )
+        if (
+            cvss_vector
+            and ("PR:L" in cvss_vector or "PR:N" in cvss_vector)
+            and "I:H" in cvss_vector
+        ):
             return True
 
         # Check CWE for privilege escalation
@@ -112,8 +134,18 @@ class KillChainCalculator:
         Returns:
             True if vulnerability enables container escape
         """
-        description = vulnerability.get("description", "").lower()
-        return "container escape" in description or "breakout" in description
+        # Try multiple description column variations
+        description = (
+            vulnerability.get("vuln_desc") or vulnerability.get("description") or ""
+        )
+        if description:
+            desc_lower = description.lower()
+            return (
+                "container escape" in desc_lower
+                or "breakout" in desc_lower
+                or "docker" in desc_lower
+            )
+        return False
 
     def calculate_kill_chain_probability(
         self,
@@ -225,61 +257,118 @@ class KillChainCalculator:
             if comp.exposure == "internet-facing"
         ]
 
+        # Also check for components with any exposure (fallback)
+        all_component_roles = [comp.role.value for comp in application.components]
+
+        self.logger.info(
+            f"Internet-facing roles: {internet_facing_roles}, All roles: {all_component_roles}"
+        )
+        self.logger.info(f"Total vulnerabilities: {len(vulnerabilities)}")
+
         if not internet_facing_roles or vulnerabilities.is_empty():
-            return KillChainStage(
-                name="Initial Access",
-                components=internet_facing_roles,
-                base_probability=0.01,  # Minimal baseline
-                conditional_probability=0.01,
-                contributing_factors={"no_vulnerabilities": 0.01},
-            )
+            # Use all components if no internet-facing ones
+            if (
+                not internet_facing_roles
+                and all_component_roles
+                and not vulnerabilities.is_empty()
+            ):
+                internet_facing_roles = all_component_roles
+                self.logger.info(
+                    f"No internet-facing components, using all: {internet_facing_roles}"
+                )
+            else:
+                return KillChainStage(
+                    name="Initial Access",
+                    components=internet_facing_roles or all_component_roles,
+                    base_probability=0.01,  # Minimal baseline
+                    conditional_probability=0.01,
+                    contributing_factors={"no_vulnerabilities": 0.01},
+                )
 
         # Filter vulnerabilities for internet-facing components
         if "service_role" in vulnerabilities.columns:
             internet_vulns = vulnerabilities.filter(
                 pl.col("service_role").is_in(internet_facing_roles)
             )
-        else:
+            self.logger.info(
+                f"Filtered by service_role, found {len(internet_vulns)} vulnerabilities"
+            )
+        elif "exposure" in vulnerabilities.columns:
             # Fallback: use exposure column
             internet_vulns = vulnerabilities.filter(
                 pl.col("exposure") == "internet-facing"
             )
+            self.logger.info(
+                f"Filtered by exposure, found {len(internet_vulns)} vulnerabilities"
+            )
+        else:
+            # No filtering possible, use all vulnerabilities
+            internet_vulns = vulnerabilities
+            self.logger.info(
+                f"No filtering columns available, using all {len(internet_vulns)} vulnerabilities"
+            )
 
         if internet_vulns.is_empty():
-            return KillChainStage(
-                name="Initial Access",
-                components=internet_facing_roles,
-                base_probability=0.01,
-                conditional_probability=0.01,
-                contributing_factors={"no_exploitable_vulns": 0.01},
+            # If filtering resulted in no vulnerabilities, use all vulnerabilities
+            self.logger.warning(
+                f"No internet-facing vulnerabilities found, using all {len(vulnerabilities)} vulnerabilities"
             )
+            internet_vulns = vulnerabilities
+
+            if internet_vulns.is_empty():
+                return KillChainStage(
+                    name="Initial Access",
+                    components=internet_facing_roles,
+                    base_probability=0.01,
+                    conditional_probability=0.01,
+                    contributing_factors={"no_exploitable_vulns": 0.01},
+                )
 
         # Get maximum Bayesian risk score (highest exploitation probability)
         if "bayesian_risk_score" in internet_vulns.columns:
             max_risk = internet_vulns["bayesian_risk_score"].max()
             base_prob = float(max_risk) if max_risk is not None else 0.01
-        else:
+            self.logger.info(
+                f"Initial Access: Using bayesian_risk_score, max={base_prob:.3f}"
+            )
+        elif "epss_score" in internet_vulns.columns:
             # Fallback to EPSS
             max_epss = internet_vulns["epss_score"].max()
             base_prob = float(max_epss) if max_epss is not None else 0.01
+            self.logger.info(f"Initial Access: Using epss_score, max={base_prob:.3f}")
+        elif "epss" in internet_vulns.columns:
+            # Try alternative column name
+            max_epss = internet_vulns["epss"].max()
+            base_prob = float(max_epss) if max_epss is not None else 0.01
+            self.logger.info(f"Initial Access: Using epss, max={base_prob:.3f}")
+        else:
+            base_prob = 0.01
+            self.logger.warning(
+                f"Initial Access: No risk score columns found, using default {base_prob}"
+            )
 
         # Apply security control modifiers
         factors = {"max_vuln_probability": base_prob}
 
         # WAF reduces initial access probability
         if security_controls.get("waf", False):
-            base_prob *= 0.3  # 70% reduction
-            factors["waf"] = 0.3
+            waf_lr = self.config.get_kill_chain_control_value("initial_access", "waf")
+            base_prob *= waf_lr
+            factors["waf"] = waf_lr
 
         # IDS/IPS reduces initial access
         if security_controls.get("ids_ips", False):
-            base_prob *= 0.4  # 60% reduction
-            factors["ids_ips"] = 0.4
+            ids_lr = self.config.get_kill_chain_control_value(
+                "initial_access", "ids_ips"
+            )
+            base_prob *= ids_lr
+            factors["ids_ips"] = ids_lr
 
         # MFA reduces credential-based initial access
         if security_controls.get("mfa", False):
-            base_prob *= 0.5  # 50% reduction
-            factors["mfa"] = 0.5
+            mfa_lr = self.config.get_kill_chain_control_value("initial_access", "mfa")
+            base_prob *= mfa_lr
+            factors["mfa"] = mfa_lr
 
         return KillChainStage(
             name="Initial Access",
@@ -338,45 +427,71 @@ class KillChainCalculator:
         if docker_security_good:
             # Good practices: non-root user, read-only FS, seccomp, AppArmor
             if has_rce:
-                base_prob *= 0.3  # 70% reduction (limited damage, can't persist)
-                factors["docker_good_rce_protection"] = 0.3
+                rce_lr = self.config.get_docker_control_value(
+                    "good_practices", "rce_protection"
+                )
+                base_prob *= rce_lr
+                factors["docker_good_rce_protection"] = rce_lr
             elif has_privesc:
-                base_prob *= 0.2  # 80% reduction (already non-root, hard to escalate)
-                factors["docker_good_privesc_protection"] = 0.2
+                privesc_lr = self.config.get_docker_control_value(
+                    "good_practices", "privesc_protection"
+                )
+                base_prob *= privesc_lr
+                factors["docker_good_privesc_protection"] = privesc_lr
             elif has_container_escape:
-                base_prob *= 0.4  # 60% reduction (seccomp/AppArmor limit syscalls)
-                factors["docker_good_escape_protection"] = 0.4
+                escape_lr = self.config.get_docker_control_value(
+                    "good_practices", "container_escape_protection"
+                )
+                base_prob *= escape_lr
+                factors["docker_good_escape_protection"] = escape_lr
             else:
-                base_prob *= 0.5  # 50% reduction (general hardening)
-                factors["docker_good_practices"] = 0.5
+                general_lr = self.config.get_docker_control_value(
+                    "good_practices", "general_hardening"
+                )
+                base_prob *= general_lr
+                factors["docker_good_practices"] = general_lr
         else:
             # Bad practices: root user, writable FS, no seccomp/AppArmor
             # Critical: Running as root with RCE = immediate root access!
             if has_rce:
-                base_prob *= 1.0  # NO reduction (attacker gets root immediately)
-                factors["docker_poor_rce_no_protection"] = 1.0
+                rce_lr = self.config.get_docker_control_value(
+                    "poor_practices", "rce_no_protection"
+                )
+                base_prob *= rce_lr
+                factors["docker_poor_rce_no_protection"] = rce_lr
                 self.logger.warning(
                     "RCE vulnerability with poor Docker practices: NO protection (root access)"
                 )
             elif has_privesc:
-                base_prob *= 0.9  # 10% reduction (already root, minimal impact)
-                factors["docker_poor_privesc_minimal"] = 0.9
+                privesc_lr = self.config.get_docker_control_value(
+                    "poor_practices", "privesc_minimal"
+                )
+                base_prob *= privesc_lr
+                factors["docker_poor_privesc_minimal"] = privesc_lr
             elif has_container_escape:
-                base_prob *= 1.0  # NO reduction (no seccomp/AppArmor)
-                factors["docker_poor_escape_no_protection"] = 1.0
+                escape_lr = self.config.get_docker_control_value(
+                    "poor_practices", "container_escape_no_protection"
+                )
+                base_prob *= escape_lr
+                factors["docker_poor_escape_no_protection"] = escape_lr
             else:
-                base_prob *= 0.9  # 10% reduction (minimal hardening)
-                factors["docker_poor_practices"] = 0.9
+                minimal_lr = self.config.get_docker_control_value(
+                    "poor_practices", "minimal_hardening"
+                )
+                base_prob *= minimal_lr
+                factors["docker_poor_practices"] = minimal_lr
 
         # EDR/XDR blocks execution
         if security_controls.get("edr_xdr", False):
-            base_prob *= 0.4  # 60% reduction
-            factors["edr_xdr"] = 0.4
+            edr_lr = self.config.get_kill_chain_control_value("execution", "edr_xdr")
+            base_prob *= edr_lr
+            factors["edr_xdr"] = edr_lr
 
         # Application firewall
         if security_controls.get("waf", False):
-            base_prob *= 0.6  # 40% reduction
-            factors["waf"] = 0.6
+            waf_lr = self.config.get_kill_chain_control_value("execution", "waf")
+            base_prob *= waf_lr
+            factors["waf"] = waf_lr
 
         # Conditional probability given initial access
         conditional_prob = base_prob
@@ -415,33 +530,51 @@ class KillChainCalculator:
 
         # Network segmentation (strongest control for lateral movement)
         if security_controls.get("network_segmentation", False):
-            base_prob *= 0.3  # 70% reduction
-            factors["network_segmentation"] = 0.3
+            seg_lr = self.config.get_kill_chain_control_value(
+                "lateral_movement", "network_segmentation"
+            )
+            base_prob *= seg_lr
+            factors["network_segmentation"] = seg_lr
         else:
             # Flat network - easier lateral movement
-            base_prob *= 0.9  # 10% reduction
-            factors["flat_network"] = 0.9
+            flat_lr = self.config.get_kill_chain_control_value(
+                "lateral_movement", "flat_network"
+            )
+            base_prob *= flat_lr
+            factors["flat_network"] = flat_lr
 
         # Docker security affects lateral movement through network isolation
         # Good practices: network policies, user namespaces, limited capabilities
         # Bad practices: shared network, root user, privileged containers
         if docker_security_good:
-            base_prob *= 0.5  # 50% reduction (network policies, isolation)
-            factors["docker_good_network_isolation"] = 0.5
+            docker_net_lr = self.config.get_kill_chain_control_value(
+                "lateral_movement", "docker_good_network"
+            )
+            base_prob *= docker_net_lr
+            factors["docker_good_network_isolation"] = docker_net_lr
         else:
             # Bad practices provide minimal isolation
-            base_prob *= 0.9  # 10% reduction (minimal isolation)
-            factors["docker_poor_network_isolation"] = 0.9
+            docker_poor_lr = self.config.get_kill_chain_control_value(
+                "lateral_movement", "docker_poor_network"
+            )
+            base_prob *= docker_poor_lr
+            factors["docker_poor_network_isolation"] = docker_poor_lr
 
         # EDR/XDR detects lateral movement
         if security_controls.get("edr_xdr", False):
-            base_prob *= 0.5  # 50% reduction
-            factors["edr_xdr"] = 0.5
+            edr_lr = self.config.get_kill_chain_control_value(
+                "lateral_movement", "edr_xdr"
+            )
+            base_prob *= edr_lr
+            factors["edr_xdr"] = edr_lr
 
         # SIEM/SOC monitoring
         if security_controls.get("siem", False):
-            base_prob *= 0.6  # 40% reduction
-            factors["siem"] = 0.6
+            siem_lr = self.config.get_kill_chain_control_value(
+                "lateral_movement", "siem"
+            )
+            base_prob *= siem_lr
+            factors["siem"] = siem_lr
 
         conditional_prob = base_prob
 
@@ -473,23 +606,35 @@ class KillChainCalculator:
 
         # Data Loss Prevention
         if security_controls.get("data_loss_prevention", False):
-            base_prob *= 0.3  # 70% reduction
-            factors["dlp"] = 0.3
+            dlp_lr = self.config.get_kill_chain_control_value(
+                "objective_achievement", "data_loss_prevention"
+            )
+            base_prob *= dlp_lr
+            factors["dlp"] = dlp_lr
 
         # Encryption at rest
         if security_controls.get("encryption_at_rest", False):
-            base_prob *= 0.5  # 50% reduction (data less useful)
-            factors["encryption"] = 0.5
+            enc_lr = self.config.get_kill_chain_control_value(
+                "objective_achievement", "encryption_at_rest"
+            )
+            base_prob *= enc_lr
+            factors["encryption"] = enc_lr
 
         # Backup and recovery
         if security_controls.get("backup_recovery", False):
-            base_prob *= 0.6  # 40% reduction (can recover)
-            factors["backup"] = 0.6
+            backup_lr = self.config.get_kill_chain_control_value(
+                "objective_achievement", "backup_recovery"
+            )
+            base_prob *= backup_lr
+            factors["backup"] = backup_lr
 
         # SIEM/SOC detection
         if security_controls.get("siem", False):
-            base_prob *= 0.7  # 30% reduction
-            factors["siem"] = 0.7
+            siem_lr = self.config.get_kill_chain_control_value(
+                "objective_achievement", "siem"
+            )
+            base_prob *= siem_lr
+            factors["siem"] = siem_lr
 
         conditional_prob = base_prob
 

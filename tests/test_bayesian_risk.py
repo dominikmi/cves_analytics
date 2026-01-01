@@ -21,13 +21,13 @@ from src.core.bayesian_risk import (
     BayesianRiskResult,
     CVSSVectorLR,
     ExposureConditionalControlLR,
-    ExposureLR,
     LikelihoodRatioConfig,
-    SecurityControlLR,
     SecurityControlsInput,
-    ThreatIndicatorLR,
     ThreatIndicatorsInput,
     assess_vulnerabilities_bayesian,
+    get_control_lr,
+    get_exposure_lr,
+    get_threat_indicator_lr,
 )
 
 
@@ -533,46 +533,46 @@ class TestAssessVulnerabilitiesBayesian(unittest.TestCase):
         self.assertIn("bayesian_risk_score", result.columns)
 
 
-class TestSecurityControlLREnum(unittest.TestCase):
-    """Tests for SecurityControlLR enum values."""
+class TestSecurityControlLRConfig(unittest.TestCase):
+    """Tests for security control LR values from config."""
 
-    def test_all_controls_reduce_risk(self) -> None:
-        """Test that all security controls have LR <= 1."""
-        for control in SecurityControlLR:
-            self.assertLessEqual(
-                control.value, 1.0, f"{control.name} should reduce risk (LR <= 1)"
-            )
+    def test_controls_reduce_risk(self) -> None:
+        """Test that security controls have LR <= 1."""
+        controls = ["network_segmentation", "mfa", "waf", "edr_xdr", "firewall"]
+        for control in controls:
+            lr = get_control_lr(control)
+            self.assertLessEqual(lr, 1.0, f"{control} should reduce risk (LR <= 1)")
 
-    def test_air_gapped_most_effective(self) -> None:
-        """Test that air-gapped is the most effective control."""
-        self.assertEqual(SecurityControlLR.AIR_GAPPED.value, 0.05)
+    def test_network_segmentation_most_effective(self) -> None:
+        """Test that network segmentation is highly effective."""
+        self.assertEqual(get_control_lr("network_segmentation"), 0.3)
 
 
-class TestExposureLREnum(unittest.TestCase):
-    """Tests for ExposureLR enum values."""
+class TestExposureLRConfig(unittest.TestCase):
+    """Tests for exposure LR values from config."""
 
     def test_internet_facing_increases_risk(self) -> None:
         """Test that internet-facing increases risk."""
-        self.assertGreater(ExposureLR.INTERNET_FACING.value, 1.0)
+        self.assertGreater(get_exposure_lr("internet-facing"), 1.0)
 
     def test_internal_reduces_risk(self) -> None:
         """Test that internal exposure reduces risk."""
-        self.assertLess(ExposureLR.INTERNAL.value, 1.0)
+        self.assertLess(get_exposure_lr("internal"), 1.0)
 
 
-class TestThreatIndicatorLREnum(unittest.TestCase):
-    """Tests for ThreatIndicatorLR enum values."""
+class TestThreatIndicatorLRConfig(unittest.TestCase):
+    """Tests for threat indicator LR values from config."""
 
-    def test_all_indicators_increase_risk(self) -> None:
-        """Test that all threat indicators have LR > 1."""
-        for indicator in ThreatIndicatorLR:
-            self.assertGreater(
-                indicator.value, 1.0, f"{indicator.name} should increase risk (LR > 1)"
-            )
+    def test_indicators_increase_risk(self) -> None:
+        """Test that threat indicators have LR > 1."""
+        indicators = ["kev_listed", "public_exploit", "metasploit_module", "weaponized"]
+        for indicator in indicators:
+            lr = get_threat_indicator_lr(indicator)
+            self.assertGreater(lr, 1.0, f"{indicator} should increase risk (LR > 1)")
 
     def test_weaponized_highest_risk(self) -> None:
         """Test that weaponized has highest LR."""
-        self.assertEqual(ThreatIndicatorLR.WEAPONIZED.value, 4.0)
+        self.assertEqual(get_threat_indicator_lr("weaponized"), 4.0)
 
 
 class TestCVSSVectorLR(unittest.TestCase):

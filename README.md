@@ -1,798 +1,629 @@
-# CVEs Analytics
+# CVEs Analytics: Comprehensive Vulnerability Assessment Framework
 
-A comprehensive Python application for CVE (Common Vulnerabilities and Exposures) data analytics, vulnerability assessment, and Docker image scanning with advanced simulation capabilities.
+## Introduction
 
-## 📋 Features
+A few years ago, I worked at a company where I experienced firsthand the absurdity of (so called)traditional vulnerability management. One day, they sat me down at a desk, handed me an Excel spreadsheet with a list of CRITICAL, HIGH, MEDIUM, and LOW vulnerabilities across servers in different locations, and told me to call local security leaders asking why they hadn't patched their systems yet.
 
-### Core Functionality
-1. **CVE Data Management**
-   - **Primary: [CVSS-BT dataset](https://github.com/t0sche/cvss-bt)** - Pre-computed CVSS with exploitability
-   - Fallback: CVE v5 data from NVD (National Vulnerability Database)
-   - Parse and store CVSS v2, v3, and v4 metrics
-   - Extract CWE (Common Weakness Enumeration) information
-   - Merge with EPSS (Exploit Prediction Scoring System) scores
-   - Integrate KEV (Known Exploited Vulnerabilities) data
-   - Exploit availability tracking (ExploitDB, Metasploit, Nuclei, GitHub PoC)
+The whole situation was ridiculous. I had no context about which vulnerabilities actually mattered. I didn't know if a CRITICAL vulnerability on an internal development server was more urgent than a MEDIUM one on an internet-facing production system. I had no information about whether security controls were in place that might mitigate the risks. I couldn't tell security leaders anything useful beyond "this CVE has a high CVSS score" - which they already knew from their own scanners.
 
-2. **Vulnerability Analysis**
-   - Attack chain analysis using graph-based approach
-   - **MITRE ATT&CK tactic mapping** (CWE/impact → tactic, displayed in reports)
-   - Vulnerability enrichment with CISAGOV data
-   - CWE metadata retrieval and analysis
+The conversations were predictably frustrating. Security leaders would ask reasonable questions: "Is this actually exploitable in our environment?" "Do we have compensating controls?" "Is this being actively exploited in the wild?" And I had no answers. The Excel spreadsheet only had CVE IDs, CVSS scores, and server names. No context, no prioritization beyond severity labels, no actionable intelligence.
 
-3. **Bayesian Risk Assessment**
-   - Principled probabilistic risk scoring using Bayes' theorem
-   - EPSS as prior probability, updated with environmental evidence
-   - Configurable likelihood ratios for security controls, exposure, CVSS vectors
-   - **Exploit maturity LRs** from CVSS-BT (Metasploit: 2.5, ExploitDB: 2.0, Nuclei: 1.8, PoC: 1.5)
-   - Uncertainty quantification with 95% credible intervals
-   - Exploitability gating to prevent false risk inflation
-   - **Attack scenarios and remediation focused on Bayesian-critical vulns only**
+This experience highlighted a fundamental problem in how many organizations approach vulnerability management. We generate massive lists of vulnerabilities, categorize them by CVSS scores, and then expect security teams to somehow figure out what to fix first. It's inefficient, demotivating, and often leads to the wrong priorities. Critical vulnerabilities on isolated systems get immediate attention while actively exploited vulnerabilities on exposed systems wait in the queue because they're labeled "MEDIUM."
 
-4. **NLP Vulnerability Extraction**
-   - Rule-based pattern matching on CVE descriptions
-   - Attack type detection (RCE, SQLi, XSS, DoS, etc.)
-   - Context extraction (auth requirements, user interaction)
-   - Confidence scoring based on pattern matches
-   - Integration with Bayesian risk as weak signals
-   - **Attack categories displayed in vulnerability reports**
+This project was born from that past and gone frustration, but also from reading great books about probability, quantitative risk, and Bayesian calculus - "Superforecasting" by Philip Tetlock and Dan Gardner, "How to Measure Anything in Cybersecurity Risk" by Douglas Hubbard and Richard Seiersen, "Metrics Manifesto" by Richard Seiersen and Doug Hubbard, "Bernoulli's Fallacy" by Aubrey Clayton, "Think Python" by Allen Downey, and "Think Bayes" by Allen Downey. Then came hours, days, and months spent practicing basic data management techniques using pandas and polars, working through online exercises from Professor Allen Downey's notebooks on Github.
 
-5. **Docker Image Scanning**
-   - Scan Docker images using Grype
-   - Support for public and private registries
-   - Vulnerability detection and reporting
-   - Batch scanning from CSV lists
+The goal was to build a framework that provides the context and intelligence that was missing from that Excel spreadsheet. A system that could answer the questions those security leaders were asking: Which vulnerabilities are actually exploitable in our specific environment? What's the real-world probability of exploitation? How do our security controls affect the risk? Where should we focus our limited resources for maximum impact?
 
-6. **Simulation & Scenario Generation**
-   - Generate realistic IT environment scenarios
-   - Configurable organization size and reach
-   - Industry-specific architecture design
-   - Network topology and security posture generation
-   - Binary security controls with maturity-based generation
-   - System configuration simulation
+The result is a comprehensive vulnerability assessment framework that goes far beyond CVSS scores and severity labels. It combines Bayesian risk assessment, kill-chain probability modeling, and environmental context to provide actionable, prioritized recommendations. Instead of calling security leaders with a list of CVEs, we can now tell them: "These three vulnerabilities have a combined 85% exploitation probability in your environment, they're part of an attack chain that could lead to data exfiltration, and here's exactly why they matter more than the other 500 vulnerabilities in your backlog."
 
-7. **Bayesian-Focused Reporting**
-   - Executive summary with Bayesian risk distribution
-   - Risk prioritization by exploitation probability
-   - Remediation roadmap based on Bayesian risk categories
-   - Attack paths filtered to Bayesian-critical vulnerabilities
-   - NLP attack categories in top vulnerability details
-   - Team-based Bayesian risk heatmap
-   - **[View Demo Report](DEMO_REPORT.md)**
+That's the kind of intelligence that actually helps security teams do their jobs effectively.
 
-## 🚀 Quick Start
+## Project Overview
 
-### Prerequisites
+This project represents a comprehensive approach to vulnerability assessment that goes beyond traditional scanning methods. Instead of simply listing vulnerabilities by their CVSS scores, we developed a framework that evaluates real-world exploitation probability using Bayesian statistics, models complete attack chains through multi-component applications, and provides actionable, context-aware recommendations.
 
-- **Python 3.12+**
-- **Docker** - Running daemon required for image scanning
-- **Grype** - Vulnerability scanner ([install guide](https://github.com/anchore/grype#installation))
+The main motivation behind this work was to address a critical gap in existing vulnerability management tools: they often produce overwhelming lists of vulnerabilities without proper risk context, leading to inefficient resource allocation and missed critical threats. Our framework aims to answer the question: "Which vulnerabilities actually matter in my specific environment?"
 
-```bash
-# Install Grype on macOS
-brew install grype
+## Core Philosophy
 
-# Or download binary
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+Traditional vulnerability scanners operate on a simple principle: scan, report severity, and let security teams figure out priorities. This approach treats vulnerability metrics as absolute truths rather than what they actually are - signals to be interpreted and inferred from.
+
+**The fundamental insight:** CVSS scores, CVSS vectors, EPSS predictions, severity labels, and other standardized metrics are not final answers. They are starting points or if you like signals that require interpretation within specific environmental contexts. A CVSS score of 9.8 is not an objective measure of risk; it's a signal about the vulnerability's theoretical maximum impact under worst-case conditions. Similarly, an EPSS score of 85% is not a guarantee of exploitation; it's a probabilistic signal based on historical patterns and threat intelligence.
+
+This distinction matters because it changes how we approach vulnerability assessment:
+
+1. **Signals require interpretation** - A vulnerability with CVSS 9.8 might be less dangerous than one with CVSS 7.5 if the former has no known exploits and sits on an internal system, while the latter is actively exploited and exposed to the internet. Or how about multiple vulnerabilities with CVSS less than 7.5 but are actively exploited and exposed to the internet? The CVSS scores are signals; the actual risk requires inference from environmental context.
+
+2. **Context transforms signals into actionable intelligence** - The same vulnerability poses different risks depending on the environment, security controls, network architecture, and business criticality. We don't just collect these signals; we use them as inputs for (let's not shy away from this scary word)probabilistic inference.
+
+3. **Attack chains reveal signal relationships** - Attackers don't exploit single vulnerabilities in isolation; they chain multiple weaknesses to achieve their objectives. Understanding how signals relate to each other in attack sequences provides deeper insight than treating them independently.
+
+The proposed framework treats all vulnerability data as signals to work with, interpret, and infer from. It combines multiple signals through Bayesian inference to produce probabilistic (sort of - because we do not assess losses) risk assessments that reflect real-world conditions, not just theoretical severity scores.
+
+The framework addresses these principles through three main pillars:
+
+### 1. Bayesian Risk Assessment
+
+Instead of relying solely on CVSS scores, we use Bayesian inference to calculate exploitation probability. This approach combines:
+
+- **EPSS (Exploit Prediction Scoring System)** as the prior probability - representing real-world exploitation likelihood based on threat intelligence
+- **Environmental factors** as evidence that updates the probability - including security controls, network exposure, asset criticality
+- **Uncertainty quantification** - providing 95% credible intervals to express confidence in risk estimates - We are 95% confident that the true exploitation probability lies between ci_low and ci_high. It directly expresses the degree of a given belief about this parameter given the available evidence. (I can't believe I was able to write it down myself)
+
+**Why Bayesian approach?**
+
+The Bayesian method allows us to start with a reasonable baseline (EPSS) and systematically update it based on specific environmental context. This is more principled than arbitrary multiplicative scoring and provides mathematical rigor to risk assessment.
+
+**How credible intervals quantify uncertainty:**
+
+The 95% credible interval expresses confidence in the risk estimate. Wider intervals indicate higher uncertainty, which occurs when:
+
+1. **EPSS score is less reliable** (low percentile) - If a vulnerability is in the 20th percentile of EPSS scores, we're less confident in the prediction than if it's in the 95th percentile
+2. **Limited evidence** (few contributing factors) - More evidence from security controls, threat indicators, and CVSS components reduces uncertainty
+3. **Probability near 50%** (maximum entropy) - When exploitation probability is around 50%, we're maximally uncertain; when it's 5% or 95%, we're more certain
+
+The framework uses a beta distribution approximation to calculate these intervals, combining three uncertainty factors:
+- **Percentile factor**: Higher EPSS percentile = more confidence (lower uncertainty)
+- **Evidence factor**: More contributing factors = more confidence (each factor reduces uncertainty by ~5%)
+- **Entropy factor**: Probabilities near 0.5 have maximum uncertainty, near 0 or 1 have minimum uncertainty
+
+Typical uncertainty ranges from 5% (high confidence with strong evidence) to 30% (low confidence with weak evidence). This provides transparency about the confidence in each assessment, helping security teams understand not just the risk level, but how certain we are about that assessment.
+
+**Key innovation: Exploitability gating**
+
+Through numerous experiments and computations it's been discovered (quite logically, duh!) that amplification factors (like internet exposure) should only apply when exploitation is actually plausible. For example, an internet-facing service with a vulnerability that has 0.1% EPSS and no known exploits shouldn't be amplified to high risk just because it's exposed - there's no evidence anyone can exploit it. Our gating mechanism ensures amplification only applies when EPSS ≥ 5% or known exploits exist.
+
+### 2. Kill-Chain Probability Analysis
+
+Traditional vulnerability assessments treat each vulnerability independently. However, real attacks follow a kill-chain pattern: Initial Access → Execution → Lateral Movement → Objective Achievement. (Actually a shortened version of the kill-chain, but it's good enough and serves the purpose)
+
+Our kill-chain analysis:
+
+- **Models multi-component applications** - Analyzes complete systems (e.g., 7-component financial platform) rather than isolated services
+- **Calculates stage-by-stage probabilities** - Each stage has base probability and conditional probability given previous stage success
+- **Incorporates security controls** - Network segmentation, EDR/XDR, Docker hardening, SIEM monitoring all reduce stage probabilities
+- **Identifies bottlenecks** - Shows which stage is hardest to breach, guiding defensive priorities
+
+**Why kill-chain modeling?**
+
+Because this reflects how actual attacks work. An attacker needs to succeed at each stage sequentially. A complex attack is multi-staged. It's not like KABOOM, we are compromised! If initial access is very difficult (1% probability), it doesn't matter if lateral movement would be easy (50% probability) - the overall chain probability is still very low (0.5%). This helps prioritize defenses at the most critical stages.
+
+**Security control penalty modeling**
+
+A crucial aspect of our kill-chain analysis is that we don't just model protective controls - we also penalize bad practices. For example:
+
+- Good Docker practices (non-root, read-only, seccomp): **0.3 LR (Likelihood Ratio)** (70% reduction in execution risk)
+- Poor Docker practices (root containers, no hardening): **1.3 LR** (30% increase in execution risk)
+- Network segmentation: **0.3 LR** (70% reduction in lateral movement)
+- Flat network: **1.3 LR** (30% increase in lateral movement)
+
+This ensures the model accurately reflects reality - in my viewabsence of security controls isn't neutral, it actively increases probability of compromise and suffering from losses.
+
+### 3. Adaptive Scenario Generation
+
+To demonstrate the framework's capabilities across different environments, I worked out a generator which provides an adaptive scenario at each pipeline's run that creates realistic IT environments based on:
+
+- **Organization size** (small, mid, large) - affects number of services and complexity
+- **Industry** (financial services, consulting, e-commerce) - determines application architecture and security requirements
+- **Environment type** (dev, test, prod) - influences security control deployment
+- **Security maturity** (initial, developing, defined, managed, optimizing) - determines which controls are active
+
+The scenario generator uses industry best practices and statistical correlations to ensure realistic control combinations. For example, organizations with SIEM typically also have network segmentation and EDR/XDR, because these controls are often deployed together (nevertheless I've seen more cumbersome patterns as well)
+
+## Technical Implementation
+
+### Data Sources and Enrichment
+
+The framework integrates multiple authoritative data sources:
+
+1. **CVE v5 data** - Vulnerability descriptions, CVSS vectors, CWE classifications
+2. **EPSS scores** - Monthly exploitation probability predictions from FIRST.org
+3. **KEV catalog** - Known Exploited Vulnerabilities from CISA
+4. **CWE database** - Weakness classifications with detailed descriptions
+
+**Enrichment pipeline:**
+
+```
+Raw CVE data → EPSS enrichment → KEV enrichment → CWE enrichment → CVSS vector parsing → Bayesian risk calculation
 ```
 
-### Installation
+Each enrichment step adds context that improves risk assessment accuracy. For example, knowing a vulnerability is in the KEV catalog immediately elevates its priority regardless of CVSS score.
 
-```bash
-# Clone the repository
-git clone https://github.com/dominikmi/cves_analytics.git
-cd cves_analytics
+### Bayesian Risk Calculation
 
-# Install dependencies using uv
-uv sync
+The mathematical foundation is straightforward but powerful:
 
-# Activate virtual environment
-source .venv/bin/activate
+```
+Posterior Odds = Prior Odds × LR1 × LR2 × ... × LRn
 ```
 
-### Basic Usage
+Where:
+- **Prior Odds** = EPSS score converted to odds using the formula: `odds = probability / (1 - probability)`. For example, EPSS of 8.3% becomes odds of 0.083 / (1 - 0.083) = 0.0905. I decided to use odds space because it simplifies combining multiple pieces of evidence - instead of applying Bayes' theorem repeatedly, I am simply multiplying likelihood ratios and convert back to probability at the end.
+- **LR (Likelihood Ratio)** = Factor representing evidence strength
+  - LR < 1.0: Evidence reduces exploitation probability (protective controls)
+  - LR = 1.0: No effect (baseline)
+  - LR > 1.0: Evidence increases exploitation probability (risk factors)
 
-#### Run the Full Pipeline (Recommended)
+**Example calculation:**
 
-The easiest way to use this tool is to run the complete vulnerability assessment pipeline:
+Consider a vulnerability with:
+- EPSS: 8.3% (prior probability)
+- Internet-facing service (LR = 2.5)
+- No security controls (LR = 1.0)
+- Critical asset (LR = 1.5)
+- Known exploit exists (LR = 2.0)
 
-```bash
-# Basic run with default settings (small environment)
-python -m src.cli.run_pipeline
-
-# Customize the simulated environment
-python -m src.cli.run_pipeline \
-  --org-size small \
-  --org-reach local \
-  --industry financial-services \
-  --environment prod
+```
+Prior odds = 0.083 / (1 - 0.083) = 0.0905
+Posterior odds = 0.0905 × 2.5 × 1.0 × 1.5 × 2.0 = 0.679
+Posterior probability = 0.679 / (1 + 0.679) = 40.4%
 ```
 
-**Available options:**
+This vulnerability has 40.4% exploitation probability - clearly high risk requiring immediate attention.
 
-| Option | Values | Default | Description |
-|--------|--------|---------|-------------|
-| `--org-size` | `small`, `mid`, `large`, `enterprise` | `small` | Organization size |
-| `--org-reach` | `local`, `regional`, `national`, `global` | `local` | Geographic reach |
-| `--industry` | `financial-services`, `healthcare`, `technology`, `retail`, `manufacturing` | `financial-services` | Industry type |
-| `--environment` | `dev`, `staging`, `prod` | `prod` | Environment type |
+### Kill-Chain Probability Calculation
 
-**What the pipeline does:**
+Each stage in the kill-chain has:
 
-1. **Generates a simulated IT environment** - Creates realistic services (nginx, postgres, redis, etc.) with security controls
-2. **Scans Docker images** - Uses Grype to find vulnerabilities in each service's container image
-3. **Enriches with threat intelligence** - Adds CVSS-BT exploit data, EPSS scores, KEV status, CWE details
-4. **Performs Bayesian risk assessment** - Calculates exploitation probability considering your security controls
-5. **Generates a report** - Creates a prioritized vulnerability report saved to `output/`
+1. **Base probability** - Likelihood of stage success without considering previous stages
+2. **Conditional probability** - Likelihood given previous stage succeeded
+3. **Contributing factors** - Security controls that modify the probability
 
-**Output:**
-- Report saved to `output/report_YYYY-MM-DD_HH-MM-SS.txt`
-- See [DEMO_REPORT.md](DEMO_REPORT.md) for an example
+**Stage calculation example (Lateral Movement):**
 
-> ⚠️ **Performance Warning:** Larger environments scan more Docker images and process more data.
->
-> | Org Size | Services | Estimated Time | Docker Images |
-> |----------|----------|----------------|---------------|
-> | `small` | 5-8 | 3-5 minutes | ~7 images |
-> | `mid` | 10-15 | 8-15 minutes | ~15 images |
-> | `large` | 20-30 | 20-40 minutes | ~30 images |
-> | `enterprise` | 40+ | 45+ minutes | ~50+ images |
->
-> First run downloads ~2GB of CVE data (cached for subsequent runs).
+```
+Base probability = 0.002 (0.2% baseline - probability attacker attempts lateral movement)
+
+Apply security controls (each control reduces the probability):
+- Network segmentation: 0.002 × 0.3 = 0.0006 (70% reduction)
+- Docker network isolation: 0.0006 × 0.5 = 0.0003 (50% reduction)
+- EDR/XDR: 0.0003 × 0.5 = 0.00015 (50% reduction)
+- SIEM: 0.00015 × 0.6 = 0.00009 (40% reduction)
+
+Final stage probability = 0.00009 (0.009%)
+
+This means: IF an attacker successfully executes code (previous stage), 
+there's a 0.009% chance they succeed at lateral movement.
+```
+
+The overall kill-chain probability is the product of all stage probabilities:
+
+```
+P(success) = P(initial_access) × P(execution|initial_access) × P(lateral|execution) × P(objective|lateral)
+```
+
+### Docker Security Assessment
+
+Docker security is evaluated based on specific practices:
+
+**Good practices (protective):**
+- Non-root user execution
+- Read-only root filesystem
+- Seccomp profiles enabled
+- AppArmor/SELinux enabled
+- Capabilities dropped
+- Network policies configured
+
+**Poor practices (penalized):**
+- Root user execution
+- Writable root filesystem
+- No seccomp profiles
+- Privileged mode enabled
+- Host networking
+- No capability restrictions
+
+The assessment checks container configurations and applies appropriate likelihood ratios. This ensures the kill-chain analysis accurately reflects the security posture of containerized environments.
+
+## Analysis Flow
+
+The complete analysis follows this workflow:
+
+```
+1. Environment Generation
+   ↓
+   - Generate realistic IT environment based on parameters
+   - Select services, assign roles, configure network topology
+   - Deploy security controls based on maturity level
+   
+2. Docker Image Scanning
+   ↓
+   - Scan selected Docker images using Grype
+   - Extract vulnerability data (CVE IDs, CVSS scores, descriptions)
+   - Identify affected packages and versions
+   
+3. Data Enrichment
+   ↓
+   - Enrich with EPSS scores (exploitation probability)
+   - Add KEV status (known exploited)
+   - Fetch CWE classifications
+   - Parse CVSS vectors for detailed analysis
+   
+4. Bayesian Risk Assessment
+   ↓
+   - Calculate exploitation probability for each vulnerability
+   - Apply environmental context (exposure, controls, criticality)
+   - Implement exploitability gating
+   - Quantify uncertainty with credible intervals
+   
+5. Kill-Chain Analysis
+   ↓
+   - Build multi-component application model
+   - Calculate stage-by-stage probabilities
+   - Apply security control effects
+   - Identify bottlenecks and critical paths
+   
+6. Attack Scenario Analysis
+   ↓
+   - Build attack graph from vulnerabilities
+   - Identify potential attack paths
+   - Calculate path probabilities
+   - Prioritize based on likelihood and impact
+   
+7. Report Generation
+   ↓
+   - Executive summary with risk distribution
+   - Kill-chain probability analysis
+   - Risk-based prioritization
+   - Remediation roadmap with effort estimates
+   - Team-based risk heatmap
+```
+
+Each step builds on the previous one, progressively adding context and insight until we arrive at actionable recommendations.
+
+## Comparative Examples
+
+To demonstrate the framework's effectiveness, we generated three scenarios with different security maturity levels. These examples show how the same vulnerability landscape is assessed differently based on environmental context.
+
+### Scenario Comparison: The Impact of Security Maturity
+
+| Metric | Poor Security | Average Security | Good Security |
+|--------|---------------|------------------|---------------|
+| **Organization** | Small on-line store | Mid consulting firm | Mid financial services |
+| **Security Maturity** | Initial | Defined | Managed |
+| **Active Controls** | 5 controls | 8 controls | 12 controls |
+| **Total Vulnerabilities** | 1,363 | 6,806 | 3,783 |
+| **Critical (Bayesian)** | 18 (1.3%) | 23 (0.3%) | 18 (0.5%) |
+| **Actionable Vulns** | 41 | 134 | 75 |
+| **Lateral Movement** | N/A | 5.2% | 3.1% |
+| **Remediation Effort** | 101 hours | 236 hours | 146 hours |
+
+**Key observations:**
+
+1. **More vulnerabilities ≠ higher risk** - The average security scenario has 6,806 vulnerabilities but only 0.3% are critical after Bayesian assessment, compared to 1.3% in the poor security scenario with only 1,363 vulnerabilities. This demonstrates that security controls effectively reduce exploitation probability.
+
+2. **Security controls compound** - The good security scenario with 12 controls achieves 40% lower lateral movement probability (3.1% vs 5.2%) compared to average security with 8 controls. This shows that comprehensive security provides non-linear benefits.
+
+3. **Remediation efficiency** - Despite having more total vulnerabilities, the average and good security scenarios have more efficient remediation because Bayesian assessment correctly identifies which vulnerabilities actually matter in their specific contexts.
+
+### Example: How Security Controls Transform Risk Assessment
+
+To demonstrate the framework's effectiveness, consider how the same high-EPSS vulnerability is assessed differently across security maturity levels:
+
+**CVE-2023-44487 (HTTP/2 Rapid Reset) - EPSS: 94.40%**
+
+This vulnerability is actively mass-exploited in the wild, representing a realistic high-threat scenario.
+
+**Vulnerability-Level Assessment:**
+
+- **Poor Security** (internet-facing, no WAF, no EDR, poor Docker):
+  - Exploitation probability: **98.6%** [93.3%-100.0%]
+  - Classification: **CRITICAL**
+  - Reasoning: High EPSS + internet exposure + no protective controls + poor Docker practices
+
+- **Average Security** (internal, EDR, network segmentation, good Docker):
+  - Exploitation probability: **78.3%** [69.9%-86.7%]
+  - Classification: **CRITICAL**
+  - Reasoning: High EPSS reduced by EDR (40%) and segmentation (70%), but still very high
+
+- **Good Security** (internet-facing, WAF, EDR, SIEM, network segmentation, good Docker):
+  - Exploitation probability: **82.8%** [76.0%-89.6%]
+  - Classification: **CRITICAL**
+  - Reasoning: High EPSS + internet exposure mitigated by comprehensive controls (WAF 70%, EDR 60%, SIEM 30%)
+
+**Initial Observation**: "All scenarios are still CRITICAL - do security controls even matter?"
+
+**Kill-Chain Reality (Defense in Depth):**
+
+Even if the vulnerability is exploited, the attacker must succeed through the entire kill-chain:
+
+**Poor Security Kill-Chain:**
+- Initial Access (vulnerability exploited): 98.6%
+- Execution (root containers, no EDR): 80% conditional
+- Lateral Movement (flat network): 60% conditional
+- Objective Achievement (no DLP, no SIEM): 90% conditional
+- **Overall attack success**: 98.6% × 80% × 60% × 90% = **42.6%**
+
+**Good Security Kill-Chain:**
+- Initial Access (vulnerability exploited): 82.8%
+- Execution (Docker hardening 70%, EDR 60%, WAF 40%): 5.8% conditional
+- Lateral Movement (segmentation 70%, Docker isolation 50%, EDR 50%, SIEM 40%): 3.1% conditional
+- Objective Achievement (SIEM 30%, encryption 50%, DLP 70%): 63% conditional
+- **Overall attack success**: 82.8% × 5.8% × 3.1% × 63% = **0.094%**
+
+**Key Insight - Defense in Depth Works:**
+
+Even though the vulnerability exploitation probability only decreased from 98.6% to 82.8% (16% reduction), the **overall attack success probability** decreased from 42.6% to 0.094% - a **453× reduction**!
+
+This demonstrates that:
+1. **Vulnerability-level probability is just the first stage** - it's not the whole story
+2. **Security controls provide layered defense** - even if initial access succeeds, subsequent stages become extremely difficult
+3. **Good security contains breaches** - the difference between 42.6% and 0.094% is the difference between likely compromise and negligible risk
+4. **All scenarios should patch immediately** - but good security provides critical time to respond and limits damage if exploitation occurs before patching
+
+The framework correctly identifies the vulnerability as CRITICAL in all cases (patch immediately), but also shows that comprehensive security controls reduce the probability of a successful end-to-end attack by 453 times, demonstrating the real value of defense in depth.
+
+### Kill-Chain Analysis Comparison
+
+**Poor Security (Initial Maturity):**
+- No kill-chain analysis available (insufficient security controls for meaningful modeling)
+- Focus on individual vulnerability remediation
+- High risk from poor Docker practices
+
+**Average Security (Defined Maturity):**
+```
+Initial Access: 1.0% base probability (strong perimeter)
+Execution: 5.8% conditional (IF initial access succeeds)
+Lateral Movement: 5.2% conditional (IF execution succeeds)
+Objective Achievement: 90.0% conditional (IF lateral movement succeeds)
+
+Overall kill-chain probability: 1.0% x 5.8% x 5.2% x 90.0% = 0.00027% ≈ 0.0%
+Threat level: Negligible
+```
+
+**Good Security (Managed Maturity):**
+```
+Initial Access: 1.0% base probability (strong perimeter)
+Execution: 5.8% conditional (IF initial access succeeds)
+Lateral Movement: 3.1% conditional (IF execution succeeds) - 40% better than average
+Objective Achievement: 63.0% conditional (IF lateral movement succeeds) - 30% better than average
+
+Overall kill-chain probability: 1.0% × 5.8% × 3.1% × 63.0% = 0.00011% ≈ 0.0%
+Threat level: Negligible
+```
+
+**Why on earth both show 0.0% overall probability:**
+
+Both scenarios round to 0.0% because the overall probability is the **product of all sequential stages**. When you multiply very small probabilities together, the result becomes extremely small:
+
+- Average: 0.01 x 0.058 x 0.052 x 0.90 = 0.0000027 (0.00027%)
+- Good: 0.01 x 0.058 x 0.031 x 0.63 = 0.0000011 (0.00011%)
+
+Both are effectively zero when rounded to one decimal place, but the good security scenario is actually **2.5× more secure** (0.00011% vs 0.00027%).
+
+**Here is the critical insight:**
+
+The overall probability is dominated by the **bottleneck stage** - initial access at 1.0%. Even if an attacker gets past the perimeter (1% chance), they still face multiple hurdles:
+
+- Average security: Must succeed at 5.8% x 5.2% x 90.0% = 0.027% of subsequent stages
+- Good security: Must succeed at 5.8% x 3.1% x 63.0% = 0.011% of subsequent stages
+
+The **conditional probabilities reveal the real differences**:
+
+1. **Lateral Movement**: Good security is 40% better (3.1% vs 5.2%) - comprehensive controls compound
+2. **Objective Achievement**: Good security is 30% better (63.0% vs 90.0%) - SIEM monitoring reduces data exfiltration risk
+3. **Defense in depth works**: Even if initial access fails, layered controls at each stage provide additional protection
+
+**Practical implications:**
+
+While both environments have negligible overall risk, the good security scenario provides:
+- **2.5 times lower attack success probability** in absolute terms
+- **40% better lateral movement defense** - critical for containing breaches
+- **30% better objective achievement defense** - reduces impact if all other stages fail
+
+This demonstrates that security controls matter even when overall risk appears negligible - they provide defense in depth and reduce the probability of successful attacks at each stage.
+
+**Addressing the "Why Bother?" Question:**
+
+A critical reader might ask: "If the overall kill-chain probability is so negligible (0.00027% or 0.00011%), why bother investing in security controls at all?"
+
+This is a critical question that deserves a better answer:
+
+**1. The Bottleneck Can Fail**
+
+The 1.0% initial access probability assumes strong perimeter defenses are in place and working correctly. However:
+
+- **Zero-day vulnerabilities** can bypass perimeter controls overnight (e.g., Log4Shell, Heartbleed)
+- **Phishing and social engineering** don't respect technical perimeter defenses
+- **Insider threats** start from inside the perimeter
+- **Supply chain attacks** can compromise trusted vendors with legitimate access
+- **Misconfiguration** can accidentally expose internal systems
+
+When the perimeter fails - and it will do fail (we just don't know when) - the difference between 5.2% and 3.1% lateral movement probability can become the difference between a contained incident and a catastrophic breach.
+
+**2. Defense in Depth is Insurance**
+
+Security controls are a bit like insurance policies - usually you never need them (or even forget where they are), but when you do, they're invaluable:
+
+- **Average security**: If initial access succeeds (1% chance), attacker has 0.027% chance of completing the kill-chain
+- **Good security**: If initial access succeeds (1% chance), attacker has 0.011% chance of completing the kill-chain
+
+Good security provides **2.5 times better protection** when the perimeter is breached. In a real breach scenario, this could mean:
+- Detecting the attack before data exfiltration (SIEM monitoring)
+- Containing the attack to a single system (network segmentation)
+- Preventing privilege escalation (Docker hardening)
+
+**3. The "ominous" Probability x Impact = Risk**
+
+Even a 0.00011% probability matters when the impact is catastrophic:
+
+- **Financial services breach**: Average cost $5.9 million (IBM 2023)
+- **Healthcare data breach**: Average cost $10.9 million
+- **Regulatory fines**: GDPR allows up to 4% of global revenue
+
+Expected loss calculation:
+- Average security: 0.00027% × $5.9M = $15.93 expected annual loss
+- Good security: 0.00011% × $5.9M = $6.49 expected annual loss
+
+The difference ($9.44 annually) might seem laughable, but over 10 years that's $94.40 in expected loss reduction (still laughable). More importantly, this is the **average** - the actual loss in a successful attack is the full $5.9M, not the expected value.
+
+(f you flip a coin 1000 times betting $100 on heads, your expected value is $0 (50% win, 50% loss)
+But in any single flip, you either win $100 or lose $100 - not $0)
+
+**4. Real-World Attacks Don't Follow Perfect Probability**
+
+Our model assumes attackers face each stage independently. In reality:
+
+- **Sophisticated attackers** specifically target environments with weak controls, like wolves choose the weakest in the pack,
+- **Automated attacks** scan for vulnerable configurations (flat networks, poor Docker practices),
+- **Ransomware** spreads rapidly in environments without segmentation,
+- **APT groups** persist for months in environments under the SIEM radars,
+
+The 40% improvement in lateral movement defense (3.1% vs 5.2%) directly translates to:
+- Faster detection and response
+- Smaller blast radius
+- Lower recovery costs
+- Reduced business disruption
+
+**5. Compliance and Due Diligence**
+
+Beyond probability calculations, security controls provide tangible business value:
+
+- **Regulatory compliance** - PCI-DSS, HIPAA, GDPR, SOC 2 requirements mandate specific controls
+- **Legal liability reduction** - Demonstrable due diligence in the event of a breach reduces legal exposure
+- **Customer trust** - Security certifications and audit readiness are competitive differentiators
+- **Cyber insurance** - Eligibility requirements and premium reductions directly tied to control implementation
+
+These controls significantly reduce compliance and operational costs during audits, regulatory reviews, and customer security assessments. The ROI from avoiding compliance violations or failed audits may exceed the cost of the controls themselves.
+
+**6. The Asymmetry of Attack and Defense**
+
+Attackers only need to succeed once. Defenders must succeed every time. The negligible overall probability reflects:
+
+- **Strong defenses working as intended** - this is success, not irrelevance
+- **Multiple layers of protection** - each layer reduces probability further
+- **Resilience to single point of failure** - if one control fails, others compensate
+
+**The Bottom Line:**
+
+The negligible overall probability is not an argument against security controls - it's **evidence that security controls work**. The question isn't "Why bother with security controls?" but rather "Can we afford to have weaker controls?" - like "do we need to keep paying those damn license fees?"
+
+The comparison shows that moving from average (8 controls) to good security (12 controls) provides:
+- 2.5x lower attack success probability
+- 40% better breach containment
+- 30% better data protection
+- Measurably better defense at every stage
+
+In cybersecurity, as we try to make the attackers life harder, The overall negligible probability shows we're on the right trackl - and the conditional probabilities show that additional controls make their life even harder.
+
+## Methodological Decisions and Rationale
+
+### Why Bayesian Instead of Simple Scoring?
+
+Traditional vulnerability scoring often uses simple multiplication:
+
+```
+Risk = CVSS × Exposure x Criticality
+```
+
+This approach has several problems (hint: **whispering** like risk heatmaps):
+
+1. **No probabilistic interpretation** - What does a score of 42.5 actually mean?
+2. **Arbitrary weights** - Why multiply by 2.5 for internet exposure instead of 2.0 or 3.0?
+3. **No uncertainty quantification** - How confident are we in this assessment?
+
+Bayesian inference solves these issues:
+
+1. **Probabilistic output** - "40.4% exploitation probability" has clear meaning
+2. **Principled evidence combination** - Likelihood ratios have theoretical justification
+3. **Uncertainty quantification** - Credible intervals express confidence
+
+### Why Kill-Chain Modeling?
+
+Single-vulnerability risk assessment by large, misses the bigger picture. Attackers don't need to exploit every vulnerability to succeed - they need to succeed at each stage of the chosen (most promising)kill-chain. This has important implications:
+
+1. **Bottleneck identification** - If initial access is very difficult (1%), improving lateral movement defenses from 5% to 3% has minimal impact on overall risk
+2. **Resource allocation** - Focus defensive resources on the weakest link
+3. **Realistic threat modeling** - Reflects how actual attacks progress
+
+### Why Penalty Modeling for Bad Practices?
+
+Initially, I chose to only model protective controls (LR < 1.0). This created an unrealistic baseline where absence of controls was treated as neutral. In reality:
+
+- Running containers as root actively increases attackers' success probability
+- Flat networks actively enable lateral movement
+- No patching or long intervals between patchesactively extends exposure windows
+
+By penalizing bad practices (LR > 1.0), it's kind of like saying "if you do this, you're making it easier for attackers to succeed". This ensures the model accurately reflects that poor security posture isn't neutral - IT IS actively harmful! (Do you really think that leaving your door unlocked is neutral? Can you convince your insurance company that it WAS neutral?)
+
+### Why Multi-Scenario Analysis?
+
+Demonstrating the framework across different security maturity levels serves several purposes:
+
+1. **Validation** - Shows the model behaves sensibly across different contexts
+2. **Benchmarking** - Organizations can compare their posture to industry standards
+3. **ROI demonstration** - Quantifies the value of security investments (e.g., 40% reduction in lateral movement from comprehensive controls)
+
+## Limitations and Future Work
+
+### Current Limitations
+
+1. **EPSS dependency** - Currently, the proposed Bayesian approach relies on EPSS scores, which are only available for a subset of CVEs. Vulnerabilities without EPSS scores default to conservative estimates.
+
+2. **Static analysis** - The framework analyzes a snapshot of the environment. It doesn't model dynamic factors like patch deployment speed or incident response effectiveness.
+
+3. **Kill-chain simplification** - Real attacks are more complex than our four-stage model. We don't model persistence, privilege escalation as separate stages, or alternative attack paths.
+
+4. **Control effectiveness assumptions** - Our likelihood ratios for security controls are based on industry research and expert judgment, not empirical measurements from the specific environment.
+
+### Future Enhancements
+
+1. **Machine learning integration** - Use historical incident data to learn environment-specific likelihood ratios instead of using generic values.
+
+2. **Continuous monitoring** - Extend the framework to track risk over time, showing how it changes as vulnerabilities are patched and new ones emerge.
+
+3. **Attack simulation** - Add capability to simulate specific attack scenarios and measure defensive effectiveness.
+
+4. **Integration with SIEM/EDR** - Pull actual security events to validate model predictions and refine probability estimates.
+
+5. **Compliance mapping** - Map vulnerabilities to compliance requirements (PCI-DSS, HIPAA, GDPR) to support regulatory reporting.
+
+## Conclusion
+
+This framework represents a significant advancement over traditional vulnerability assessment approaches. By combining Bayesian risk assessment, kill-chain probability modeling, and adaptive scenario generation, it provides security teams with actionable, context-aware insights that enable efficient resource allocation and measurable risk reduction.
+
+The key innovations are:
+
+1. **Probabilistic risk assessment** with mathematical rigor and uncertainty quantification
+2. **Kill-chain modeling** that reflects how real attacks progress through systems
+3. **Security control penalty modeling** that accurately represents the cost of poor practices
+4. **Multi-scenario validation** demonstrating the framework's effectiveness across different contexts
+
+The comparative examples demonstrate that security controls work - they measurably reduce both exploitation probability and attack success rates. Organizations investing in comprehensive security (12+ controls) achieve:
+- **40% lower lateral movement probability** compared to basic security (8 controls)
+- **47× reduction in exploitation probability** for moderate-EPSS vulnerabilities (42.5% → 0.9%)
+- **453× reduction in end-to-end attack success** for high-EPSS vulnerabilities (42.6% → 0.094%)
+
+Most importantly, the framework provides clear, actionable recommendations: which vulnerabilities to patch first, which security controls to deploy, and where to focus defensive resources for maximum impact. This transforms vulnerability management from an overwhelming list of CVEs into a strategic, data-driven process.
+
+## Technical Documentation
+
+If you want to dive deeper into technical details, installation steps, and API documentation, here is where to look:
+
+- **[Technical Setup & Installation Guide](docs/TECHNICAL_SETUP.md)** - How to set it up, quick start, project structure, usage examples
+- **[Bayesian Risk Assessment Methodology](docs/BAYESIAN_RISK_ASSESSMENT.md)** - Detailed explanation of Bayesian approach, likelihood ratios, uncertainty quantification
+- **[Kill-Chain Probability Analysis](docs/EXTENDED_KILL_CHAIN_METHOD.md)** - Multi-stage attack modeling methodology and application templates
+- **[Mathematical Foundations](docs/MATHEMATICAL_REVIEW.md)** - Mathematical background behind the probabilistic risk assessment
+- **[Security Controls Configuration Guide](docs/SECURITY_CONTROLS_GUIDE.md)** - How to configure and customize security controls and likelihood ratios
+- **[Scenario Comparison](docs/SCENARIO_COMPARISON.md)** - Comparative analysis across different security maturity levels
+- **[Demo Report](docs/DEMO_REPORT.md)** - Example vulnerability assessment report with kill-chain analysis
+
+## References and Data Sources
+
+These are the data sources I used:
+
+- **EPSS (Exploit Prediction Scoring System)**: https://www.first.org/epss/
+- **CISA KEV Catalog**: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+- **CVE Program**: https://www.cve.org/
+- **CWE (Common Weakness Enumeration)**: https://cwe.mitre.org/
+- **CVSS (Common Vulnerability Scoring System)**: https://www.first.org/cvss/
+- **MITRE ATT&CK Framework**: https://attack.mitre.org/
+- **Verizon DBIR (Data Breach Investigations Report)**: https://www.verizon.com/business/resources/reports/dbir/
+- **IBM Cost of Data Breach Report**: https://www.ibm.com/reports/data-breach
+
+## Getting Started
+
+Want to try it? Check the **[Technical Setup Guide](docs/TECHNICAL_SETUP.md)** for installation and quick start instructions.
 
 ---
 
-#### Create CVE Dataset (Standalone)
-
-```bash
-python -m src.cli.create_dataset \
-  --start_year 2020 \
-  --end_year 2024 \
-  --data_path ./data \
-  --output_path ./output
-```
-
-This will:
-1. Download NVD CVE data for specified years
-2. Download EPSS scores
-3. Merge with KEV data
-4. Enrich with CWE details
-5. Export to CSV
-
-#### Scan Docker Images (Standalone)
-
-```bash
-# Scan single image
-python -m src.cli.scan_images --image ubuntu:latest
-
-# Scan from registry
-python -m src.cli.scan_images --registry https://registry.example.com
-
-# Scan from CSV list
-python -m src.cli.scan_images \
-  --list_of_images images.csv \
-  --output results.csv
-```
-
-#### Generate Simulation Scenarios
-
-```bash
-python -m src.cli.generate_simulation \
-  --size mid \
-  --reach global \
-  --industry financial-services \
-  --environment prod \
-  --format json
-```
-
-## 📦 Project Structure
-
-```
-cves_analytics/
-├── src/                          # Main source code
-│   ├── core/                     # Core business logic
-│   │   ├── bayesian_risk.py     # Bayesian risk assessment engine
-│   │   ├── risk_scoring.py      # Risk scoring (delegates to Bayesian)
-│   │   ├── cvss_parser.py       # CVSS metric parsing
-│   │   ├── cvss_vector_reassessment.py  # CVSS-based severity reassessment
-│   │   ├── cvev5_processor.py   # CVE v5 data processing
-│   │   ├── epss_processor.py    # EPSS score handling
-│   │   ├── kev_processor.py     # Known exploited vulnerabilities
-│   │   ├── cwe_processor.py     # CWE metadata processing
-│   │   ├── vulnrichment_processor.py  # Vulnerability enrichment
-│   │   ├── docker_scanner.py    # Docker image scanning
-│   │   ├── vulnerability_analyzer.py  # Attack chain analysis
-│   │   └── nlp_extractor.py     # NLP feature extraction
-│   ├── simulation/               # Scenario generation
-│   │   ├── scenario_config.py   # Configuration constants
-│   │   ├── scenario_generator.py # Scenario generation
-│   │   ├── security_controls.py # Security controls model
-│   │   └── system_simulator.py  # System configuration
-│   ├── utils/                    # Shared utilities
-│   │   ├── config.py            # Configuration management
-│   │   ├── logging_config.py    # Centralized logging
-│   │   └── error_handling.py    # Error handling
-│   └── cli/                      # CLI entry points
-│       ├── create_dataset.py    # Dataset creation
-│       ├── scan_images.py       # Docker scanning
-│       └── generate_simulation.py # Scenario generation
-├── tests/                        # Unit tests (121 test cases)
-├── notebooks/                    # Jupyter notebooks
-├── config/                       # Configuration files
-└── pyproject.toml               # Project configuration
-```
-
-## 🔧 Core Modules
-
-### CVSS Parser (`src/core/cvss_parser.py`)
-
-Parse CVSS v2 and v3 metrics from CVE impact data.
-
-```python
-from src.core.cvss_parser import CVSSParser
-
-impact_data = {
-    "baseMetricV3": {
-        "cvssV3": {
-            "version": "3.1",
-            "baseScore": 7.5,
-            "baseSeverity": "High",
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
-        }
-    }
-}
-
-metrics = CVSSParser.parse_cvss(impact_data)
-print(f"Base Score: {metrics['base_score']}")
-print(f"Severity: {metrics['base_severity']}")
-```
-
-### NVD Processor (`src/core/nvd_processor.py`)
-
-Download and process NVD CVE data.
-
-```python
-from src.core.nvd_processor import (
-    download_nvd_cve_data,
-    unzip_files,
-    load_nvd_cve_data
-)
-
-# Download data
-download_nvd_cve_data(2020, 2024, "./data")
-
-# Unzip files
-unzip_files("./data")
-
-# Load into DataFrame
-cves_df = load_nvd_cve_data(2020, 2024, "./data")
-print(f"Loaded {len(cves_df)} CVEs")
-```
-
-### EPSS Processor (`src/core/epss_processor.py`)
-
-Download and process EPSS scores.
-
-```python
-from src.core.epss_processor import download_epss_scores
-
-# Download EPSS scores for today
-epss_file = download_epss_scores("2025-12-06", "./data")
-
-# Load and process
-import polars as pl
-epss_scores = pl.read_csv(epss_file, comment_prefix="#")
-print(f"Loaded {len(epss_scores)} EPSS scores")
-```
-
-### Docker Scanner (`src/core/docker_scanner.py`)
-
-Scan Docker images for vulnerabilities.
-
-```python
-from src.core.docker_scanner import DockerImageScanner
-
-scanner = DockerImageScanner(registry_url="https://registry.example.com")
-
-# Scan single image
-results = scanner.scan_image_with_grype("ubuntu:latest")
-print(f"Found {len(results)} vulnerabilities")
-
-# Get images from registry
-images = scanner.list_images_and_tags()
-for repo, tags in images.items():
-    print(f"Repository: {repo}, Tags: {tags}")
-```
-
-### Vulnerability Analyzer (`src/core/vulnerability_analyzer.py`)
-
-Analyze attack chains and vulnerability relationships.
-
-```python
-from src.core.vulnerability_analyzer import AttackChainAnalyzer
-import polars as pl
-
-# Create DataFrame with CVE data
-cve_data = pl.DataFrame({
-    'cve_id': ['CVE-2021-1', 'CVE-2021-2'],
-    'impact': ['RCE', 'Privilege Escalation'],
-    'severity': ['Critical', 'High'],
-    'cwe': ['CWE-79', 'CWE-79']
-})
-
-analyzer = AttackChainAnalyzer(cve_data)
-
-# Find attack chains
-chains = analyzer.find_unique_chains()
-print(f"Found {len(chains)} attack chains")
-
-# Get graph statistics
-stats = analyzer.get_graph_statistics()
-print(f"Graph density: {stats['density']}")
-```
-
-### Bayesian Risk Assessor (`src/core/bayesian_risk.py`)
-
-Principled probabilistic risk assessment using Bayes' theorem.
-
-```python
-from src.core.bayesian_risk import BayesianRiskAssessor, SecurityControlsInput
-
-assessor = BayesianRiskAssessor()
-
-# Define security controls in place
-controls = SecurityControlsInput(
-    network_segmentation=True,
-    waf=True,
-    mfa=True,
-    edr_xdr=False,
-)
-
-# Assess a vulnerability
-result = assessor.assess(
-    epss_score=0.083,  # 8.3% EPSS
-    cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-    cvss_score=9.8,
-    exposure="internet-facing",
-    security_controls=controls,
-    threat_indicators={"has_public_exploit": True},
-    asset_criticality="critical",
-)
-
-print(f"Prior (EPSS): {result.prior_probability:.1%}")
-print(f"Posterior: {result.posterior_probability:.1%}")
-print(f"95% CI: [{result.credible_interval_low:.1%}, {result.credible_interval_high:.1%}]")
-print(f"Risk Category: {result.risk_category}")
-print(f"Explanation: {result.explanation}")
-```
-
-#### Key Concepts
-
-**Likelihood Ratios (LRs)**: Quantify how evidence changes belief
-- LR < 1: Evidence reduces exploitation probability (e.g., WAF present → LR=0.4)
-- LR > 1: Evidence increases exploitation probability (e.g., public exploit → LR=2.0)
-- LR = 1: Uninformative evidence
-
-**Exploitability Gating**: Amplification factors only apply when exploitation is plausible
-- Plausible if: EPSS ≥ 5% OR known exploit exists
-- Prevents low-EPSS vulnerabilities from being falsely inflated
-
-**Security Controls** (reduce risk):
-| Control | LR | Risk Reduction |
-|---------|-----|----------------|
-| Air-gapped | 0.05 | 95% |
-| Network Segmentation | 0.3 | 70% |
-| MFA | 0.3 | 70% |
-| WAF | 0.4 | 60% |
-| EDR/XDR | 0.4 | 60% |
-
-**Threat Indicators** (increase risk):
-| Indicator | LR | Risk Increase |
-|-----------|-----|---------------|
-| Weaponized | 4.0 | 300% |
-| KEV Listed | 3.0 | 200% |
-| Metasploit Module | 2.5 | 150% |
-| Public Exploit | 2.0 | 100% |
-
-### NLP Feature Extractor (`src/core/nlp_extractor.py`)
-
-Extract vulnerability features from CVE descriptions using rule-based NLP.
-
-```python
-from src.core.nlp_extractor import VulnDescriptionExtractor, enrich_with_nlp_features
-
-extractor = VulnDescriptionExtractor()
-
-# Extract features from a description
-desc = "A remote code execution vulnerability allows attackers to execute arbitrary code."
-features = extractor.extract(desc)
-
-print(f"Attack Types: {[at.value for at, _ in features.attack_types]}")
-print(f"Confidence: {features.confidence:.2f}")
-print(f"Network Accessible: {features.is_network_accessible}")
-print(f"Requires Auth: {features.requires_authentication}")
-
-# Enrich a DataFrame with NLP features
-import polars as pl
-df = pl.DataFrame({
-    "cve_id": ["CVE-2021-44228"],
-    "description": ["Apache Log4j2 allows remote code execution via JNDI lookups."]
-})
-enriched_df = enrich_with_nlp_features(df)
-print(enriched_df.columns)  # Includes nlp_attack_types, nlp_confidence, etc.
-```
-
-#### Detected Attack Types
-
-| Attack Type | Example Patterns |
-|-------------|------------------|
-| Remote Code Execution | "RCE", "execute arbitrary code" |
-| SQL Injection | "SQL injection", "SQLi" |
-| Cross-Site Scripting | "XSS", "cross-site scripting" |
-| Command Injection | "command injection", "arbitrary command" |
-| Buffer Overflow | "buffer overflow", "out-of-bounds" |
-| Privilege Escalation | "privilege escalation", "elevate privileges" |
-| Information Disclosure | "information disclosure", "data leak" |
-| Denial of Service | "DoS", "denial of service", "crash" |
-| Authentication Bypass | "authentication bypass", "bypass auth" |
-
-#### NLP Likelihood Ratios
-
-NLP-extracted features are used as weak signals in Bayesian risk assessment:
-
-| Attack Type | LR | Rationale |
-|-------------|-----|----------|
-| Remote Code Execution | 1.15 | High exploitability |
-| Command Injection | 1.12 | Often weaponized |
-| SQL Injection | 1.10 | Common attack vector |
-| Buffer Overflow | 1.08 | Memory corruption risk |
-| Denial of Service | 0.98 | Lower direct impact |
-| Open Redirect | 0.95 | Lower severity |
-
-**Confidence Gating**: NLP LRs only apply when `nlp_confidence >= 0.3` to avoid noise.
-
-### Scenario Generator (`src/simulation/scenario_generator.py`)
-
-Generate realistic IT environment scenarios with security controls.
-
-```python
-from src.simulation.scenario_generator import ScenarioGenerator
-
-generator = ScenarioGenerator()
-
-# Generate scenario
-scenario = generator.generate_scenario(
-    size="mid",
-    reach="global",
-    industry="financial-services",
-    environment_type="prod",
-    output_format="json"
-)
-
-print(f"Generated scenario: {scenario['scenario_id']}")
-print(f"Company: {scenario['company_name']}")
-print(f"Services: {len(scenario['services'])}")
-print(f"Security Maturity: {scenario['security_maturity']}")
-print(f"Active Controls: {[k for k, v in scenario['security_controls'].items() if v]}")
-```
-
-## 🧪 Testing
-
-Run comprehensive unit tests:
-
-```bash
-# Run all tests
-pytest tests/
-
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
-
-# Run specific test file
-pytest tests/test_cvss_parser.py
-
-# Run specific test class
-pytest tests/test_cvss_parser.py::TestCVSSParser
-
-# Run with verbose output
-pytest tests/ -v
-```
-
-**Test Coverage**: 108 test cases across 11 test files
-- CVSS Parser: 10 tests
-- Configuration: 8 tests
-- Logging: 7 tests
-- Error Handling: 8 tests
-- Vulnerability Analyzer: 8 tests
-- Scenario Configuration: 7 tests
-- NLP Extractor: 30 tests
-- Pipeline Structure: 4 tests
-- Bayesian Risk: Additional tests
-
-## ⚙️ Configuration
-
-### Using Configuration Manager
-
-```python
-from src.utils.config import get_config
-
-config = get_config()
-
-# Get value with default
-timeout = config.get("api.timeout", default=30)
-
-# Get environment variable
-api_key = config.get_env("API_KEY")
-
-# Get as Path object
-log_dir = config.get_path("logging.directory", default="/tmp/logs")
-```
-
-### Configuration File (config/config.yaml)
-
-```yaml
-api:
-  timeout: 30
-  retries: 3
-
-logging:
-  level: INFO
-  directory: ./logs
-
-database:
-  host: localhost
-  port: 5432
-```
-
-## 📝 Logging
-
-### Using Centralized Logging
-
-```python
-from src.utils.logging_config import get_logger
-
-logger = get_logger(__name__)
-
-logger.info("Processing CVE data")
-logger.warning("High severity vulnerability found")
-logger.error("Failed to download data")
-```
-
-### Logging Configuration
-
-Logs are automatically created in `./logs/` directory with both console and file output.
-
-## 🛡️ Error Handling
-
-### Using Error Handler Decorator
-
-```python
-from src.utils.error_handling import error_handler
-
-@error_handler(default_return=None)
-def process_cve_data(cve_id):
-    # Your code here
-    return result
-```
-
-The decorator automatically:
-- Catches exceptions
-- Logs errors with context
-- Returns default value on error
-- Preserves function metadata
-
-## 📊 Data Flow
-
-### CVE Dataset Creation
-
-```
-NVD Data Download
-    ↓
-Unzip Files
-    ↓
-Parse CVE Data
-    ↓
-Download EPSS Scores
-    ↓
-Merge with KEV Data
-    ↓
-Enrich with CWE Details
-    ↓
-Export to CSV
-```
-
-### Docker Image Scanning
-
-```
-Registry/Image Input
-    ↓
-List Images (if registry)
-    ↓
-Scan with Grype
-    ↓
-Parse Results
-    ↓
-Export to CSV
-```
-
-### Scenario Generation
-
-```
-Input Parameters
-    ↓
-Generate Network Topology
-    ↓
-Design Architecture
-    ↓
-Generate Security Posture
-    ↓
-Create Network Policies
-    ↓
-Export Scenario
-```
-
-## 🔍 Examples
-
-### Example 1: Complete CVE Analysis Pipeline
-
-```python
-from src.core.nvd_processor import download_nvd_cve_data, load_nvd_cve_data
-from src.core.epss_processor import download_epss_scores
-from src.core.cwe_processor import get_cwe_name_and_description
-import pandas as pd
-
-# Download and load CVE data
-download_nvd_cve_data(2023, 2024, "./data")
-cves_df = load_nvd_cve_data(2023, 2024, "./data")
-
-# Add EPSS scores
-epss_file = download_epss_scores("2025-12-06", "./data")
-epss_df = pd.read_csv(epss_file, skiprows=1)
-cves_with_epss = pd.merge(cves_df, epss_df, left_on="cve_id", right_on="cve")
-
-# Add CWE details
-cves_with_epss["cwe_details"] = cves_with_epss["cwe_id"].apply(
-    get_cwe_name_and_description
-)
-
-# Save results
-cves_with_epss.to_csv("cves_enriched.csv", index=False)
-print(f"Processed {len(cves_with_epss)} CVEs")
-```
-
-### Example 2: Docker Image Vulnerability Scanning
-
-```python
-from src.core.docker_scanner import DockerImageScanner
-import pandas as pd
-
-scanner = DockerImageScanner()
-
-# Scan multiple images
-images = ["ubuntu:22.04", "nginx:latest", "python:3.12"]
-all_results = []
-
-for image in images:
-    results = scanner.scan_image_with_grype(image)
-    all_results.append(results)
-
-# Combine and save
-combined = pd.concat(all_results, ignore_index=True)
-combined.to_csv("scan_results.csv", index=False)
-print(f"Found {len(combined)} vulnerabilities across {len(images)} images")
-```
-
-### Example 3: Vulnerability Attack Chain Analysis
-
-```python
-from src.core.vulnerability_analyzer import AttackChainAnalyzer
-import pandas as pd
-
-# Load CVE data
-cves_df = pd.read_csv("cves_data.csv")
-
-# Analyze attack chains
-analyzer = AttackChainAnalyzer(cves_df)
-
-# Find critical paths
-critical_paths = analyzer.get_critical_paths(min_length=3)
-print(f"Found {len(critical_paths)} critical attack paths")
-
-# Get graph statistics
-stats = analyzer.get_graph_statistics()
-print(f"Total CVEs: {stats['total_nodes']}")
-print(f"Attack relationships: {stats['total_edges']}")
-print(f"Graph density: {stats['density']:.2%}")
-```
-
-### Example 4: Generate IT Environment Scenarios
-
-```python
-from src.simulation.scenario_generator import ScenarioGenerator
-import json
-
-generator = ScenarioGenerator()
-
-# Generate different scenarios
-scenarios = []
-for size in ["small", "mid"]:
-    for reach in ["local", "global"]:
-        scenario = generator.generate_scenario(
-            size=size,
-            reach=reach,
-            industry="financial-services",
-            environment_type="prod"
-        )
-        scenarios.append(scenario)
-
-# Save scenarios
-with open("scenarios.json", "w") as f:
-    json.dump(scenarios, f, indent=2)
-
-print(f"Generated {len(scenarios)} scenarios")
-```
-
-## 📋 Requirements
-
-- Python 3.12+
-- pandas
-- networkx
-- faker
-- pygrype
-- requests
-- pyyaml
-- python-dotenv
-
-## 🤝 Contributing
-
-When adding new features:
-1. Follow existing code structure
-2. Add comprehensive type hints
-3. Include docstrings
-4. Add unit tests
-5. Ensure 100% Ruff compliance
-6. Update documentation
-
-## 📄 License
-
-MIT License - Copyright (c) 2025 Dominik Miklaszewski
-
-See [LICENSE](LICENSE) for full details.
-
-## 📞 Support
-
-For issues, questions, or contributions, please open an issue or submit a pull request.
-
-## 🎯 Roadmap
-
-### Current
-- ✅ CVE data management
-- ✅ EPSS and KEV integration
-- ✅ CWE integration (local lookup)
-- ✅ Docker image scanning
-- ✅ Vulnerability analysis
-- ✅ Scenario generation
-- ✅ Bayesian risk assessment
-- ✅ Security controls modeling
-- ✅ Uncertainty quantification
-- ✅ NLP vulnerability extraction
-- ✅ **Bayesian-focused reporting** *(NEW)*
-- ✅ **Attack scenarios filtered by Bayesian risk** *(NEW)*
-
-### Planned
-- [ ] Comprehensive visualization of Bayesian risk
-- [ ] Advanced attack chain analysis
-- [ ] PDF report generation
-- [ ] Web dashboard
-- [ ] API server
-- [ ] Custom likelihood ratio configuration UI
-- [ ] Data storage in DuckDB
-
-## 📊 Project Statistics
-
-- **20+ Modules**: Organized by responsibility
-- **5,000+ Lines**: Clean, production-ready code
-- **108 Tests**: Comprehensive test coverage
-- **100% Type Hints**: Full type safety
-- **100% Ruff Compliant**: Code quality assured
-- **Bayesian Risk Engine**: Principled probabilistic assessment
-- **NLP Feature Extraction**: Attack category detection from CVE descriptions
+*This document gives you comprehensive overview of the CVEs Analytics framework philosophy and methodology. For detailed technical implementation, check the documentation links above.*

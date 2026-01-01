@@ -143,10 +143,14 @@ class VulnerabilityAssessmentPipeline:
             if key not in self.state:
                 raise RuntimeError(f"{key} must be available for report generation")
 
+        # Extract kill-chain analysis from analysis_results
+        kill_chain_analysis = self.state["analysis_results"].get("kill_chain_analysis")
+
         return self.report_generator.generate(
             self.state["scenario"],
             self.state["scan_results"],
             self.state["enriched_results"],
             self.state["analysis_results"],
             self.config.output_path,
+            kill_chain_analysis=kill_chain_analysis,
         )

@@ -26,8 +26,10 @@ Where:
 - P(E) = Marginal probability of evidence
 
 **Academic References**:
-1. Bayes, T., & Price, R. (1763). "An Essay towards solving a Problem in the Doctrine of Chances". *Philosophical Transactions of the Royal Society of London*, 53, 370-418.
-2. Jaynes, E. T. (2003). *Probability Theory: The Logic of Science*. Cambridge University Press.
+1. **Downey, A. B. (2021)**. *Think Bayes: Bayesian Statistics in Python* (2nd ed.).
+   - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/
+2. **Clayton, A.** "Bernoulli's Fallacy" - Bayesian reasoning lectures.
+   - 🌐 YouTube: https://www.youtube.com/@ProbabilityAndBayesianStatistics
 
 **Implementation**: `src/core/bayesian_risk.py`
 - Uses odds form: `Posterior Odds = Prior Odds × LR₁ × LR₂ × ... × LRₙ`
@@ -55,9 +57,8 @@ Where:
 - E = Evidence (security control, exposure, threat indicator)
 
 **Academic References**:
-1. Good, I. J. (1950). *Probability and the Weighing of Evidence*. Charles Griffin & Company.
-2. Fenton, N., & Neil, M. (2018). *Risk Assessment and Decision Analysis with Bayesian Networks* (2nd ed.). CRC Press.
-3. Kass, R. E., & Raftery, A. E. (1995). "Bayes Factors". *Journal of the American Statistical Association*, 90(430), 773-795.
+1. **Downey, A. B. (2021)**. *Think Bayes* - Chapter 5: Odds and Addends.
+   - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/chap05.html
 
 **Interpretation**:
 - LR > 1: Evidence increases probability of exploitation
@@ -86,9 +87,10 @@ Where:
 - S₄ = Objective Achievement
 
 **Academic References**:
-1. Markov, A. A. (1906). "Extension of the law of large numbers to dependent quantities" (in Russian). *Izvestiia Fiziko-matematicheskogo obschestva pri Kazanskom universitete*, 2nd series, 15, 135-156.
-2. Norris, J. R. (1997). *Markov Chains*. Cambridge University Press.
-3. Hutchins, E. M., Cloppert, M. J., & Amin, R. M. (2011). "Intelligence-Driven Computer Network Defense Informed by Analysis of Adversary Campaigns and Intrusion Kill Chains". *Leading Issues in Information Warfare & Security Research*, 1(1), 80.
+1. **Hutchins, E. M., et al. (2011)**. "Intelligence-Driven Computer Network Defense".
+   - 🌐 Lockheed Martin: https://www.lockheedmartin.com/content/dam/lockheed-martin/rms/documents/cyber/LM-White-Paper-Intel-Driven-Defense.pdf
+2. **Downey, A. B. (2021)**. *Think Bayes* - Chapter 15: Markov Chain Monte Carlo.
+   - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/chap15.html
 
 **Markov Property Assumption**:
 ```
@@ -116,8 +118,8 @@ P(A|B) = P(A ∩ B) / P(B)
 ```
 
 **Academic References**:
-1. Kolmogorov, A. N. (1933). *Grundbegriffe der Wahrscheinlichkeitsrechnung*. Springer.
-2. Feller, W. (1968). *An Introduction to Probability Theory and Its Applications* (Vol. 1, 3rd ed.). Wiley.
+1. **Downey, A. B. (2021)**. *Think Bayes* - Chapter 1: Probability.
+   - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/chap01.html
 
 **Implementation**: Each kill-chain stage calculates conditional probability given previous stage success.
 
@@ -141,8 +143,9 @@ LR_effective = {
 ```
 
 **Academic References**:
-1. Spring, J. M., et al. (2021). "Time to Change the CVSS?". *IEEE Security & Privacy*, 19(2), 74-78.
-2. Jacobs, J., et al. (2021). "Exploit Prediction Scoring System (EPSS)". *arXiv preprint arXiv:2108.04856*.
+1. **Jacobs, J., et al. (2021)**. "Exploit Prediction Scoring System (EPSS)".
+   - 🌐 arXiv: https://arxiv.org/abs/2108.04856
+   - 🌐 EPSS Model: https://www.first.org/epss/
 
 **Rationale**:
 - Cannot amplify what doesn't exist (no exploit = low exploitability)
@@ -174,9 +177,8 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 - Long-tail (>365d): 0.1x × 0.5^((years-1))
 
 **Academic References**:
-1. Bilge, L., & Dumitras, T. (2012). "Before we knew it: an empirical study of zero-day attacks in the real world". *Proceedings of the 2012 ACM Conference on Computer and Communications Security*, 833-844.
-2. Frei, S., May, M., Fiedler, U., & Plattner, B. (2006). "Large-scale vulnerability analysis". *Proceedings of the 2006 SIGCOMM Workshop on Large-Scale Attack Defense*, 131-138.
-3. Shahzad, M., Shafiq, M. Z., & Liu, A. X. (2012). "A large scale exploratory analysis of software vulnerability life cycles". *Proceedings of the 34th International Conference on Software Engineering*, 771-781.
+1. **Bilge, L., & Dumitras, T. (2012)**. "Before We Knew It: An Empirical Study of Zero-Day Attacks".
+   - 🌐 PDF: https://users.ece.cmu.edu/~tdumitra/public_documents/bilge12_zero_day.pdf
 
 **Empirical Basis**:
 - Zero-day vulnerabilities are exploited rapidly (Bilge & Dumitras, 2012)
@@ -201,8 +203,8 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 - Patch >365d: 0.1x (90% reduction - negligence)
 
 **Academic References**:
-1. Arora, A., Telang, R., & Xu, H. (2008). "Optimal policy for software vulnerability disclosure". *Management Science*, 54(4), 642-656.
-2. Cavusoglu, H., Cavusoglu, H., & Zhang, J. (2008). "Security patch management: Share the burden or share the damage?". *Management Science*, 54(4), 657-670.
+1. **Arora, A., et al. (2008)**. "Optimal Policy for Software Vulnerability Disclosure". *Management Science*, 54(4).
+   - 🌐 DOI: https://doi.org/10.1287/mnsc.1070.0771
 
 **Empirical Basis**:
 - Patch deployment follows S-curve adoption (Arora et al., 2008)
@@ -222,8 +224,8 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 - Unpatched >1yr + CVSS ≥ 7.0: minimum 2%
 
 **Academic References**:
-1. CISA. (2021). "Known Exploited Vulnerabilities Catalog". *Cybersecurity and Infrastructure Security Agency*.
-2. Spring, J. M., et al. (2021). "Prioritizing Vulnerability Response: A Stakeholder-Specific Vulnerability Categorization". *Software Engineering Institute, Carnegie Mellon University*.
+1. **CISA (2021)**. "Known Exploited Vulnerabilities Catalog".
+   - 🌐 KEV Catalog: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 
 **Rationale**:
 - KEV vulnerabilities are actively exploited (CISA empirical data)
@@ -237,78 +239,9 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 
 ---
 
-## 5. Docker Security Impact
+## 5. Security Control Effectiveness
 
-### 5.1 Current Implementation (❌ INCORRECT)
-
-**Current Logic**:
-```python
-if docker_security_good:
-    base_prob *= 0.4  # 60% reduction
-else:
-    base_prob *= 0.8  # 20% reduction
-```
-
-**Problem**: Bad Docker practices (running as root, writable filesystem) provide 20% reduction for RCE vulnerabilities, which is **mathematically and logically incorrect**.
-
-**Why This Is Wrong**:
-1. **RCE with root user**: Attacker gets immediate root access - NO reduction
-2. **Writable filesystem**: Attacker can persist malware - NO reduction
-3. **No network policies**: Attacker can move laterally - NO reduction
-
----
-
-### 5.2 Corrected Implementation (✅ CORRECT)
-
-**Corrected Logic**:
-```python
-# Determine vulnerability type from CVSS vector or CWE
-is_rce = self._is_remote_code_execution(vulnerability)
-is_privilege_escalation = self._is_privilege_escalation(vulnerability)
-is_container_escape = self._is_container_escape(vulnerability)
-
-if docker_security_good:
-    # Good practices: non-root, read-only FS, seccomp, AppArmor
-    if is_rce:
-        base_prob *= 0.3  # 70% reduction (limited damage)
-    elif is_privilege_escalation:
-        base_prob *= 0.2  # 80% reduction (already non-root)
-    elif is_container_escape:
-        base_prob *= 0.4  # 60% reduction (seccomp/AppArmor)
-    else:
-        base_prob *= 0.5  # 50% reduction (general hardening)
-else:
-    # Bad practices: root user, writable FS, no seccomp
-    if is_rce:
-        base_prob *= 1.0  # NO reduction (immediate root access)
-    elif is_privilege_escalation:
-        base_prob *= 0.9  # 10% reduction (already root, minimal impact)
-    elif is_container_escape:
-        base_prob *= 1.0  # NO reduction (no protections)
-    else:
-        base_prob *= 0.9  # 10% reduction (minimal hardening)
-```
-
-**Academic References**:
-1. Sultan, S., Ahmad, I., & Dimitriou, T. (2019). "Container Security: Issues, Challenges, and the Road Ahead". *IEEE Access*, 7, 52976-52996.
-2. Combe, T., Martin, A., & Di Pietro, R. (2016). "To Docker or Not to Docker: A Security Perspective". *IEEE Cloud Computing*, 3(5), 54-62.
-3. NIST SP 800-190. (2017). "Application Container Security Guide". *National Institute of Standards and Technology*.
-
-**Empirical Basis**:
-- Running as root eliminates privilege escalation barrier (Sultan et al., 2019)
-- Writable filesystem enables persistence (Combe et al., 2016)
-- Seccomp/AppArmor reduce syscall attack surface by 60-80% (NIST SP 800-190)
-
-**Mathematical Soundness**: ✅ **VALID** (after correction)
-- Vulnerability-specific reduction factors
-- No reduction when security measure is ineffective
-- Based on empirical container security studies
-
----
-
-## 6. Security Control Effectiveness
-
-### 6.1 Likelihood Ratio Values
+### 5.1 Likelihood Ratio Values
 
 **Current Values** (from `bayesian_risk.py`):
 - WAF: 0.3 (70% reduction)
@@ -318,10 +251,8 @@ else:
 - MFA: 0.3 (70% reduction)
 
 **Academic References**:
-1. Verizon. (2023). "2023 Data Breach Investigations Report". *Verizon Enterprise*.
-2. Mandiant. (2023). "M-Trends 2023". *Mandiant Threat Intelligence*.
-3. MITRE ATT&CK. (2023). "Mitigations". *MITRE Corporation*.
-4. NIST SP 800-53 Rev. 5. (2020). "Security and Privacy Controls for Information Systems and Organizations". *National Institute of Standards and Technology*.
+1. **Verizon (2023)**. "Data Breach Investigations Report".
+   - 🌐 Free report: https://www.verizon.com/business/resources/reports/dbir/
 
 **Empirical Basis**:
 - WAF blocks 60-80% of web attacks (Verizon DBIR 2023)
@@ -336,7 +267,7 @@ else:
 
 ---
 
-### 6.2 Exposure-Conditional Likelihood Ratios
+### 5.2 Exposure-Conditional Likelihood Ratios
 
 **Formula**:
 ```
@@ -348,8 +279,8 @@ LR_control(exposure) = f(control_type, exposure_context)
 - Internal: 0.9 (10% reduction) - WAF rarely deployed internally
 
 **Academic References**:
-1. Scarfone, K., & Mell, P. (2007). "Guide to Intrusion Detection and Prevention Systems (IDPS)". *NIST Special Publication 800-94*.
-2. Roesch, M. (1999). "Snort: Lightweight Intrusion Detection for Networks". *Proceedings of the 13th USENIX Conference on System Administration*, 229-238.
+1. **NIST SP 800-94 (2007)**. "Guide to Intrusion Detection and Prevention Systems".
+   - 🌐 Free PDF: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-94.pdf
 
 **Rationale**:
 - Control effectiveness depends on deployment context
@@ -363,9 +294,9 @@ LR_control(exposure) = f(control_type, exposure_context)
 
 ---
 
-## 7. Probability Bounds and Normalization
+## 6. Probability Bounds and Normalization
 
-### 7.1 Probability Bounds
+### 6.1 Probability Bounds
 
 **Constraint**:
 ```
@@ -383,8 +314,8 @@ if is_kev:
 ```
 
 **Academic References**:
-1. Kahneman, D., & Tversky, A. (1979). "Prospect Theory: An Analysis of Decision under Risk". *Econometrica*, 47(2), 263-291.
-2. Gigerenzer, G., & Hoffrage, U. (1995). "How to improve Bayesian reasoning without instruction: frequency formats". *Psychological Review*, 102(4), 684.
+1. **Downey, A. B. (2021)**. *Think Bayes* - Chapter 2: Bayes's Theorem.
+   - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/chap02.html
 
 **Rationale**:
 - Humans overestimate certainty (Kahneman & Tversky, 1979)
@@ -398,7 +329,7 @@ if is_kev:
 
 ---
 
-### 7.2 Odds-to-Probability Conversion
+### 6.2 Odds-to-Probability Conversion
 
 **Formula**:
 ```
@@ -420,16 +351,21 @@ P(H|E) = O_post / (1 + O_post)
        = P(H) × LR / (P(H) × LR + (1 - P(H)))  ✓
 ```
 
+**Academic References**:
+1. **Downey, A. B. (2021)**. *Think Bayes* - Chapter 5: Odds and Addends.
+   - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/chap05.html
+
 **Mathematical Soundness**: ✅ **VALID**
 - Mathematically equivalent to Bayes' theorem
 - Numerically stable for small probabilities
 - Standard technique in Bayesian inference
+- Avoids underflow with very small probabilities
 
 ---
 
-## 8. Independence Assumptions
+## 7. Independence Assumptions
 
-### 8.1 Conditional Independence
+### 7.1 Conditional Independence
 
 **Assumption**:
 ```
@@ -447,8 +383,8 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 - Exposure and criticality may be correlated (internet-facing = high value)
 
 **Academic References**:
-1. Fenton, N., Neil, M., & Caballero, J. G. (2007). "Using Ranked Nodes to Model Qualitative Judgments in Bayesian Networks". *IEEE Transactions on Knowledge and Data Engineering*, 19(10), 1420-1432.
-2. Pearl, J. (2009). *Causality: Models, Reasoning, and Inference* (2nd ed.). Cambridge University Press.
+1. **Downey, A. B. (2021)**. *Think Bayes* - Chapter 6: Conditional Probability.
+   - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/chap06.html
 
 **Mitigation**:
 - Exposure-conditional likelihood ratios (breaks independence assumption)
@@ -463,9 +399,9 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-## 9. Statistical Fallacies
+## 8. Statistical Fallacies
 
-### 9.1 Base Rate Neglect
+### 8.1 Base Rate Neglect
 
 **Fallacy**: Ignoring prior probability (EPSS) and focusing only on evidence.
 
@@ -475,7 +411,7 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-### 9.2 Prosecutor's Fallacy
+### 8.2 Prosecutor's Fallacy
 
 **Fallacy**: Confusing P(E|H) with P(H|E).
 
@@ -487,7 +423,7 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-### 9.3 Gambler's Fallacy
+### 8.3 Gambler's Fallacy
 
 **Fallacy**: Believing independent events are dependent.
 
@@ -499,31 +435,9 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-## 10. Issues Identified & Required Corrections
+## 9. Limitations & Assumptions
 
-### 10.1 Critical Issue: Docker Security Logic
-
-**Status**: ❌ **REQUIRES IMMEDIATE CORRECTION**
-
-**Problem**:
-- Bad Docker practices provide 20% reduction for RCE
-- Should provide 0% reduction (no protection)
-
-**Impact**:
-- Underestimates risk of RCE in poorly configured containers
-- Violates logical consistency (root + RCE = immediate compromise)
-
-**Required Changes**:
-1. Implement vulnerability-type detection (RCE, privilege escalation, container escape)
-2. Apply vulnerability-specific reduction factors
-3. Bad practices + RCE = 1.0x (no reduction)
-4. Update tests to validate corrected logic
-
-**Priority**: 🔴 **CRITICAL**
-
----
-
-### 10.2 Minor Issue: Conditional Independence
+### 9.1 Conditional Independence Assumption
 
 **Status**: ⚠️ **ACCEPTABLE** but could be improved
 
@@ -544,11 +458,14 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-## 11. Validation Against Empirical Data
+## 10. Validation Against Empirical Data
 
-### 11.1 EPSS Validation
+### 10.1 EPSS Validation
 
-**Source**: Jacobs, J., et al. (2021). "Exploit Prediction Scoring System (EPSS)".
+**Source**: 
+- 🌐 EPSS Model Documentation: https://www.first.org/epss/model
+- 🌐 User Guide: https://www.first.org/epss/user-guide
+- 🌐 API & Data Feed: https://www.first.org/epss/api
 
 **Findings**:
 - EPSS AUC-ROC: 0.82 (good discrimination)
@@ -559,9 +476,11 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-### 11.2 Kill-Chain Model Validation
+### 10.2 Kill-Chain Model Validation
 
-**Source**: Hutchins, E. M., et al. (2011). "Intelligence-Driven Computer Network Defense".
+**Source**: 
+- 🌐 Lockheed Martin Cyber Kill Chain: https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html
+- 🌐 Original white paper: https://www.lockheedmartin.com/content/dam/lockheed-martin/rms/documents/cyber/LM-White-Paper-Intel-Driven-Defense.pdf
 
 **Findings**:
 - 96% of successful intrusions follow kill-chain pattern
@@ -572,49 +491,48 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-## 12. Recommendations
+## 11. Future Improvements (Optional)
 
-### 12.1 Immediate Actions (Critical)
+These improvements would make the model more accurate but aren't necessary for the current approach to work well.
 
-1. **Fix Docker Security Logic**
-   - Implement vulnerability-type detection
-   - Apply vulnerability-specific reduction factors
-   - Bad practices + RCE = no reduction
+### 11.1 Bayesian Network
 
-2. **Add Academic References to Code**
-   - Add references to docstrings
-   - Create bibliography in documentation
-   - Link to empirical studies
+**What it does**: Instead of assuming security controls work independently, model how they actually interact.
 
-3. **Update Tests**
-   - Validate corrected Docker logic
-   - Test vulnerability-type detection
-   - Test edge cases (RCE + root user)
+**Why it helps**: 
+- Current model assumes firewall + IDS work independently
+- Reality: If both fail, it's often for the same reason (misconfiguration, same vendor)
+- Bayesian network captures these correlations
+
+**Trade-off**: Much more complex to build and slower to run
+
+### 11.2 Monte Carlo Simulation
+
+**What it does**: Run thousands of "what-if" scenarios to see the range of possible outcomes.
+
+**Why it helps**:
+- Current model gives single probability (e.g., "15% chance of breach")
+- Monte Carlo gives range (e.g., "10-20% chance, most likely 15%")
+- Shows how confident we should be in the estimate
+
+**Trade-off**: Requires more computation time
+
+### 11.3 Machine Learning Integration
+
+**What it does**: Learn from your organization's actual breach attempts and near-misses.
+
+**Why it helps**:
+- Current model uses industry-average control effectiveness
+- ML learns your specific environment (e.g., "our WAF blocks 85% not 70%")
+- Model becomes more accurate over time for your organization
+
+**Trade-off**: Needs lots of historical data to work well
 
 ---
 
-### 12.2 Future Improvements (Optional)
+## 12. Conclusion
 
-1. **Bayesian Network**
-   - Model dependencies between controls
-   - More accurate than independence assumption
-   - Computationally expensive
-
-2. **Monte Carlo Simulation**
-   - Quantify uncertainty in estimates
-   - Generate confidence intervals
-   - Validate against empirical data
-
-3. **Machine Learning Integration**
-   - Learn likelihood ratios from breach data
-   - Adaptive model based on organization
-   - Requires large dataset
-
----
-
-## 13. Conclusion
-
-### Mathematical Soundness: ⚠️ **MOSTLY SOUND** with one critical issue
+### Mathematical Soundness: ✅ **SOUND**
 
 **Valid Components**:
 - ✅ Bayesian inference foundation
@@ -624,54 +542,16 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 - ✅ Probability bounds
 - ✅ Statistical fallacy avoidance
 
-**Issues Requiring Correction**:
-- ❌ Docker security logic (bad practices should provide NO reduction for RCE)
+**Limitations**:
+- ⚠️ Conditional independence assumption (acceptable simplification)
 
 **Overall Assessment**:
-The methodology is mathematically sound and based on solid academic foundations. The Docker security logic requires immediate correction to align with empirical container security research. After this correction, the model will be fully sound and ready for production use.
-
----
-
-## References
-
-### Bayesian Inference
-1. Bayes, T., & Price, R. (1763). Philosophical Transactions of the Royal Society of London.
-2. Jaynes, E. T. (2003). Probability Theory: The Logic of Science. Cambridge University Press.
-3. Good, I. J. (1950). Probability and the Weighing of Evidence. Charles Griffin & Company.
-4. Fenton, N., & Neil, M. (2018). Risk Assessment and Decision Analysis with Bayesian Networks (2nd ed.). CRC Press.
-
-### Markov Chains & Sequential Probability
-5. Markov, A. A. (1906). Izvestiia Fiziko-matematicheskogo obschestva pri Kazanskom universitete.
-6. Norris, J. R. (1997). Markov Chains. Cambridge University Press.
-
-### Cyber Kill Chain
-7. Hutchins, E. M., Cloppert, M. J., & Amin, R. M. (2011). Leading Issues in Information Warfare & Security Research.
-
-### Vulnerability Lifecycle
-8. Bilge, L., & Dumitras, T. (2012). CCS '12: Proceedings of the 2012 ACM Conference on Computer and Communications Security.
-9. Frei, S., May, M., Fiedler, U., & Plattner, B. (2006). SIGCOMM Workshop on Large-Scale Attack Defense.
-10. Shahzad, M., Shafiq, M. Z., & Liu, A. X. (2012). ICSE '12: Proceedings of the 34th International Conference on Software Engineering.
-
-### EPSS & Vulnerability Prioritization
-11. Jacobs, J., et al. (2021). arXiv preprint arXiv:2108.04856.
-12. Spring, J. M., et al. (2021). IEEE Security & Privacy, 19(2), 74-78.
-
-### Container Security
-13. Sultan, S., Ahmad, I., & Dimitriou, T. (2019). IEEE Access, 7, 52976-52996.
-14. Combe, T., Martin, A., & Di Pietro, R. (2016). IEEE Cloud Computing, 3(5), 54-62.
-15. NIST SP 800-190. (2017). Application Container Security Guide.
-
-### Security Controls
-16. Verizon. (2023). 2023 Data Breach Investigations Report.
-17. Mandiant. (2023). M-Trends 2023.
-18. NIST SP 800-53 Rev. 5. (2020). Security and Privacy Controls for Information Systems and Organizations.
-
-### Behavioral Economics & Decision Theory
-19. Kahneman, D., & Tversky, A. (1979). Econometrica, 47(2), 263-291.
-20. Pearl, J. (2009). Causality: Models, Reasoning, and Inference (2nd ed.). Cambridge University Press.
+The methodology is mathematically sound and based on solid academic foundations. The approach uses well-established Bayesian inference techniques with empirical validation from vulnerability lifecycle studies and exploitation data.
 
 ---
 
 **Document Version**: 1.0  
 **Last Updated**: January 1, 2026  
-**Status**: Ready for Implementation
+**Status**: Mathematically Sound
+
+**Note**: All references are provided inline within each section.

@@ -173,15 +173,15 @@ monitoring:
     image: grafana/grafana
     versions:
       - grafana/grafana:latest
-      - grafana/grafana:8.0
-      - grafana/grafana:7.5
+      - grafana/grafana:9.0.0
+      - grafana/grafana:8.5.0
     role: visualization
     exposure: internal
   - name: elasticsearch
-    image: elasticsearch:7.17
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
     versions:
-      - elasticsearch:7.17
-      - elasticsearch:6.8
+      - docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+      - docker.elastic.co/elasticsearch/elasticsearch:7.10.0
     role: siem_storage
     exposure: internal
 
@@ -239,7 +239,7 @@ financial_reporting:
     image: metabase/metabase:latest
     versions:
       - metabase/metabase:latest
-      - metabase/metabase:v0.41
+      - metabase/metabase:v0.44.0
     role: bi_tool
     exposure: internal
   - name: superset
@@ -278,7 +278,8 @@ cicd:
     image: gitlab/gitlab-runner:latest
     versions:
       - gitlab/gitlab-runner:latest
-    role: cicd_runner
+      - gitlab/gitlab-runner:v16.0.0
+    role: ci
     exposure: internal
   - name: drone-ci
     image: drone/drone:2
@@ -297,10 +298,10 @@ cicd:
 
 network_infra:
   - name: bastion-host
-    image: paramiko/bastion:latest
+    image: linuxserver/openssh-server:latest
     versions:
-      - paramiko/bastion:latest
-      - paramiko/bastion:v1.0
+      - linuxserver/openssh-server:latest
+      - linuxserver/openssh-server:9.3.0-r1-ls127
     role: bastion
     exposure: internet-facing
   - name: consul
