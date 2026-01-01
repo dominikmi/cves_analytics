@@ -612,49 +612,9 @@ P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
 
 ---
 
-## 13. Implementation Status
+## 13. Conclusion
 
-### Docker Security Logic Correction: ✅ **IMPLEMENTED**
-
-**Date**: January 2, 2026  
-**Status**: Corrected and tested
-
-**Implementation Details**:
-- Added vulnerability-type detection methods:
-  * `_is_remote_code_execution()` - detects RCE via CVSS vector (AV:N + I:H/A:H) and CWE (78, 94, 77, 502, 434)
-  * `_is_privilege_escalation()` - detects privesc via CVSS (PR:L + I:H) and CWE (269, 250, 266)
-  * `_is_container_escape()` - detects container escape via description keywords
-
-**Corrected Reduction Factors**:
-
-Good Docker Practices (non-root, read-only FS, seccomp, AppArmor):
-- RCE: 0.3x (70% reduction - limited damage, can't persist)
-- Privilege escalation: 0.2x (80% reduction - already non-root, hard to escalate)
-- Container escape: 0.4x (60% reduction - seccomp/AppArmor limit syscalls)
-- General vulnerabilities: 0.5x (50% reduction - general hardening)
-
-Bad Docker Practices (root user, writable FS, no protections):
-- **RCE: 1.0x (NO reduction - attacker gets root immediately)** ✅ CRITICAL FIX
-- Privilege escalation: 0.9x (10% reduction - already root, minimal impact)
-- **Container escape: 1.0x (NO reduction - no seccomp/AppArmor)** ✅ CRITICAL FIX
-- General vulnerabilities: 0.9x (10% reduction - minimal hardening)
-
-**Test Coverage**:
-- `test_calculate_execution_good_docker` - validates vulnerability-specific factors
-- `test_calculate_execution_poor_docker` - validates minimal reduction for general vulnerabilities
-- `test_calculate_execution_rce_poor_docker` - **validates NO reduction for RCE + poor practices**
-- All 20 tests pass ✅
-
-**Academic Alignment**:
-- Sultan, S., et al. (2019). "Container Security". IEEE Access, 7, 52976-52996.
-- Combe, T., et al. (2016). "To Docker or Not to Docker". IEEE Cloud Computing, 3(5), 54-62.
-- NIST SP 800-190 (2017). "Application Container Security Guide"
-
----
-
-## 14. Conclusion
-
-### Mathematical Soundness: ✅ **FULLY SOUND**
+### Mathematical Soundness: ⚠️ **MOSTLY SOUND** with one critical issue
 
 **Valid Components**:
 - ✅ Bayesian inference foundation
@@ -663,10 +623,12 @@ Bad Docker Practices (root user, writable FS, no protections):
 - ✅ Temporal adjustments
 - ✅ Probability bounds
 - ✅ Statistical fallacy avoidance
-- ✅ **Docker security logic (corrected and tested)**
+
+**Issues Requiring Correction**:
+- ❌ Docker security logic (bad practices should provide NO reduction for RCE)
 
 **Overall Assessment**:
-The methodology is mathematically sound and based on solid academic foundations. The Docker security logic has been corrected to align with empirical container security research. The model is now fully sound and ready for production use.
+The methodology is mathematically sound and based on solid academic foundations. The Docker security logic requires immediate correction to align with empirical container security research. After this correction, the model will be fully sound and ready for production use.
 
 ---
 
