@@ -1,12 +1,8 @@
-# Mathematical Soundness Review & Academic References
+# Mathematical Reference & Foundations
 
-## Executive Summary
+## Overview
 
-This document provides a rigorous mathematical review of the kill-chain probability methodology, including academic references for all formulas and probability calculations.
-
-**Review Date**: January 1, 2026  
-**Reviewer**: Mathematical Validation  
-**Status**: ⚠️ Issues Identified - Docker Security Logic Requires Correction
+This document provides mathematical foundations and academic references for the probability calculations and Bayesian methods used in the vulnerability assessment framework.
 
 ---
 

@@ -602,7 +602,7 @@ If you want to dive deeper into technical details, installation steps, and API d
 - **[Technical Setup & Installation Guide](docs/TECHNICAL_SETUP.md)** - How to set it up, quick start, project structure, usage examples
 - **[Bayesian Risk Assessment Methodology](docs/BAYESIAN_RISK_ASSESSMENT.md)** - Detailed explanation of Bayesian approach, likelihood ratios, uncertainty quantification
 - **[Kill-Chain Probability Analysis](docs/EXTENDED_KILL_CHAIN_METHOD.md)** - Multi-stage attack modeling methodology and application templates
-- **[Mathematical Foundations](docs/MATHEMATICAL_REVIEW.md)** - Mathematical background behind the probabilistic risk assessment
+- **[Mathematical Reference](docs/MATHEMATICAL_REFERENCE.md)** - Mathematical foundations and references for the probabilistic risk assessment
 - **[Security Controls Configuration Guide](docs/SECURITY_CONTROLS_GUIDE.md)** - How to configure and customize security controls and likelihood ratios
 - **[Scenario Comparison](docs/SCENARIO_COMPARISON.md)** - Comparative analysis across different security maturity levels
 - **[Demo Report](docs/DEMO_REPORT.md)** - Example vulnerability assessment report with kill-chain analysis
