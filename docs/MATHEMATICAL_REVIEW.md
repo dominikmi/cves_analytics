@@ -29,7 +29,7 @@ Where:
 1. **Downey, A. B. (2021)**. *Think Bayes: Bayesian Statistics in Python* (2nd ed.).
    - 🌐 Free online: https://allendowney.github.io/ThinkBayes2/
 2. **Clayton, A.** "Bernoulli's Fallacy" - Bayesian reasoning lectures.
-   - 🌐 YouTube: https://www.youtube.com/@ProbabilityAndBayesianStatistics
+   - 🌐 YouTube playlist: https://www.youtube.com/watch?v=rfKS69cIwHc&list=PL9v9IXDsJkktefQzX39wC2YG07vw7DsQ_
 
 **Implementation**: `src/core/bayesian_risk.py`
 - Uses odds form: `Posterior Odds = Prior Odds × LR₁ × LR₂ × ... × LRₙ`
