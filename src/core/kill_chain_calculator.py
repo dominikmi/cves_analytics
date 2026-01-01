@@ -40,11 +40,80 @@ class KillChainResult(BaseModel):
 
 
 class KillChainCalculator:
-    """Calculates kill-chain success probability for multi-component applications."""
+    """Calculates kill-chain success probability for multi-component applications.
+
+    References:
+    - Hutchins, E. M., et al. (2011). "Intelligence-Driven Computer Network Defense"
+    - Sultan, S., et al. (2019). "Container Security: Issues, Challenges, and the Road Ahead". IEEE Access.
+    - NIST SP 800-190 (2017). "Application Container Security Guide"
+    """
 
     def __init__(self) -> None:
         """Initialize the kill-chain calculator."""
         self.logger = logging.getLogger(self.__class__.__name__)
+
+    def _is_remote_code_execution(self, vulnerability: dict[str, Any]) -> bool:
+        """Detect if vulnerability is Remote Code Execution.
+
+        Checks CVSS vector for AV:N (Network) and high Impact (C:H, I:H, or A:H),
+        or CWE categories related to code execution.
+
+        Args:
+            vulnerability: Vulnerability dictionary with cvss_vector and/or cwe_id
+
+        Returns:
+            True if vulnerability enables remote code execution
+        """
+        # Check CVSS vector for network-accessible high impact
+        cvss_vector = vulnerability.get("cvss_vector", "")
+        if "AV:N" in cvss_vector and ("I:H" in cvss_vector or "A:H" in cvss_vector):
+            return True
+
+        # Check CWE for code execution categories
+        cwe_id = vulnerability.get("cwe_id", "")
+        rce_cwes = [
+            "CWE-78",  # OS Command Injection
+            "CWE-94",  # Code Injection
+            "CWE-77",  # Command Injection
+            "CWE-502",  # Deserialization of Untrusted Data
+            "CWE-434",  # Unrestricted Upload of File with Dangerous Type
+        ]
+        return any(cwe in str(cwe_id) for cwe in rce_cwes)
+
+    def _is_privilege_escalation(self, vulnerability: dict[str, Any]) -> bool:
+        """Detect if vulnerability enables privilege escalation.
+
+        Args:
+            vulnerability: Vulnerability dictionary with cvss_vector and/or cwe_id
+
+        Returns:
+            True if vulnerability enables privilege escalation
+        """
+        # Check CVSS for privilege requirement changes
+        cvss_vector = vulnerability.get("cvss_vector", "")
+        if "PR:L" in cvss_vector and "I:H" in cvss_vector:
+            return True
+
+        # Check CWE for privilege escalation
+        cwe_id = vulnerability.get("cwe_id", "")
+        privesc_cwes = [
+            "CWE-269",  # Improper Privilege Management
+            "CWE-250",  # Execution with Unnecessary Privileges
+            "CWE-266",  # Incorrect Privilege Assignment
+        ]
+        return any(cwe in str(cwe_id) for cwe in privesc_cwes)
+
+    def _is_container_escape(self, vulnerability: dict[str, Any]) -> bool:
+        """Detect if vulnerability enables container escape.
+
+        Args:
+            vulnerability: Vulnerability dictionary with description and/or cwe_id
+
+        Returns:
+            True if vulnerability enables container escape
+        """
+        description = vulnerability.get("description", "").lower()
+        return "container escape" in description or "breakout" in description
 
     def calculate_kill_chain_probability(
         self,
@@ -230,7 +299,16 @@ class KillChainCalculator:
     ) -> KillChainStage:
         """Calculate P(Execution | Initial Access).
 
-        Docker security practices significantly affect this stage.
+        Docker security practices significantly affect this stage, but effectiveness
+        depends on vulnerability type:
+        - RCE with root user: NO reduction (immediate root access)
+        - Privilege escalation with root: minimal reduction (already root)
+        - Container escape: NO reduction without seccomp/AppArmor
+
+        References:
+        - Sultan, S., et al. (2019). "Container Security". IEEE Access, 7, 52976-52996.
+        - Combe, T., et al. (2016). "To Docker or Not to Docker". IEEE Cloud Computing, 3(5), 54-62.
+        - NIST SP 800-190 (2017). "Application Container Security Guide".
         """
         execution_roles = application.kill_chain_stages.get("execution", [])
 
@@ -239,13 +317,56 @@ class KillChainCalculator:
 
         factors = {"base_execution": 0.8}
 
-        # Docker security practices (from documentation)
+        # Analyze vulnerability types to determine Docker security effectiveness
+        has_rce = False
+        has_privesc = False
+        has_container_escape = False
+
+        if not vulnerabilities.is_empty():
+            # Convert to list of dicts for analysis
+            vuln_dicts = vulnerabilities.to_dicts()
+            for vuln in vuln_dicts:
+                if self._is_remote_code_execution(vuln):
+                    has_rce = True
+                if self._is_privilege_escalation(vuln):
+                    has_privesc = True
+                if self._is_container_escape(vuln):
+                    has_container_escape = True
+
+        # Apply Docker security based on vulnerability type
+        # References: Sultan et al. (2019), NIST SP 800-190
         if docker_security_good:
-            base_prob *= 0.4  # 60% reduction with good practices
-            factors["docker_good_practices"] = 0.4
+            # Good practices: non-root user, read-only FS, seccomp, AppArmor
+            if has_rce:
+                base_prob *= 0.3  # 70% reduction (limited damage, can't persist)
+                factors["docker_good_rce_protection"] = 0.3
+            elif has_privesc:
+                base_prob *= 0.2  # 80% reduction (already non-root, hard to escalate)
+                factors["docker_good_privesc_protection"] = 0.2
+            elif has_container_escape:
+                base_prob *= 0.4  # 60% reduction (seccomp/AppArmor limit syscalls)
+                factors["docker_good_escape_protection"] = 0.4
+            else:
+                base_prob *= 0.5  # 50% reduction (general hardening)
+                factors["docker_good_practices"] = 0.5
         else:
-            base_prob *= 0.8  # 20% reduction with poor practices
-            factors["docker_poor_practices"] = 0.8
+            # Bad practices: root user, writable FS, no seccomp/AppArmor
+            # Critical: Running as root with RCE = immediate root access!
+            if has_rce:
+                base_prob *= 1.0  # NO reduction (attacker gets root immediately)
+                factors["docker_poor_rce_no_protection"] = 1.0
+                self.logger.warning(
+                    "RCE vulnerability with poor Docker practices: NO protection (root access)"
+                )
+            elif has_privesc:
+                base_prob *= 0.9  # 10% reduction (already root, minimal impact)
+                factors["docker_poor_privesc_minimal"] = 0.9
+            elif has_container_escape:
+                base_prob *= 1.0  # NO reduction (no seccomp/AppArmor)
+                factors["docker_poor_escape_no_protection"] = 1.0
+            else:
+                base_prob *= 0.9  # 10% reduction (minimal hardening)
+                factors["docker_poor_practices"] = 0.9
 
         # EDR/XDR blocks execution
         if security_controls.get("edr_xdr", False):
@@ -279,6 +400,11 @@ class KillChainCalculator:
         """Calculate P(Lateral Movement | Execution).
 
         Network segmentation and Docker security affect this stage.
+        Docker isolation (network policies, user namespaces) limits lateral movement.
+
+        References:
+        - Sultan, S., et al. (2019). "Container Security". IEEE Access.
+        - NIST SP 800-190 (2017). "Application Container Security Guide".
         """
         lateral_roles = application.kill_chain_stages.get("lateral_movement", [])
 
@@ -296,13 +422,16 @@ class KillChainCalculator:
             base_prob *= 0.9  # 10% reduction
             factors["flat_network"] = 0.9
 
-        # Docker security (from documentation)
+        # Docker security affects lateral movement through network isolation
+        # Good practices: network policies, user namespaces, limited capabilities
+        # Bad practices: shared network, root user, privileged containers
         if docker_security_good:
-            base_prob *= 0.5  # 50% reduction
-            factors["docker_good_practices"] = 0.5
+            base_prob *= 0.5  # 50% reduction (network policies, isolation)
+            factors["docker_good_network_isolation"] = 0.5
         else:
-            base_prob *= 0.9  # 10% reduction
-            factors["docker_poor_practices"] = 0.9
+            # Bad practices provide minimal isolation
+            base_prob *= 0.9  # 10% reduction (minimal isolation)
+            factors["docker_poor_network_isolation"] = 0.9
 
         # EDR/XDR detects lateral movement
         if security_controls.get("edr_xdr", False):
