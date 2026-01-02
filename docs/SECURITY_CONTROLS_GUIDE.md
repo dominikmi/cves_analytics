@@ -1,7 +1,7 @@
 # Security Controls Configuration Guide
 
-**Version:** 1.1  
-**Last Updated:** January 1, 2026  
+**Version:** 2.0  
+**Last Updated:** January 2, 2026  
 **Audience:** Security analysts, risk assessors, configuration managers
 
 ---
@@ -9,20 +9,31 @@
 ## Table of Contents
 
 1. [Introduction](#introduction)
-2. [Understanding Likelihood Ratios](#understanding-likelihood-ratios)
-3. [Control Categories](#control-categories)
-4. [Control Correlations](#control-correlations)
-5. [Maturity Levels](#maturity-levels)
-6. [Sector-Specific Adjustments](#sector-specific-adjustments)
-7. [How to Adjust Values](#how-to-adjust-values)
-8. [Common Scenarios](#common-scenarios)
-9. [References](#references)
+2. [Environment Generation Process](#environment-generation-process)
+3. [Control Types System](#control-types-system)
+4. [Understanding Likelihood Ratios](#understanding-likelihood-ratios)
+5. [Control Categories](#control-categories)
+6. [Control Correlations](#control-correlations)
+7. [Maturity Levels](#maturity-levels)
+8. [Sector-Specific Adjustments](#sector-specific-adjustments)
+9. [How to Adjust Values](#how-to-adjust-values)
+10. [Common Scenarios](#common-scenarios)
+11. [References](#references)
 
 ---
 
 ## Introduction
 
 This guide explains the security controls configuration system used in the CVE Analytics platform. The configuration defines how security controls affect vulnerability exploitation probability using Bayesian inference.
+
+> **WARNING - Important Note on Default Values:**
+> All likelihood ratio (LR) default values in this guide are **heuristic estimates** based on security principles, industry observations, and conservative assumptions. They are NOT empirically validated through controlled studies. Actual control effectiveness varies significantly based on:
+> - Implementation quality and configuration
+> - Organizational maturity and processes
+> - Threat actor sophistication
+> - Exposure context (internet-facing vs internal)
+> 
+> These defaults provide a reasonable starting point for relative risk assessment. Organizations should calibrate values based on their own red team exercises, breach analysis, and security testing.
 
 ### What This Configuration Controls
 
@@ -37,6 +48,383 @@ This guide explains the security controls configuration system used in the CVE A
 - Risk analysts calibrating for specific organizations
 - Researchers studying security control efficacy
 - Compliance teams aligning with regulatory requirements
+
+---
+
+## Environment Generation Process
+
+### Overview
+
+The system generates realistic security environments using a **probabilistic control types approach**. Instead of simple boolean controls (present/absent), each control has multiple implementation types with varying effectiveness levels.
+
+### Generation Flow Diagram
+
+```
++------------------+
+|  Input Parameters|
+|  - Maturity      |
+|  - Industry      |
+|  - Size          |
+|  - Environment   |
++--------+---------+
+         |
+         v
++------------------+
+| Step 1: Select   |
+| Base Probability |
+| Distribution     |
+| (by maturity)    |
++--------+---------+
+         |
+         v
++------------------+
+| Step 2: Apply    |
+| Industry         |
+| Modifiers        |
+| (e.g., finance   |
+|  -> stronger MFA)|
++--------+---------+
+         |
+         v
++------------------+
+| Step 3: Apply    |
+| Exposure         |
+| Modifiers        |
+| (internet-facing |
+|  -> stronger WAF)|
++--------+---------+
+         |
+         v
++------------------+
+| Step 4: Normalize|
+| Probabilities    |
+| (sum to 1.0)     |
++--------+---------+
+         |
+         v
++------------------+
+| Step 5: Random   |
+| Selection        |
+| (weighted choice)|
++--------+---------+
+         |
+         v
++------------------+
+| Output: Control  |
+| Types with       |
+| Effectiveness    |
+| Values (LR)      |
++------------------+
+```
+
+### Step-by-Step Process
+
+#### Step 1: Select Base Probability Distribution
+
+Each control has probability distributions based on security maturity level:
+
+**Example: MFA Type Distribution**
+```
+Initial (Level 1):
+  - None: 70%
+  - SMS: 25%
+  - Authenticator App: 5%
+  - Push Notification: 0%
+  - FIDO2: 0%
+
+Managed (Level 4):
+  - None: 5%
+  - SMS: 15%
+  - Authenticator App: 30%
+  - Push Notification: 35%
+  - FIDO2: 15%
+
+Optimizing (Level 5):
+  - None: 0%
+  - SMS: 5%
+  - Authenticator App: 20%
+  - Push Notification: 35%
+  - FIDO2: 40%
+```
+
+#### Step 2: Apply Industry Modifiers
+
+Industry characteristics adjust probabilities:
+
+**Example: Financial Services**
+```
+Modifiers:
+  - FIDO2: x1.8 (80% more likely)
+  - Push Notification: x1.3 (30% more likely)
+  - SMS: x0.6 (40% less likely)
+
+Result for Managed Financial Services:
+  - None: 5%
+  - SMS: 9% (15% x 0.6)
+  - Authenticator App: 30%
+  - Push Notification: 45.5% (35% x 1.3)
+  - FIDO2: 27% (15% x 1.8)
+  (then normalized to sum to 100%)
+```
+
+**Example: Small Business**
+```
+Modifiers:
+  - SMS: x1.5 (50% more likely)
+  - FIDO2: x0.3 (70% less likely)
+
+Result for Managed Small Business:
+  - None: 5%
+  - SMS: 22.5% (15% x 1.5)
+  - Authenticator App: 30%
+  - Push Notification: 35%
+  - FIDO2: 4.5% (15% x 0.3)
+  (then normalized to sum to 100%)
+```
+
+#### Step 3: Apply Exposure Modifiers
+
+Service exposure adjusts probabilities for certain controls:
+
+**Example: Internet-Facing Service**
+```
+Modifiers:
+  - FIDO2: x1.4 (40% more likely)
+  - Push Notification: x1.3 (30% more likely)
+  - SMS: x0.7 (30% less likely)
+
+Applied to financial services result:
+  - FIDO2: 37.8% (27% x 1.4)
+  - Push Notification: 59.15% (45.5% x 1.3)
+  - SMS: 6.3% (9% x 0.7)
+  (then normalized)
+```
+
+#### Step 4: Normalize Probabilities
+
+Ensure all probabilities sum to exactly 1.0:
+
+```python
+total = sum(all_probabilities)
+normalized = {type: prob / total for type, prob in probabilities.items()}
+```
+
+#### Step 5: Random Selection
+
+Use weighted random selection to choose control type:
+
+```python
+import random
+control_type = random.choices(
+    population=list(probabilities.keys()),
+    weights=list(probabilities.values()),
+    k=1
+)[0]
+```
+
+### Realistic Variability
+
+This approach creates realistic variability:
+
+**Scenario 1: Optimizing Financial Services**
+- 10 environments generated
+- MFA types: 6x FIDO2, 3x Push, 1x Authenticator App
+- Result: Mostly strong MFA, but some legacy systems remain
+
+**Scenario 2: Initial Small Business**
+- 10 environments generated
+- MFA types: 7x None, 2x SMS, 1x Authenticator App
+- Result: Mostly no MFA, reflecting resource constraints
+
+### Why This Matters
+
+1. **Realistic Risk Assessment**: Organizations don't have uniform controls
+2. **Better Predictions**: Accounts for implementation quality variations
+3. **Industry Patterns**: Financial services really do have better MFA
+4. **Maturity Progression**: Clear evolution path from basic to advanced
+
+---
+
+## Control Types System
+
+### Overview
+
+Each major security control now has **multiple implementation types** with varying effectiveness levels. This replaces the previous boolean (present/absent) model.
+
+### Control Type Categories
+
+#### 1. Multi-Factor Authentication (MFA)
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+SMS:                 LR = 0.35 (65% reduction)
+Authenticator App:   LR = 0.15 (85% reduction)
+Push Notification:   LR = 0.15 (85% reduction)
+FIDO2:               LR = 0.05 (95% reduction)
+```
+
+**Effectiveness Rationale:**
+- **FIDO2/Hardware Tokens**: Strongest - phishing-resistant, cryptographic
+- **Authenticator Apps/Push**: Strong - time-based or push approval
+- **SMS**: Weak - vulnerable to SIM swapping, interception
+- **Evidence**: Microsoft (2019) - MFA blocks >99.9% of automated attacks
+
+**When to Use:**
+- FIDO2: High-security environments, compliance requirements
+- Authenticator App: Standard enterprise deployment
+- SMS: Legacy systems, user convenience priority
+
+#### 2. Firewall
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+Basic:               LR = 0.7  (30% reduction)
+Stateful:            LR = 0.5  (50% reduction)
+Next-Gen (NGFW):     LR = 0.4  (60% reduction)
+NGFW Advanced:       LR = 0.3  (70% reduction)
+```
+
+**Effectiveness Rationale:**
+- **NGFW Advanced**: Deep packet inspection + threat intelligence
+- **NGFW**: Application awareness, IPS integration
+- **Stateful**: Connection tracking, basic filtering
+- **Basic**: Simple packet filtering only
+
+#### 3. Web Application Firewall (WAF)
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+Basic:               LR = 0.6  (40% reduction)
+Managed:             LR = 0.4  (60% reduction)
+OWASP CRS:           LR = 0.3  (70% reduction)
+Custom Tuned:        LR = 0.25 (75% reduction)
+```
+
+**Effectiveness Rationale:**
+- **Custom Tuned**: ML/behavioral analysis, application-specific rules
+- **OWASP CRS**: Comprehensive rule set, regularly updated
+- **Managed**: Cloud-based, vendor-managed rules
+- **Basic**: Minimal rule set, limited coverage
+
+#### 4. Endpoint Protection
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+Traditional AV:      LR = 0.7  (30% reduction)
+Basic EDR:           LR = 0.5  (50% reduction)
+Advanced EDR:        LR = 0.4  (60% reduction)
+XDR:                 LR = 0.3  (70% reduction)
+```
+
+**Effectiveness Rationale:**
+- **XDR**: Extended detection across endpoints, network, cloud
+- **Advanced EDR**: Behavioral analysis, threat hunting
+- **Basic EDR**: Endpoint detection and response
+- **Traditional AV**: Signature-based only
+- **Evidence**: Mandiant M-Trends 2024 - EDR adoption reduced dwell time
+
+#### 5. Network Segmentation
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+Basic VLAN:          LR = 0.7  (30% reduction)
+VLAN + ACL:          LR = 0.5  (50% reduction)
+Micro-Segmentation:  LR = 0.3  (70% reduction)
+Zero Trust:          LR = 0.2  (80% reduction)
+```
+
+**Effectiveness Rationale:**
+- **Zero Trust**: Continuous verification, least privilege
+- **Micro-Segmentation**: Granular workload isolation
+- **VLAN + ACL**: Network zones with access controls
+- **Basic VLAN**: Simple network separation
+
+#### 6. IDS/IPS
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+IDS Only:            LR = 0.8  (20% reduction)
+IPS Signature:       LR = 0.5  (50% reduction)
+IPS Behavioral:      LR = 0.4  (60% reduction)
+IPS ML:              LR = 0.35 (65% reduction)
+```
+
+**Effectiveness Rationale:**
+- **IPS ML**: Machine learning-based detection
+- **IPS Behavioral**: Anomaly detection
+- **IPS Signature**: Pattern matching with blocking
+- **IDS Only**: Detection without prevention
+
+#### 7. SIEM Maturity
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+Log Collection:      LR = 0.8  (20% reduction)
+Basic Correlation:   LR = 0.6  (40% reduction)
+Advanced Analytics:  LR = 0.5  (50% reduction)
+Threat Hunting:      LR = 0.4  (60% reduction)
+```
+
+**Effectiveness Rationale:**
+- **Threat Hunting**: Active hunting + SOAR automation
+- **Advanced Analytics**: ML-based detection, correlation
+- **Basic Correlation**: Rule-based alerting
+- **Log Collection**: Visibility only, no analysis
+
+#### 8. Patch Management Quality
+
+**Types:**
+```
+None:                LR = 1.0  (0% reduction)
+Reactive:            LR = 0.9  (10% reduction)
+Quarterly:           LR = 0.7  (30% reduction)
+Monthly:             LR = 0.4  (60% reduction)
+Weekly:              LR = 0.3  (70% reduction)
+Automated:           LR = 0.2  (80% reduction)
+```
+
+**Effectiveness Rationale:**
+- **Automated**: Continuous patching with testing
+- **Weekly**: Critical patches within 7 days
+- **Monthly**: Patch Tuesday cycle
+- **Quarterly**: Scheduled maintenance windows
+- **Reactive**: Only after incidents
+
+### Control Type Selection Algorithm
+
+```python
+def select_control_type(maturity, industry, exposure=None):
+    # 1. Get base probabilities for maturity level
+    base_probs = BASE_PROBABILITIES[control][maturity]
+    
+    # 2. Apply industry modifiers
+    if industry in INDUSTRY_MODIFIERS:
+        for control_type, multiplier in INDUSTRY_MODIFIERS[industry][control].items():
+            base_probs[control_type] *= multiplier
+    
+    # 3. Apply exposure modifiers (if applicable)
+    if exposure and exposure in EXPOSURE_MODIFIERS:
+        for control_type, multiplier in EXPOSURE_MODIFIERS[exposure][control].items():
+            base_probs[control_type] *= multiplier
+    
+    # 4. Normalize to sum to 1.0
+    total = sum(base_probs.values())
+    normalized = {k: v/total for k, v in base_probs.items()}
+    
+    # 5. Random weighted selection
+    return random.choices(
+        population=list(normalized.keys()),
+        weights=list(normalized.values()),
+        k=1
+    )[0]
+```
 
 ---
 
@@ -77,10 +465,11 @@ waf:
 - With WAF: Only 40% of web attacks reach the application
 - **Effectiveness: 60% of attacks blocked**
 
-**Real-world basis:**
-- Verizon DBIR 2023: WAFs block 60-80% of web attacks
-- OWASP: WAFs with proper rules block most automated attacks
-- We use conservative estimate (60%) to avoid overconfidence
+**Basis:**
+- **Heuristic estimate**: Industry observations suggest WAF effectiveness ranges from 40-85%
+- Conservative default (60% = LR 0.4) assumes properly configured WAF
+- Effectiveness highly dependent on: rule quality, tuning, maintenance
+- See BAYESIAN_RISK_ASSESSMENT.md for exposure-conditional values
 
 ---
 
@@ -105,39 +494,47 @@ firewall:
 #### Web Application Firewall (WAF)
 ```yaml
 waf:
-  default: 0.4  # 60% reduction
+  default: 0.4  # 60% reduction (exposure-independent baseline)
+  # Exposure-conditional: 0.3 (internet), 0.4 (DMZ), 0.9 (internal)
 ```
 - **What it does:** Blocks OWASP Top 10 attacks (SQLi, XSS, etc.)
-- **Effectiveness:** High for web attacks
+- **Effectiveness:** High for web attacks (40-85% range)
 - **Limitations:** Requires tuning, can have false positives
+- **Note:** Effectiveness is **exposure-conditional** - see BAYESIAN_RISK_ASSESSMENT.md
 - **When to adjust:**
-  - Increase (0.3) if WAF with OWASP Core Rule Set
-  - Decrease (0.5-0.6) if basic WAF with minimal rules
+  - Use 0.3 for well-tuned WAF with OWASP Core Rule Set
+  - Use 0.5-0.6 for basic WAF with minimal rules
 
 #### IDS/IPS (Intrusion Detection/Prevention)
 ```yaml
 ids_ips:
-  default: 0.5  # 50% reduction
+  default: 0.5  # 50% reduction (baseline)
+  # Exposure-conditional: 0.4 (internet), 0.45 (DMZ), 0.7 (internal), 0.5 (restricted)
 ```
 - **What it does:** Detects and blocks known attack patterns
-- **Effectiveness:** Moderate - signature-based detection
+- **Effectiveness:** Moderate - signature-based detection (30-60% range)
 - **Limitations:** Misses zero-days, requires signature updates
+- **Note:** Most effective at perimeter (internet-facing), less effective internally
 - **When to adjust:**
-  - Increase (0.4) if IPS with behavioral analysis
-  - Decrease (0.6) if IDS only (detection, no prevention)
+  - Use 0.4 for IPS with behavioral analysis at perimeter
+  - Use 0.6 for IDS only (detection, no prevention)
+  - Use 0.7 for internal deployment (less visibility)
 
 #### Network Segmentation
 ```yaml
 network_segmentation:
-  default: 0.3  # 70% reduction
+  default: 0.3  # 70% reduction (baseline for internal)
+  # Exposure-conditional: 0.5 (internet), 0.4 (DMZ), 0.3 (internal), 0.2 (restricted)
 ```
 - **What it does:** Isolates network zones to prevent lateral movement
-- **Effectiveness:** Very high - strongest network control
+- **Effectiveness:** Very high - strongest network control (30-90% range)
+- **Evidence:** Effectiveness varies: micro-segmentation (70-90%) vs basic VLANs (30-50%)
 - **Limitations:** Complex to implement, requires architecture changes
+- **Note:** Most effective for **internal** lateral movement prevention
 - **When to adjust:**
-  - Keep at 0.3 for proper micro-segmentation
-  - Increase to 0.5 if only basic VLAN separation
-  - **Critical:** This is the most effective network control
+  - Use 0.2-0.3 for proper micro-segmentation with zero-trust
+  - Use 0.5 for basic VLAN separation only
+  - **Critical:** This is the most effective network control for internal threats
 
 #### Zero Trust Network Access (ZTNA)
 ```yaml
@@ -163,12 +560,14 @@ edr_xdr:
   default: 0.4  # 60% reduction
 ```
 - **What it does:** Behavioral detection, blocks malicious execution
-- **Effectiveness:** High - catches unknown malware
+- **Effectiveness:** High - catches unknown malware (40-80% range)
+- **Evidence:** Mandiant M-Trends 2024 - Median dwell time decreased to 10 days (2023) from 16 days (2022), attributed to increased EDR/XDR adoption
 - **Limitations:** Requires tuning, can impact performance
+- **Note:** Effectiveness depends heavily on SOC maturity and configuration
 - **When to adjust:**
-  - Keep at 0.4 for modern EDR (CrowdStrike, SentinelOne)
-  - Increase to 0.5 for basic EDR
-  - Decrease to 0.3 for XDR (extended detection across network)
+  - Use 0.4 for mature EDR/XDR (CrowdStrike, SentinelOne) with active SOC
+  - Use 0.5 for basic endpoint protection without SOC
+  - Use 0.3 for elite EDR with 24/7 threat hunting
 
 #### Traditional Antivirus
 ```yaml
@@ -215,14 +614,20 @@ device_encryption:
 #### Multi-Factor Authentication (MFA)
 ```yaml
 mfa:
-  default: 0.3  # 70% reduction
+  default: 0.3  # 70% reduction (exposure-independent baseline)
+  # Exposure-conditional: 0.2 (internet), 0.25 (DMZ), 0.5 (internal)
 ```
 - **What it does:** Requires 2+ authentication factors
-- **Effectiveness:** Very high - blocks credential attacks
-- **Limitations:** Can be bypassed (MFA fatigue, phishing)
+- **Effectiveness:** Very high for automated credential attacks (80-99%+ range)
+- **Evidence:** Microsoft (2019) - MFA blocks >99.9% of automated credential attacks
+- **Limitations:** Does NOT cover phishing, SIM swapping, or push fatigue attacks
+- **Note:** Effectiveness is **exposure-conditional** and **MFA-type dependent**
+  - FIDO2/hardware tokens: 95%+ effectiveness (LR 0.05-0.2)
+  - Authenticator apps: 80-90% effectiveness (LR 0.1-0.2)
+  - SMS-based: 60-70% effectiveness (LR 0.3-0.4)
 - **When to adjust:**
-  - Keep at 0.3 for strong MFA (FIDO2, hardware tokens)
-  - Increase to 0.4 for SMS-based MFA (weaker)
+  - Use 0.2 for strong MFA (FIDO2, hardware tokens) on internet-facing
+  - Use 0.4 for SMS-based MFA (weaker)
   - **Critical:** One of the most effective controls
 
 #### Privileged Access Management (PAM)
@@ -459,23 +864,23 @@ mfa:
 ### Common Control Suites
 
 #### Access Control Suite
-- MFA → SSO+MFA (75%)
-- MFA → PAM (70%)
-- MFA → IAM Platform (65%)
-- PAM → MFA (85%)
-- PAM → JIT Access (60%)
+- MFA -> SSO+MFA (75%)
+- MFA -> PAM (70%)
+- MFA -> IAM Platform (65%)
+- PAM -> MFA (85%)
+- PAM -> JIT Access (60%)
 
 #### Security Operations Suite
-- SIEM → SOC 24x7 (80%)
-- SIEM → EDR/XDR (70%)
-- SOC → SIEM (90%)
-- SOAR → SIEM (95%)
+- SIEM -> SOC 24x7 (80%)
+- SIEM -> EDR/XDR (70%)
+- SOC -> SIEM (90%)
+- SOAR -> SIEM (95%)
 
 #### Endpoint Security Suite
-- EDR/XDR → SIEM (75%)
-- EDR/XDR → Endpoint Patching (70%)
-- EDR/XDR → Device Encryption (65%)
-- EDR/XDR → !Antivirus (30%) - EDR replaces AV
+- EDR/XDR -> SIEM (75%)
+- EDR/XDR -> Endpoint Patching (70%)
+- EDR/XDR -> Device Encryption (65%)
+- EDR/XDR -> !Antivirus (30%) - EDR replaces AV
 
 ### When to Adjust Correlations
 
@@ -623,14 +1028,14 @@ level_5_optimizing:
 
 **Formula:**
 ```
-Effective Probability = Base Probability × Sector Multiplier
+Effective Probability = Base Probability x Sector Multiplier
 ```
 
 **Example:**
 - Healthcare at Level 2
 - Base probability: 55%
 - Healthcare multiplier: 0.9
-- **Effective: 55% × 0.9 = 49.5%**
+- **Effective: 55% x 0.9 = 49.5%**
 
 ### Sector Categories
 
@@ -819,9 +1224,9 @@ telecommunications:
 waf:
   default: 0.4  # Current: 60% reduction
 ```
-- Current: WAF blocks 60% of attacks
-- Source: Verizon DBIR 2023
-- Basis: Industry average
+- Current: WAF blocks 60% of attacks (heuristic estimate)
+- Basis: Industry observations, conservative assumption
+- Range: 40-85% depending on configuration and threat type
 
 **For Correlations:**
 ```yaml
@@ -848,7 +1253,7 @@ mfa:
 waf:
   default: 0.4  # 60% reduction
 
-# After: Your organization has tuned WAF with OWASP rules
+# After: Your organization has well-tuned WAF
 waf:
   default: 0.3  # 70% reduction (more effective)
 ```
@@ -864,7 +1269,7 @@ waf:
 waf:
   default: 0.3  # 70% reduction
   # Adjusted from 0.4 based on internal testing
-  # Our WAF with OWASP CRS blocks 70% of attacks
+  # Our well-tuned WAF blocks 70% of attacks
   # Source: 6-month red team assessment (2025-Q4)
   # Review: Annually or after WAF changes
   description: "Blocks SQL injection, XSS, and other web attacks"
@@ -997,7 +1402,7 @@ controls = generate_correlated_controls(
 base_probability = 0.75  # Level 4
 sector_multiplier = 1.3  # Financial services
 effective_probability = min(0.95, base_probability * sector_multiplier)
-# Result: 97.5% → capped at 95%
+# Result: 97.5% -> capped at 95%
 ```
 
 **Small Business:**

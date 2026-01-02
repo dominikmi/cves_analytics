@@ -12,7 +12,7 @@ This document provides mathematical foundations and academic references for the 
 
 **Formula**:
 ```
-P(H|E) = P(E|H) × P(H) / P(E)
+P(H|E) = P(E|H) x P(H) / P(E)
 ```
 
 Where:
@@ -28,7 +28,7 @@ Where:
    - 🌐 YouTube playlist: https://www.youtube.com/watch?v=rfKS69cIwHc&list=PL9v9IXDsJkktefQzX39wC2YG07vw7DsQ_
 
 **Implementation**: `src/core/bayesian_risk.py`
-- Uses odds form: `Posterior Odds = Prior Odds × LR₁ × LR₂ × ... × LRₙ`
+- Uses odds form: `Posterior Odds = Prior Odds x LR1 x LR2 x ... x LRn`
 - Mathematically equivalent to Bayes' theorem
 - Avoids numerical instability from very small probabilities
 
@@ -43,13 +43,13 @@ Where:
 
 **Formula**:
 ```
-LR = P(E|H₁) / P(E|H₀)
+LR = P(E|H1) / P(E|H0)
 ```
 
 Where:
 - LR = Likelihood Ratio
-- H₁ = Hypothesis (vulnerability will be exploited)
-- H₀ = Null hypothesis (vulnerability will not be exploited)
+- H1 = Hypothesis (vulnerability will be exploited)
+- H0 = Null hypothesis (vulnerability will not be exploited)
 - E = Evidence (security control, exposure, threat indicator)
 
 **Academic References**:
@@ -73,14 +73,14 @@ Where:
 
 **Formula**:
 ```
-P(Kill-Chain Success) = P(S₁) × P(S₂|S₁) × P(S₃|S₂) × P(S₄|S₃)
+P(Kill-Chain Success) = P(S1) x P(S2|S1) x P(S3|S2) x P(S4|S3)
 ```
 
 Where:
-- S₁ = Initial Access
-- S₂ = Execution
-- S₃ = Lateral Movement
-- S₄ = Objective Achievement
+- S1 = Initial Access
+- S2 = Execution
+- S3 = Lateral Movement
+- S4 = Objective Achievement
 
 **Academic References**:
 1. **Hutchins, E. M., et al. (2011)**. "Intelligence-Driven Computer Network Defense".
@@ -90,7 +90,7 @@ Where:
 
 **Markov Property Assumption**:
 ```
-P(Sₙ|S₁, S₂, ..., Sₙ₋₁) = P(Sₙ|Sₙ₋₁)
+P(Sn|S1, S2, ..., Sn-1) = P(Sn|Sn-1)
 ```
 
 **Mathematical Soundness**: ✅ **VALID** with caveats
@@ -133,7 +133,7 @@ P(A|B) = P(A ∩ B) / P(B)
 ```
 LR_effective = {
     LR           if LR < 1 (controls always reduce)
-    LR           if exploitable (EPSS ≥ 5% OR known_exploit)
+    LR           if exploitable (EPSS >= 5% OR known_exploit)
     min(LR, cap) if not exploitable (cap amplification)
 }
 ```
@@ -161,7 +161,7 @@ LR_effective = {
 
 **Formula**:
 ```
-P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
+P_adjusted = P_base x age_factor x patch_factor x kev_multiplier
 ```
 
 **Age Factors** (empirically derived):
@@ -170,7 +170,7 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 - Peak (30-90d): 1.5x
 - Mature (90-180d): 1.0x
 - Decline (180-365d): 0.5x
-- Long-tail (>365d): 0.1x × 0.5^((years-1))
+- Long-tail (>365d): 0.1x x 0.5^((years-1))
 
 **References**:
 1. **Bilge, L., & Dumitras, T. (2012)**. "Before We Knew It: An Empirical Study of Zero-Day Attacks in the Real World". *Proceedings of the 2012 ACM Conference on Computer and Communications Security*.
@@ -214,9 +214,9 @@ P_adjusted = P_base × age_factor × patch_factor × kev_multiplier
 ### 4.3 Probability Floors
 
 **Floors**:
-- Zero-day + CVSS ≥ 9.0: minimum 5%
+- Zero-day + CVSS >= 9.0: minimum 5%
 - KEV (Known Exploited Vulnerability): minimum 5%
-- Unpatched >1yr + CVSS ≥ 7.0: minimum 2%
+- Unpatched >1yr + CVSS >= 7.0: minimum 2%
 
 **Academic References**:
 1. **CISA (2021)**. "Known Exploited Vulnerabilities Catalog".
@@ -294,7 +294,7 @@ LR_control(exposure) = f(control_type, exposure_context)
 
 **Constraint**:
 ```
-0 ≤ P(event) ≤ 1  ∀ events
+0 <= P(event) <= 1  for all events
 ```
 
 **Implementation**:
@@ -333,16 +333,16 @@ Odds = P / (1 - P)
 
 **Proof of Equivalence**:
 ```
-Given: Posterior Odds = Prior Odds × LR
-Prove: P(H|E) = P(H) × LR / (P(H) × LR + (1 - P(H)))
+Given: Posterior Odds = Prior Odds x LR
+Prove: P(H|E) = P(H) x LR / (P(H) x LR + (1 - P(H)))
 
 Let O_prior = P(H) / (1 - P(H))
-Let O_post = O_prior × LR
+Let O_post = O_prior x LR
 
 P(H|E) = O_post / (1 + O_post)
-       = (O_prior × LR) / (1 + O_prior × LR)
-       = (P(H)/(1-P(H)) × LR) / (1 + P(H)/(1-P(H)) × LR)
-       = P(H) × LR / (P(H) × LR + (1 - P(H)))  ✓
+       = (O_prior x LR) / (1 + O_prior x LR)
+       = (P(H)/(1-P(H)) x LR) / (1 + P(H)/(1-P(H)) x LR)
+       = P(H) x LR / (P(H) x LR + (1 - P(H)))  ✓
 ```
 
 **Academic References**:
@@ -363,7 +363,7 @@ P(H|E) = O_post / (1 + O_post)
 
 **Assumption**:
 ```
-P(E₁, E₂|H) = P(E₁|H) × P(E₂|H)
+P(E1, E2|H) = P(E1|H) x P(E2|H)
 ```
 
 **Where This Holds**:

@@ -17,7 +17,7 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
 
 2. **Vulnerability Analysis**
    - Attack chain analysis using graph-based approach
-   - **MITRE ATT&CK tactic mapping** (CWE/impact → tactic, displayed in reports)
+   - **MITRE ATT&CK tactic mapping** (CWE/impact -> tactic, displayed in reports)
    - Vulnerability enrichment with CISAGOV data
    - CWE metadata retrieval and analysis
 
@@ -33,7 +33,7 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
 4. **Kill-Chain Probability Analysis** ✨ NEW
    - **Multi-component application modeling** - Analyzes complete applications (e.g., 7-component financial platform)
    - Industry-specific application templates from config (ecommerce, financial services, SaaS, consulting, data analytics)
-   - Sequential stage probability calculation (Initial Access → Execution → Lateral Movement → Objective)
+   - Sequential stage probability calculation (Initial Access -> Execution -> Lateral Movement -> Objective)
    - Component-level vulnerability assessment with actual CVSS vector analysis
    - Docker security posture integration
    - **Security control penalty modeling** - Bad practices increase risk (LR > 1.0), good practices reduce risk (LR < 1.0)
@@ -302,11 +302,11 @@ print(f"Risk Category: {result.risk_category}")
 **Key Concepts:**
 
 - **Likelihood Ratios (LRs)**: Quantify how evidence changes belief
-  - LR < 1: Reduces exploitation probability (e.g., WAF → LR=0.4)
-  - LR > 1: Increases exploitation probability (e.g., public exploit → LR=2.0)
+  - LR < 1: Reduces exploitation probability (e.g., WAF -> LR=0.4)
+  - LR > 1: Increases exploitation probability (e.g., public exploit -> LR=2.0)
   
 - **Exploitability Gating**: Amplification only applies when exploitation is plausible
-  - Plausible if: EPSS ≥ 5% OR known exploit exists
+  - Plausible if: EPSS >= 5% OR known exploit exists
   
 - **Uncertainty Quantification**: 95% credible intervals for all risk estimates
 

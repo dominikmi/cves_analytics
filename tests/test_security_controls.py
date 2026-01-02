@@ -153,27 +153,28 @@ class TestSecurityControlsConfig(unittest.TestCase):
     """Test SecurityControlsConfig model."""
 
     def test_get_active_controls(self):
-        """Test getting list of active controls."""
+        """Test getting list of active controls with new control types."""
         config = SecurityControlsConfig(
-            firewall=True,
-            waf=True,
-            antivirus=True,
-            mfa=True,
-            patch_monthly=True,
+            firewall_type="stateful",
+            waf_type="owasp_crs",
+            endpoint_protection_type="advanced_edr",
+            mfa_type="fido2",
+            patch_management_quality="monthly",
         )
         active = config.get_active_controls()
         self.assertIn("firewall", active)
         self.assertIn("waf", active)
         self.assertIn("mfa", active)
-        self.assertIn("patch_monthly", active)
+        self.assertIn("endpoint_protection", active)
+        self.assertIn("patch_management", active)
 
     def test_get_patch_cadence(self):
-        """Test getting patch management cadence."""
-        config = SecurityControlsConfig(patch_weekly=True)
+        """Test getting patch management cadence with new quality levels."""
+        config = SecurityControlsConfig(patch_management_quality="weekly")
         self.assertEqual(config.get_patch_cadence(), "weekly")
 
-        config = SecurityControlsConfig(patch_daily=True)
-        self.assertEqual(config.get_patch_cadence(), "daily")
+        config = SecurityControlsConfig(patch_management_quality="automated")
+        self.assertEqual(config.get_patch_cadence(), "automated")
 
 
 if __name__ == "__main__":

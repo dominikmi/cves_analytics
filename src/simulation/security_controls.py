@@ -26,6 +26,27 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from src.simulation.control_type_selector import (
+    select_endpoint_type,
+    select_firewall_type,
+    select_ids_ips_type,
+    select_mfa_type,
+    select_patch_quality,
+    select_segmentation_type,
+    select_siem_maturity,
+    select_waf_type,
+)
+from src.simulation.control_types import (
+    EndpointProtectionType,
+    FirewallType,
+    IDSIPSType,
+    MFAType,
+    PatchManagementQuality,
+    SegmentationType,
+    SIEMMaturity,
+    WAFType,
+)
+
 
 class SecurityMaturityLevel(str, Enum):
     """Security maturity levels based on industry frameworks (CMMI, NIST CSF)."""
@@ -205,60 +226,53 @@ class ControlProbabilities(BaseModel):
 class SecurityControlsConfig(BaseModel):
     """Configuration for security controls in a simulated environment.
 
-    All controls are binary (present/absent) as requested.
+    Controls now have types/implementations with varying effectiveness levels.
     """
 
-    # Network Controls
-    network_segmentation: bool = Field(
-        default=False,
-        description="Network is segmented into zones (DMZ, app tier, data tier)",
+    # Network Controls - with types
+    segmentation_type: SegmentationType = Field(
+        default=SegmentationType.NONE,
+        description="Network segmentation implementation type",
     )
-    firewall: bool = Field(default=True, description="Perimeter firewall in place")
-    waf: bool = Field(
-        default=False,
-        description="Web Application Firewall protecting web services",
+    firewall_type: FirewallType = Field(
+        default=FirewallType.STATEFUL,
+        description="Firewall implementation type",
     )
-    ids_ips: bool = Field(
-        default=False,
-        description="Intrusion Detection/Prevention System active",
+    waf_type: WAFType = Field(
+        default=WAFType.NONE,
+        description="Web Application Firewall implementation type",
     )
-
-    # Endpoint Controls
-    edr_xdr: bool = Field(
-        default=False,
-        description="Endpoint Detection and Response / Extended Detection and Response",
-    )
-    antivirus: bool = Field(
-        default=True,
-        description="Traditional antivirus/antimalware",
+    ids_ips_type: IDSIPSType = Field(
+        default=IDSIPSType.NONE,
+        description="IDS/IPS implementation type",
     )
 
-    # Access Controls
-    mfa: bool = Field(default=False, description="Multi-Factor Authentication enforced")
+    # Endpoint Controls - with types
+    endpoint_protection_type: EndpointProtectionType = Field(
+        default=EndpointProtectionType.TRADITIONAL_AV,
+        description="Endpoint protection implementation type",
+    )
+
+    # Access Controls - with types
+    mfa_type: MFAType = Field(
+        default=MFAType.NONE,
+        description="Multi-Factor Authentication implementation type",
+    )
     privileged_access_mgmt: bool = Field(
         default=False,
         description="Privileged Access Management solution",
     )
 
-    # Patch Management (only one should be true)
-    patch_daily: bool = Field(
-        default=False,
-        description="Critical patches applied within 24 hours",
-    )
-    patch_weekly: bool = Field(default=False, description="Patches applied weekly")
-    patch_monthly: bool = Field(
-        default=True,
-        description="Patches applied monthly (Patch Tuesday cycle)",
-    )
-    patch_quarterly: bool = Field(
-        default=False,
-        description="Patches applied quarterly",
+    # Patch Management - with quality levels
+    patch_management_quality: PatchManagementQuality = Field(
+        default=PatchManagementQuality.MONTHLY,
+        description="Patch management quality level",
     )
 
-    # Security Operations
-    siem: bool = Field(
-        default=False,
-        description="Security Information and Event Management",
+    # Security Operations - with maturity levels
+    siem_maturity: SIEMMaturity = Field(
+        default=SIEMMaturity.NONE,
+        description="SIEM maturity level",
     )
     soc_24x7: bool = Field(default=False, description="24/7 Security Operations Center")
     incident_response_plan: bool = Field(
@@ -278,15 +292,7 @@ class SecurityControlsConfig(BaseModel):
 
     def get_patch_cadence(self) -> str:
         """Get the active patch management cadence."""
-        if self.patch_daily:
-            return "daily"
-        if self.patch_weekly:
-            return "weekly"
-        if self.patch_monthly:
-            return "monthly"
-        if self.patch_quarterly:
-            return "quarterly"
-        return "ad_hoc"
+        return self.patch_management_quality.value
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for scenario storage."""
@@ -296,7 +302,18 @@ class SecurityControlsConfig(BaseModel):
         """Get list of active control names."""
         controls = []
         for field_name, value in self.model_dump().items():
-            if value is True and not field_name.startswith("patch_"):
+            # Include controls that are not NONE type
+            if field_name.endswith("_type") and value != "none":
+                controls.append(field_name.replace("_type", ""))
+            elif field_name.endswith("_maturity") and value != "none":
+                controls.append(field_name.replace("_maturity", ""))
+            elif field_name == "patch_management_quality" and value != "none":
+                controls.append("patch_management")
+            elif (
+                isinstance(value, bool)
+                and value is True
+                and not field_name.startswith("patch_")
+            ):
                 controls.append(field_name)
 
         # Add patch management
@@ -365,56 +382,41 @@ class SecurityControlsGenerator:
         # Generate each control based on probability
         controls = {}
 
-        # Network Controls
-        controls["network_segmentation"] = self._should_have_control(
-            self.probabilities.network_segmentation[maturity_key],
-            industry_modifiers.get("network_segmentation", 1.0),
-            env_modifiers.get("network_segmentation", 1.0),
-            size_modifiers.get("network_segmentation", 1.0),
+        # Network Controls - with types
+        controls["segmentation_type"] = select_segmentation_type(
+            maturity_key,
+            industry=industry,
+            exposure=None,  # Organization-level, not service-specific
         )
 
-        controls["firewall"] = self._should_have_control(
-            self.probabilities.firewall[maturity_key],
-            industry_modifiers.get("firewall", 1.0),
-            env_modifiers.get("firewall", 1.0),
-            size_modifiers.get("firewall", 1.0),
+        controls["firewall_type"] = select_firewall_type(
+            maturity_key,
+            industry=industry,
+            exposure=None,
         )
 
-        controls["waf"] = self._should_have_control(
-            self.probabilities.waf[maturity_key],
-            industry_modifiers.get("waf", 1.0),
-            env_modifiers.get("waf", 1.0),
-            size_modifiers.get("waf", 1.0),
+        controls["waf_type"] = select_waf_type(
+            maturity_key,
+            industry=industry,
+            exposure=None,
         )
 
-        controls["ids_ips"] = self._should_have_control(
-            self.probabilities.ids_ips[maturity_key],
-            industry_modifiers.get("ids_ips", 1.0),
-            env_modifiers.get("ids_ips", 1.0),
-            size_modifiers.get("ids_ips", 1.0),
+        controls["ids_ips_type"] = select_ids_ips_type(
+            maturity_key,
+            industry=industry,
         )
 
-        # Endpoint Controls
-        controls["edr_xdr"] = self._should_have_control(
-            self.probabilities.edr_xdr[maturity_key],
-            industry_modifiers.get("edr_xdr", 1.0),
-            env_modifiers.get("edr_xdr", 1.0),
-            size_modifiers.get("edr_xdr", 1.0),
+        # Endpoint Controls - with types
+        controls["endpoint_protection_type"] = select_endpoint_type(
+            maturity_key,
+            industry=industry,
         )
 
-        controls["antivirus"] = self._should_have_control(
-            self.probabilities.antivirus[maturity_key],
-            industry_modifiers.get("antivirus", 1.0),
-            env_modifiers.get("antivirus", 1.0),
-            size_modifiers.get("antivirus", 1.0),
-        )
-
-        # Access Controls
-        controls["mfa"] = self._should_have_control(
-            self.probabilities.mfa[maturity_key],
-            industry_modifiers.get("mfa", 1.0),
-            env_modifiers.get("mfa", 1.0),
-            size_modifiers.get("mfa", 1.0),
+        # Access Controls - with types
+        controls["mfa_type"] = select_mfa_type(
+            maturity_key,
+            industry=industry,
+            exposure=None,
         )
 
         controls["privileged_access_mgmt"] = self._should_have_control(
@@ -424,12 +426,10 @@ class SecurityControlsGenerator:
             size_modifiers.get("privileged_access_mgmt", 1.0),
         )
 
-        # Security Operations
-        controls["siem"] = self._should_have_control(
-            self.probabilities.siem[maturity_key],
-            industry_modifiers.get("siem", 1.0),
-            env_modifiers.get("siem", 1.0),
-            size_modifiers.get("siem", 1.0),
+        # Security Operations - with maturity levels
+        controls["siem_maturity"] = select_siem_maturity(
+            maturity_key,
+            industry=industry,
         )
 
         controls["soc_24x7"] = self._should_have_control(
@@ -453,12 +453,11 @@ class SecurityControlsGenerator:
             1.0,
         )
 
-        # Patch Management (select one based on probabilities)
-        patch_cadence = self._select_patch_cadence(maturity_key)
-        controls["patch_daily"] = patch_cadence == "daily"
-        controls["patch_weekly"] = patch_cadence == "weekly"
-        controls["patch_monthly"] = patch_cadence == "monthly"
-        controls["patch_quarterly"] = patch_cadence == "quarterly"
+        # Patch Management - with quality levels
+        controls["patch_management_quality"] = select_patch_quality(
+            maturity_key,
+            industry=industry,
+        )
 
         # Air-gapped (rare, usually only for critical infrastructure)
         controls["air_gapped"] = self._should_have_control(
