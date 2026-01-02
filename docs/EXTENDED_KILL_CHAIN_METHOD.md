@@ -57,7 +57,7 @@ prior_odds = 0.15 / (1 - 0.15) = 0.176
 posterior_odds = 0.176 x 9.0 = 1.584
 
 # Convert back
-posterior = 1.584 / (1 + 1.584) = 0.613 = 61.3%
+posterior = 1.584 / (1 + 1.584) = 1.584 / 2.584 = 0.613 = 61.3%
 ```
 
 ### 1.2 Why Odds Form?
@@ -154,8 +154,10 @@ def _get_gated_exposure_lr(
 | **Security Controls (LR < 1)** | Full reduction | Full reduction |
 | **Exposure (LR > 1)** | Full amplification (2.5x) | Capped to 1.2x |
 | **CVSS Vector (LR > 1)** | Full amplification | Capped to 1.1x |
-| **Asset Criticality (LR > 1)** | Full amplification | Neutralized to 1.0 |
+| **Asset Criticality (LR > 1)** | Full amplification | Neutralized to 1.0* |
 | **Threat Indicators** | Always apply | Always apply (CREATE exploitability) |
+
+*Note: Asset Criticality is neutralized (not capped) when exploitation is not plausible because asset value doesn't make an unexploitable vulnerability exploitable. This is more conservative than capping.
 
 ### 2.4 Rationale
 
@@ -209,6 +211,11 @@ P(Exploit | Control, Exposure) ~= P(Exploit) x LR(Control | Exposure)
 | **EDR/XDR** | 0.4 (60% ↓) | 0.4 (60% ↓) | 0.4 (60% ↓) | 0.35 (65% ↓) |
 | **SIEM** | 0.5 (50% ↓) | 0.55 (45% ↓) | 0.7 (30% ↓) | 0.6 (40% ↓) |
 | **PAM** | 0.5 (50% ↓) | 0.45 (55% ↓) | 0.35 (65% ↓) | 0.25 (75% ↓) |
+
+**Note on Network Segmentation Pattern**: Segmentation becomes MORE effective for internal services (0.3) than internet-facing (0.5). This is correct because:
+- At the perimeter: Firewall already provides segmentation
+- Internally: Segmentation is critical for preventing lateral movement
+- This pattern reflects real-world security architecture
 
 ### 3.3 Rationale
 
@@ -281,7 +288,7 @@ class ThreatIndicatorsInput(BaseModel):
 
 ## 5. Sequential Kill-Chain Model
 
-### 3.1 Kill-Chain Stages
+### 5.1 Kill-Chain Stages
 
 ```
 Stage 1: Initial Access (internet-facing components)
@@ -293,7 +300,7 @@ Stage 3: Lateral Movement (access to other pod components)
 Stage 4: Objective Achievement (data exfiltration, DoS, persistence)
 ```
 
-### 3.2 Sequential Dependency Formula
+### 5.2 Sequential Dependency Formula
 
 ```
 P(Kill-Chain Success) = P(S1) x P(S2|S1) x P(S3|S2) x P(S4|S3)
@@ -302,7 +309,7 @@ P(Kill-Chain Success) = P(S1) x P(S2|S1) x P(S3|S2) x P(S4|S3)
 Where each conditional probability represents:
 - **P(Sᵢ|Sᵢ₋₁)**: Probability of succeeding at stage *i* given stage *i-1* succeeded
 
-### 3.3 Stage Probability Calculation
+### 5.3 Stage Probability Calculation
 
 **OR-Logic** (at least one vulnerability succeeds):
 
@@ -324,7 +331,7 @@ stage_prob = 1 - (1-0.15) x (1-0.08) x (1-0.05)
            = 0.257 = 25.7%
 ```
 
-### 3.4 Control Application
+### 5.4 Control Application
 
 Controls apply **per stage**:
 
@@ -373,23 +380,37 @@ stage_1_prob = 0.257 x 0.3 = 0.077 = 7.7%
 
 ```python
 def apply_temporal_adjustment(
-    posterior_odds: float,
+    posterior_prob: float,
     age_factor: float,
     patch_factor: float,
-    is_kev: bool = False
+    is_kev: bool = False,
+    is_zero_day: bool = False,
+    cvss_score: float = 0.0
 ) -> float:
     """
-    Apply temporal factors to posterior odds
+    Apply temporal factors to posterior probability.
+    
+    IMPORTANT: Temporal factors are NOT likelihood ratios.
+    They represent time-based decay/amplification and should be
+    applied to probability directly, not to odds.
     """
     # KEV overrides age decay
     if is_kev:
         age_factor = max(age_factor, 0.8)
     
-    # Adjust odds (not probability)
-    adjusted_odds = posterior_odds * age_factor * patch_factor
+    # Apply temporal factors to PROBABILITY (not odds)
+    # This represents decay over time, not Bayesian evidence
+    adjusted_prob = posterior_prob * age_factor * patch_factor
     
-    # Convert back to probability
-    adjusted_prob = adjusted_odds / (1 + adjusted_odds)
+    # Apply probability floors to prevent misleading ratings
+    if is_zero_day and cvss_score >= 9.0:
+        adjusted_prob = max(adjusted_prob, 0.05)  # 5% minimum for critical zero-days
+    
+    if is_kev:
+        adjusted_prob = max(adjusted_prob, 0.05)  # 5% minimum for KEV
+    
+    # Cap at 95% (practical maximum)
+    adjusted_prob = min(adjusted_prob, 0.95)
     
     return adjusted_prob
 ```
@@ -887,14 +908,14 @@ combined_lr = 3.75 × 8.1 × 2.5 × 0.12 = 9.11
 posterior_odds = 0.176 × 9.11 = 1.604
 posterior = 1.604 / 2.604 = 0.616 = 61.6%
 
-# Temporal adjustment
+# Temporal adjustment (applied to PROBABILITY, not odds)
 age_factor = 2.0      # Peak exploitation (Day 30)
 patch_factor = 0.5    # Patch available 23 days
 
-temporal_odds = 1.604 × 2.0 × 0.5 = 1.604
-temporal_prob = 1.604 / 2.604 = 0.616 = 61.6%
+temporal_prob = 0.616 × 2.0 × 0.5 = 0.616 = 61.6%
 
 # No floor needed (already > 5%)
+# Note: 2.0 × 0.5 = 1.0, so probability unchanged
 ```
 
 **Result**: P(Initial Access) = **61.6% (Critical)**
@@ -1100,7 +1121,7 @@ def calculate_kill_chain_probability(
         security_controls
     )
     
-    # Step 4: Calculate Stage 3 (Lateral Movement)
+    # Step 3: Calculate Stage 3 (Lateral Movement)
     stage_3_prob = calculate_lateral_movement(
         stage_2_prob,
         exploitable,
@@ -1236,9 +1257,9 @@ def apply_temporal_adjustment(
     if is_kev:
         age_factor = max(age_factor, 0.8)
     
-    # Apply temporal factors to odds
-    adjusted_odds = posterior_odds * age_factor * patch_factor
-    adjusted_prob = adjusted_odds / (1 + adjusted_odds)
+    # Apply temporal factors to PROBABILITY (not odds)
+    # This represents decay over time, not Bayesian updating
+    adjusted_prob = posterior * age_factor * patch_factor
     
     # Apply floors
     if is_zero_day and cvss_score >= 9.0:
@@ -1568,6 +1589,15 @@ posterior = prior × LR_metasploit × LR_ac_l × LR_kev
 - Use **exposure-conditional LRs** (partially addresses this)
 - Use **exploitability gating** (prevents false amplification)
 - **Acknowledge uncertainty** with credible intervals
+
+**KEV-EPSS Correlation Handling**:
+
+Since EPSS already incorporates KEV status in its model, applying both creates double-counting. We handle this by:
+1. **Using EPSS as prior** (includes KEV signal)
+2. **Applying reduced KEV LR** (1.5x instead of 3.0x) to account for partial overlap
+3. **KEV floor** (5% minimum) ensures critical threats aren't underestimated
+
+This conservative approach acknowledges the correlation while maintaining safety margins.
 
 ---
 

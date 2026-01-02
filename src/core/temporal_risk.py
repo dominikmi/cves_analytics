@@ -113,7 +113,9 @@ def apply_temporal_adjustment(
 ) -> TemporalAdjustment:
     """Apply temporal adjustments to posterior probability.
 
-    Adjustments are applied in odds space to maintain proper probability bounds.
+    IMPORTANT: Temporal factors are NOT likelihood ratios. They represent
+    time-based decay/amplification and are applied to probability directly,
+    not to odds. This is different from Bayesian evidence updating.
 
     Args:
         posterior_probability: Posterior probability from Bayesian assessment
@@ -123,9 +125,6 @@ def apply_temporal_adjustment(
         TemporalAdjustment with adjusted probability and factors
 
     """
-    # Convert to odds
-    posterior_odds = posterior_probability / (1 - posterior_probability)
-
     # Calculate factors
     age_factor = calculate_age_factor(
         temporal_factors.days_since_disclosure,
@@ -137,11 +136,12 @@ def apply_temporal_adjustment(
     # KEV multiplier: KEV status maintains high probability despite age
     kev_multiplier = 1.5 if temporal_factors.is_kev else 1.0
 
-    # Apply factors in odds space
-    adjusted_odds = posterior_odds * age_factor * patch_factor * kev_multiplier
+    # Apply factors to PROBABILITY (not odds)
+    # Temporal decay is not Bayesian evidence - it's a time-based multiplier
+    adjusted_prob = posterior_probability * age_factor * patch_factor * kev_multiplier
 
-    # Convert back to probability
-    adjusted_prob = adjusted_odds / (1 + adjusted_odds)
+    # Cap at 95% (practical maximum)
+    adjusted_prob = min(adjusted_prob, 0.95)
 
     # Apply probability floors
     floor_applied = None
