@@ -165,7 +165,7 @@ Posterior Odds = Prior Odds x LR1 x LR2 x ... x LRn
 ```
 
 Where:
-- **Prior Odds** = EPSS score converted to odds using the formula: `odds = probability / (1 - probability)`. For example, EPSS of 8.3% becomes odds of 0.083 / (1 - 0.083) = 0.0905. I decided to use odds space because it simplifies combining multiple pieces of evidence - instead of applying Bayes' theorem repeatedly, I am simply multiplying likelihood ratios and convert back to probability at the end.
+- **Prior Odds** = EPSS score converted to odds using the formula: `odds = probability / (1 - probability)`. For example, EPSS of 8.3% becomes odds of 0.083 / (1 - 0.083) = 0.0905. I decided to use [odds space](https://www.youtube.com/watch?v=lG4VkPoG3ko) because it simplifies combining multiple pieces of evidence - instead of applying Bayes' theorem repeatedly, I am simply multiplying likelihood ratios and convert back to probability at the end.
 - **LR (Likelihood Ratio)** = Factor representing evidence strength
   - LR < 1.0: Evidence reduces exploitation probability (protective controls)
   - LR = 1.0: No effect (baseline)
