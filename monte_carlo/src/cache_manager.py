@@ -129,30 +129,41 @@ class SimulationCache:
         Returns:
             Cache dict
         """
-        from src.cli.run_pipeline import run_full_pipeline
+        from src.cli.pipeline import VulnerabilityAssessmentPipeline
+        from src.utils.config import AppConfig
 
-        logger.info("Step 1/5: Generating scenario...")
-        # Run pipeline once to get all data
-        # We'll extract and cache the expensive parts
-        result = run_full_pipeline(
+        logger.info("Step 1/5: Running pipeline to generate data...")
+
+        # Create config for pipeline
+        config = AppConfig(
             org_size=scenario_config["org_size"],
+            org_reach="global",  # Default for Monte Carlo
             industry=scenario_config["industry"],
-            maturity=scenario_config["maturity"],
             environment=scenario_config["environment"],
-            output_dir=str(self.cache_dir / "temp"),
+            grype_binary_path="/opt/homebrew/bin/grype",
+            data_path="data",
+            output_path=str(self.cache_dir / "temp"),
         )
 
+        # Run pipeline
+        pipeline = VulnerabilityAssessmentPipeline(config)
+        pipeline.run()
+
+        # Extract data from pipeline state
         logger.info("Step 2/5: Extracting Docker scan results...")
-        docker_scans = self._extract_docker_scans(result)
+        docker_scans = self._extract_docker_scans_from_state(pipeline.state)
 
         logger.info("Step 3/5: Extracting enriched CVE dataset...")
-        enriched_cves = self._extract_enriched_cves(result)
+        enriched_cves = self._extract_enriched_cves_from_state(pipeline.state)
 
         logger.info("Step 4/5: Extracting EPSS data...")
-        epss_data = self._extract_epss_data(result)
+        epss_data = self._extract_epss_data_from_state(pipeline.state)
 
         logger.info("Step 5/5: Extracting KEV catalog...")
-        kev_data = self._extract_kev_data(result)
+        kev_data = self._extract_kev_data_from_state(pipeline.state)
+
+        # Extract architecture
+        architecture = self._extract_architecture_from_state(pipeline.state)
 
         cache = {
             "version": self.CACHE_VERSION,
@@ -162,61 +173,154 @@ class SimulationCache:
             "enriched_cves": enriched_cves,
             "epss_data": epss_data,
             "kev_data": kev_data,
-            "architecture": result.get("architecture", {}),
+            "architecture": architecture,
         }
 
         logger.info("Cache built successfully")
         return cache
 
-    def _extract_docker_scans(self, pipeline_result: dict) -> dict[str, list]:
-        """Extract Docker scan results from pipeline output.
+    def _extract_docker_scans_from_state(self, pipeline_state: dict) -> dict[str, list]:
+        """Extract Docker scan results from pipeline state.
 
         Args:
-            pipeline_result: Full pipeline result
+            pipeline_state: Pipeline state dict
 
         Returns:
             Dict mapping image names to vulnerability lists
         """
-        # Extract from pipeline result
-        # This will be implemented based on actual pipeline structure
-        return pipeline_result.get("docker_scans", {})
+        scan_results = pipeline_state.get("scan_results")
+        if scan_results is None or scan_results.is_empty():
+            return {}
 
-    def _extract_enriched_cves(self, pipeline_result: dict) -> dict:
-        """Extract enriched CVE dataset.
+        # Group by image name
+        docker_scans = {}
+        for row in scan_results.iter_rows(named=True):
+            image = row.get("image_name", "unknown")
+            if image not in docker_scans:
+                docker_scans[image] = []
+            docker_scans[image].append(
+                {
+                    "cve_id": row.get("cve_id"),
+                    "severity": row.get("severity"),
+                    "cvss_score": row.get("cvss_score"),
+                }
+            )
+
+        return docker_scans
+
+    def _extract_enriched_cves_from_state(self, pipeline_state: dict) -> dict:
+        """Extract enriched CVE dataset from pipeline state.
 
         Args:
-            pipeline_result: Full pipeline result
+            pipeline_state: Pipeline state dict
 
         Returns:
             Enriched CVE data (serializable format)
         """
-        # Convert DataFrame to dict for JSON serialization
-        df = pipeline_result.get("enriched_dataset")
-        if df is not None and hasattr(df, "to_dict"):
-            return df.to_dict()
-        return {}
+        enriched_df = pipeline_state.get("enriched_data")
+        if enriched_df is None or enriched_df.is_empty():
+            return {}
 
-    def _extract_epss_data(self, pipeline_result: dict) -> dict:
-        """Extract EPSS scores.
+        # Convert DataFrame to dict for JSON serialization
+        return enriched_df.to_dict(as_series=False)
+
+    def _extract_epss_data_from_state(self, pipeline_state: dict) -> dict:
+        """Extract EPSS scores from pipeline state.
 
         Args:
-            pipeline_result: Full pipeline result
+            pipeline_state: Pipeline state dict
 
         Returns:
             EPSS data dict
         """
-        return pipeline_result.get("epss_data", {})
+        enriched_df = pipeline_state.get("enriched_data")
+        if enriched_df is None or enriched_df.is_empty():
+            return {}
 
-    def _extract_kev_data(self, pipeline_result: dict) -> dict:
-        """Extract KEV catalog.
+        # Extract EPSS scores as dict
+        if "cve_id" in enriched_df.columns and "epss_score" in enriched_df.columns:
+            epss_dict = {}
+            for row in enriched_df.select(["cve_id", "epss_score"]).iter_rows(
+                named=True
+            ):
+                epss_dict[row["cve_id"]] = float(row["epss_score"])
+            return epss_dict
+        return {}
+
+    def _extract_kev_data_from_state(self, pipeline_state: dict) -> dict:
+        """Extract KEV catalog from pipeline state.
 
         Args:
-            pipeline_result: Full pipeline result
+            pipeline_state: Pipeline state dict
 
         Returns:
             KEV data dict
         """
-        return pipeline_result.get("kev_data", {})
+        enriched_df = pipeline_state.get("enriched_data")
+        if enriched_df is None or enriched_df.is_empty():
+            return {}
+
+        # Extract KEV entries
+        if "cve_id" in enriched_df.columns and "is_kev" in enriched_df.columns:
+            kev_dict = {}
+            kev_df = enriched_df.filter(pl.col("is_kev") == True)
+            for row in kev_df.iter_rows(named=True):
+                kev_dict[row["cve_id"]] = {
+                    "is_kev": True,
+                    "date_added": row.get("kev_date_added", "unknown"),
+                }
+            return kev_dict
+        return {}
+
+    def _extract_architecture_from_state(self, pipeline_state: dict) -> dict:
+        """Extract architecture from pipeline state.
+
+        Args:
+            pipeline_state: Pipeline state dict
+
+        Returns:
+            Architecture dict
+        """
+        scenario = pipeline_state.get("scenario")
+        if scenario is None:
+            return {}
+
+        # Extract architecture information
+        architecture = {
+            "application": {
+                "name": scenario.application.name
+                if hasattr(scenario, "application")
+                else "unknown",
+                "type": scenario.application.app_type
+                if hasattr(scenario, "application")
+                else "unknown",
+            },
+            "components": [],
+            "network_topology": {
+                "segmentation": scenario.network_policy
+                if hasattr(scenario, "network_policy")
+                else "none",
+            },
+        }
+
+        # Extract components if available
+        if hasattr(scenario, "application") and hasattr(
+            scenario.application, "components"
+        ):
+            for comp in scenario.application.components:
+                architecture["components"].append(
+                    {
+                        "name": comp.name if hasattr(comp, "name") else "unknown",
+                        "type": comp.component_type
+                        if hasattr(comp, "component_type")
+                        else "unknown",
+                        "exposure": comp.exposure
+                        if hasattr(comp, "exposure")
+                        else "internal",
+                    }
+                )
+
+        return architecture
 
     def _is_cache_valid(self, cache: dict) -> bool:
         """Check if cache is valid.
