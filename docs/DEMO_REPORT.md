@@ -1,9 +1,11 @@
 # CVEs Analytics - Demo Report
 
-**Version:** 2.0 (Probabilistic Control Types)  
+**Version:** 2.1 (Corrected Temporal Adjustment)  
 **Generated:** January 2, 2026
 
 This is a demonstration report showcasing the CVEs Analytics tool's capabilities across **multiple security scenarios**. The tool performs Bayesian risk assessment with **probabilistic control types modeling**, multi-component kill-chain probability analysis, and security control effectiveness evaluation.
+
+**⚠️ Version 2.1 Update:** Corrected temporal adjustment logic - factors now applied to probability instead of odds for scientifically accurate calculations.
 
 ---
 
