@@ -154,8 +154,10 @@ def _get_gated_exposure_lr(
 | **Security Controls (LR < 1)** | Full reduction | Full reduction |
 | **Exposure (LR > 1)** | Full amplification (2.5x) | Capped to 1.2x |
 | **CVSS Vector (LR > 1)** | Full amplification | Capped to 1.1x |
-| **Asset Criticality (LR > 1)** | Full amplification | Neutralized to 1.0 |
+| **Asset Criticality (LR > 1)** | Full amplification | Neutralized to 1.0* |
 | **Threat Indicators** | Always apply | Always apply (CREATE exploitability) |
+
+*Note: Asset Criticality is neutralized (not capped) when exploitation is not plausible because asset value doesn't make an unexploitable vulnerability exploitable. This is more conservative than capping.
 
 ### 2.4 Rationale
 
@@ -209,6 +211,11 @@ P(Exploit | Control, Exposure) ~= P(Exploit) x LR(Control | Exposure)
 | **EDR/XDR** | 0.4 (60% ↓) | 0.4 (60% ↓) | 0.4 (60% ↓) | 0.35 (65% ↓) |
 | **SIEM** | 0.5 (50% ↓) | 0.55 (45% ↓) | 0.7 (30% ↓) | 0.6 (40% ↓) |
 | **PAM** | 0.5 (50% ↓) | 0.45 (55% ↓) | 0.35 (65% ↓) | 0.25 (75% ↓) |
+
+**Note on Network Segmentation Pattern**: Segmentation becomes MORE effective for internal services (0.3) than internet-facing (0.5). This is correct because:
+- At the perimeter: Firewall already provides segmentation
+- Internally: Segmentation is critical for preventing lateral movement
+- This pattern reflects real-world security architecture
 
 ### 3.3 Rationale
 
@@ -1582,6 +1589,15 @@ posterior = prior × LR_metasploit × LR_ac_l × LR_kev
 - Use **exposure-conditional LRs** (partially addresses this)
 - Use **exploitability gating** (prevents false amplification)
 - **Acknowledge uncertainty** with credible intervals
+
+**KEV-EPSS Correlation Handling**:
+
+Since EPSS already incorporates KEV status in its model, applying both creates double-counting. We handle this by:
+1. **Using EPSS as prior** (includes KEV signal)
+2. **Applying reduced KEV LR** (1.5x instead of 3.0x) to account for partial overlap
+3. **KEV floor** (5% minimum) ensures critical threats aren't underestimated
+
+This conservative approach acknowledges the correlation while maintaining safety margins.
 
 ---
 
