@@ -218,8 +218,17 @@ class MonteCarloSimulator:
             for lr in lr_values.values():
                 overall_lr *= lr
             
-            # Apply LR to each vulnerability's EPSS score (convert to float first)
-            adjusted_risks = [float(epss) * overall_lr for epss in epss_scores]
+            # Apply LR to each vulnerability's EPSS score (convert to float, skip invalid)
+            adjusted_risks = []
+            for epss in epss_scores:
+                try:
+                    # Handle None, False, or other non-numeric values
+                    if epss is None or epss == "False" or epss == "None":
+                        adjusted_risks.append(0.0)
+                    else:
+                        adjusted_risks.append(float(epss) * overall_lr)
+                except (ValueError, TypeError):
+                    adjusted_risks.append(0.0)
 
             # Count actionable (high risk after adjustment)
             actionable = sum(1 for risk in adjusted_risks if risk > 0.1)
