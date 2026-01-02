@@ -13,7 +13,7 @@ from typing import Any
 import polars as pl
 
 from monte_carlo.src.cache_manager import SimulationCache
-from src.core.bayesian_risk import BayesianRiskAssessment
+from src.core.bayesian_risk import BayesianRiskAssessor
 from src.core.control_lr_mapper import get_control_lr_from_security_controls
 from src.core.kill_chain_calculator import KillChainCalculator
 from src.simulation.security_controls import SecurityControlsGenerator
@@ -214,7 +214,7 @@ class MonteCarloSimulator:
             df = pl.DataFrame(enriched_cves)
 
             # Apply Bayesian reassessment with new control LRs
-            bayesian = BayesianRiskAssessment()
+            bayesian = BayesianRiskAssessor()
             reassessed_df = bayesian.reassess_with_controls(df, lr_values)
 
             # Calculate statistics
