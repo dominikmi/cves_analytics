@@ -212,14 +212,14 @@ class MonteCarloSimulator:
         if enriched_cves:
             # Simple risk calculation: apply LR reduction to EPSS scores
             epss_scores = enriched_cves["epss_score"]
-
+            
             # Calculate overall LR (product of all control LRs)
             overall_lr = 1.0
             for lr in lr_values.values():
                 overall_lr *= lr
-
-            # Apply LR to each vulnerability's EPSS score
-            adjusted_risks = [epss * overall_lr for epss in epss_scores]
+            
+            # Apply LR to each vulnerability's EPSS score (convert to float first)
+            adjusted_risks = [float(epss) * overall_lr for epss in epss_scores]
 
             # Count actionable (high risk after adjustment)
             actionable = sum(1 for risk in adjusted_risks if risk > 0.1)

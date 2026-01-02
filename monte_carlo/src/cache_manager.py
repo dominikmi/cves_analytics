@@ -217,11 +217,23 @@ class SimulationCache:
         Returns:
             Enriched CVE data (serializable format)
         """
+        # Try multiple possible keys for enriched data
         enriched_df = pipeline_state.get("enriched_data")
-        if enriched_df is None or enriched_df.is_empty():
+        if enriched_df is None:
+            enriched_df = pipeline_state.get("enriched_results")
+        if enriched_df is None:
+            enriched_df = pipeline_state.get("scan_results")
+        
+        if enriched_df is None:
+            logger.warning(f"No enriched data found. Available keys: {list(pipeline_state.keys())}")
+            return {}
+        
+        if enriched_df.is_empty():
+            logger.warning("Enriched data DataFrame is empty")
             return {}
 
         # Convert DataFrame to dict for JSON serialization
+        logger.info(f"Extracting {len(enriched_df)} enriched CVE records")
         return enriched_df.to_dict(as_series=False)
 
     def _extract_epss_data_from_state(self, pipeline_state: dict) -> dict:
