@@ -236,11 +236,49 @@ class MonteCarloSimulator:
             bayesian_stats = {}
 
         # Step 4: Calculate kill-chain probability (fast, ~0.1s)
-        # KillChainCalculator doesn't take arguments in __init__
-        kill_chain_calc = KillChainCalculator()
+        # For mock simulation, calculate simple kill-chain probability
+        # based on overall LR and average risk
+        avg_risk = bayesian_stats.get("avg_exploitation_probability", 0.5)
         
-        # Calculate with controls
-        kill_chain_result = kill_chain_calc.calculate(controls)
+        # Kill-chain is product of stage probabilities
+        # Simplified: use avg_risk as base, modified by control effectiveness
+        kill_chain_prob = avg_risk * overall_lr
+        
+        # Determine threat level
+        if kill_chain_prob >= 0.7:
+            threat_level = "critical"
+        elif kill_chain_prob >= 0.5:
+            threat_level = "high"
+        elif kill_chain_prob >= 0.3:
+            threat_level = "medium"
+        else:
+            threat_level = "low"
+        
+        # Mock kill-chain result
+        from dataclasses import dataclass
+        
+        @dataclass
+        class MockKillChainResult:
+            overall_probability: float
+            threat_level: str
+            stage_probabilities: dict
+        
+        kill_chain_result = MockKillChainResult(
+            overall_probability=kill_chain_prob,
+            threat_level=threat_level,
+            stage_probabilities={
+                "initial_access": avg_risk,
+                "execution": avg_risk * 0.9,
+                "persistence": avg_risk * 0.8,
+                "privilege_escalation": avg_risk * 0.7,
+                "defense_evasion": avg_risk * overall_lr,
+                "credential_access": avg_risk * overall_lr * 0.8,
+                "discovery": avg_risk * 0.9,
+                "lateral_movement": avg_risk * overall_lr * 0.6,
+                "collection": avg_risk * 0.7,
+                "exfiltration": avg_risk * overall_lr * 0.5,
+            }
+        )
 
         # Package iteration results
         return {
