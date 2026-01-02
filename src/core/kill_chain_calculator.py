@@ -494,7 +494,8 @@ class KillChainCalculator:
             factors["waf"] = waf_lr
 
         # Conditional probability given initial access
-        conditional_prob = base_prob
+        # Cap at 1.0 to ensure valid probability
+        conditional_prob = min(base_prob, 1.0)
 
         return KillChainStage(
             name="Execution",
@@ -576,7 +577,8 @@ class KillChainCalculator:
             base_prob *= siem_lr
             factors["siem"] = siem_lr
 
-        conditional_prob = base_prob
+        # Cap at 1.0 to ensure valid probability
+        conditional_prob = min(base_prob, 1.0)
 
         return KillChainStage(
             name="Lateral Movement",
@@ -636,7 +638,8 @@ class KillChainCalculator:
             base_prob *= siem_lr
             factors["siem"] = siem_lr
 
-        conditional_prob = base_prob
+        # Cap at 1.0 to ensure valid probability
+        conditional_prob = min(base_prob, 1.0)
 
         return KillChainStage(
             name="Objective Achievement",

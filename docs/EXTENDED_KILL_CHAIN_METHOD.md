@@ -5,7 +5,7 @@
 This document describes the **implemented kill-chain analysis** for multi-component containerized applications using **Bayesian probability** with **exploitability gating** and **exposure-conditional likelihood ratios**. The methodology calculates the probability of successful attack chain execution from initial access to objective achievement (data exfiltration, service disruption, or persistence).
 
 **Implemented Features**:
-- **Exploitability Gating**: Amplification factors (LR > 1) only apply when exploitation is plausible (EPSS ≥ 5% OR known exploit)
+- **Exploitability Gating**: Amplification factors (LR > 1) only apply when exploitation is plausible (EPSS >= 5% OR known exploit)
 - **Exposure-Conditional Controls**: Control effectiveness depends on exposure context (e.g., WAF 70% reduction for internet-facing, 10% for internal)
 - **Threat Intelligence Integration**: KEV, Metasploit, ExploitDB, Nuclei, GitHub PoC tracking with granular LRs
 - **CVSS Vector Analysis**: Attack Vector, Complexity, Privileges, User Interaction, Scope with exposure-aware LRs
@@ -35,16 +35,16 @@ This document describes the **implemented kill-chain analysis** for multi-compon
 **Bayes' Theorem in Odds Form**:
 
 ```
-Posterior Odds = Prior Odds × LR₁ × LR₂ × ... × LRₙ
+Posterior Odds = Prior Odds x LR1 x LR2 x ... x LRn
 ```
 
 **Conversion Formulas**:
 
 ```python
-# Probability → Odds
+# Probability -> Odds
 odds = probability / (1 - probability)
 
-# Odds → Probability
+# Odds -> Probability
 probability = odds / (1 + odds)
 ```
 
@@ -53,8 +53,8 @@ probability = odds / (1 + odds)
 # Prior: EPSS = 15%
 prior_odds = 0.15 / (1 - 0.15) = 0.176
 
-# Apply LRs: 3.0 × 2.0 × 1.5 = 9.0
-posterior_odds = 0.176 × 9.0 = 1.584
+# Apply LRs: 3.0 x 2.0 x 1.5 = 9.0
+posterior_odds = 0.176 x 9.0 = 1.584
 
 # Convert back
 posterior = 1.584 / (1 + 1.584) = 0.613 = 61.3%
@@ -65,13 +65,13 @@ posterior = 1.584 / (1 + 1.584) = 0.613 = 61.3%
 **Problem with Direct Probability Multiplication**:
 ```python
 # WRONG - can exceed 1.0
-posterior = 0.15 × 9.0 = 1.35 = 135% ❌
+posterior = 0.15 x 9.0 = 1.35 = 135% ❌
 ```
 
 **Correct Odds Form**:
 ```python
-# CORRECT - always ≤ 1.0
-posterior_odds = 0.176 × 9.0 = 1.584
+# CORRECT - always <= 1.0
+posterior_odds = 0.176 x 9.0 = 1.584
 posterior = 1.584 / 2.584 = 0.613 = 61.3% ✓
 ```
 
@@ -138,7 +138,7 @@ def _get_gated_exposure_lr(
 
 **Implemented Criteria**:
 
-1. **EPSS ≥ 5%** (top 10% of vulnerabilities)
+1. **EPSS >= 5%** (top 10% of vulnerabilities)
 2. **OR has known exploit**:
    - CISA KEV listed
    - Metasploit module
@@ -189,7 +189,7 @@ def _get_gated_exposure_lr(
 Control effectiveness **depends on exposure context**. This implements a simplified form of conditional Bayes:
 
 ```
-P(Exploit | Control, Exposure) ≈ P(Exploit) × LR(Control | Exposure)
+P(Exploit | Control, Exposure) ~= P(Exploit) x LR(Control | Exposure)
 ```
 
 **Example**: WAF effectiveness varies by exposure:
@@ -227,17 +227,17 @@ P(Exploit | Control, Exposure) ≈ P(Exploit) × LR(Control | Exposure)
 # Without exposure-conditional LRs (WRONG)
 waf_lr = 0.3  # Always 70% reduction
 mfa_lr = 0.3  # Always 70% reduction
-combined_lr = 0.3 × 0.3 = 0.09  # 91% reduction
+combined_lr = 0.3 x 0.3 = 0.09  # 91% reduction
 
 # With exposure-conditional LRs (CORRECT)
 waf_lr = 0.3  # 70% reduction for internet-facing
 mfa_lr = 0.2  # 80% reduction for internet-facing
-combined_lr = 0.3 × 0.2 = 0.06  # 94% reduction
+combined_lr = 0.3 x 0.2 = 0.06  # 94% reduction
 
 # For internal service (CORRECT)
 waf_lr = 0.9  # 10% reduction for internal
 mfa_lr = 0.5  # 50% reduction for internal
-combined_lr = 0.9 × 0.5 = 0.45  # 55% reduction
+combined_lr = 0.9 x 0.5 = 0.45  # 55% reduction
 ```
 
 ---
@@ -296,7 +296,7 @@ Stage 4: Objective Achievement (data exfiltration, DoS, persistence)
 ### 3.2 Sequential Dependency Formula
 
 ```
-P(Kill-Chain Success) = P(S₁) × P(S₂|S₁) × P(S₃|S₂) × P(S₄|S₃)
+P(Kill-Chain Success) = P(S1) x P(S2|S1) x P(S3|S2) x P(S4|S3)
 ```
 
 Where each conditional probability represents:
@@ -318,8 +318,8 @@ vuln_2_prob = 0.08  # 8%
 vuln_3_prob = 0.05  # 5%
 
 # At least one succeeds
-stage_prob = 1 - (1-0.15) × (1-0.08) × (1-0.05)
-           = 1 - 0.85 × 0.92 × 0.95
+stage_prob = 1 - (1-0.15) x (1-0.08) x (1-0.05)
+           = 1 - 0.85 x 0.92 x 0.95
            = 1 - 0.743
            = 0.257 = 25.7%
 ```
@@ -329,7 +329,7 @@ stage_prob = 1 - (1-0.15) × (1-0.08) × (1-0.05)
 Controls apply **per stage**:
 
 ```python
-stage_prob_with_controls = stage_prob × control_lr
+stage_prob_with_controls = stage_prob x control_lr
 ```
 
 **Example**:
@@ -338,7 +338,7 @@ stage_prob_with_controls = stage_prob × control_lr
 base_prob = 0.257  # 25.7%
 waf_lr = 0.3       # WAF reduces by 70%
 
-stage_1_prob = 0.257 × 0.3 = 0.077 = 7.7%
+stage_1_prob = 0.257 x 0.3 = 0.077 = 7.7%
 ```
 
 ---
@@ -471,18 +471,18 @@ ac_l_lr = 1.5  # Low complexity
 pr_n_lr = 1.8  # No privileges
 ui_n_lr = 1.5  # No interaction
 # All capped to 1.1 because exploitation not plausible
-cvss_lr = 1.1 × 1.1 × 1.1 × 1.1 = 1.46  # Capped!
+cvss_lr = 1.1 x 1.1 x 1.1 x 1.1 = 1.46  # Capped!
 
 # Step 6: Controls (NOT GATED - always apply)
 waf_lr = 0.3  # 70% reduction (exposure-conditional)
 ids_lr = 0.4  # 60% reduction (exposure-conditional)
-control_lr = 0.3 × 0.4 = 0.12
+control_lr = 0.3 x 0.4 = 0.12
 
 # Step 7: Combined LR
-combined_lr = 1.0 × 1.2 × 1.46 × 0.12 = 0.21
+combined_lr = 1.0 x 1.2 x 1.46 x 0.12 = 0.21
 
 # Step 8: Posterior
-posterior_odds = 0.001001 × 0.21 = 0.00021
+posterior_odds = 0.001001 x 0.21 = 0.00021
 posterior = 0.00021 / 1.00021 = 0.00021 = 0.021%
 
 # Result: NEGLIGIBLE (< 1%)
@@ -492,8 +492,8 @@ posterior = 0.00021 / 1.00021 = 0.00021 = 0.021%
 ```python
 # Would calculate:
 exposure_lr = 2.5  # Full amplification
-cvss_lr = 2.0 × 1.5 × 1.8 × 1.5 = 8.1  # Full amplification
-combined_lr = 1.0 × 2.5 × 8.1 × 0.12 = 2.43
+cvss_lr = 2.0 x 1.5 x 1.8 x 1.5 = 8.1  # Full amplification
+combined_lr = 1.0 x 2.5 x 8.1 x 0.12 = 2.43
 posterior = 0.24%  # MEDIUM (wrong!)
 ```
 
@@ -534,18 +534,18 @@ av_l_lr = 0.5  # Local (reduction for internal)
 ac_l_lr = 1.5  # Low complexity
 pr_l_lr = 1.0  # Low privileges
 ui_n_lr = 1.5  # No interaction
-cvss_lr = 0.5 × 1.5 × 1.0 × 1.5 = 1.125
+cvss_lr = 0.5 x 1.5 x 1.0 x 1.5 = 1.125
 
 # Step 6: Controls (exposure-conditional)
 edr_lr = 0.4  # 60% reduction (same for all exposures)
 network_seg_lr = 0.3  # 70% reduction (more effective for internal)
-control_lr = 0.4 × 0.3 = 0.12
+control_lr = 0.4 x 0.3 = 0.12
 
 # Step 7: Combined LR
-combined_lr = 2.5 × 0.6 × 1.125 × 0.12 = 0.2025
+combined_lr = 2.5 x 0.6 x 1.125 x 0.12 = 0.2025
 
 # Step 8: Posterior
-posterior_odds = 0.0905 × 0.2025 = 0.0183
+posterior_odds = 0.0905 x 0.2025 = 0.0183
 posterior = 0.0183 / 1.0183 = 0.018 = 1.8%
 
 # Result: LOW (1-5%)

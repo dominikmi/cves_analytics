@@ -197,8 +197,9 @@ class ScenarioGenerator:
 
         # Sync some controls with legacy security_posture for consistency
         posture = environment["security_posture"]
-        posture["network_segmentation"] = security_controls.network_segmentation
-        posture["mfa_enforced"] = security_controls.mfa
+        # Convert control types to boolean for legacy compatibility
+        posture["network_segmentation"] = security_controls.segmentation_type != "none"
+        posture["mfa_enforced"] = security_controls.mfa_type != "none"
         posture["patch_management"] = security_controls.get_patch_cadence()
 
         if output_format == "csv":
