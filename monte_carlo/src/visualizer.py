@@ -95,7 +95,9 @@ class MonteCarloVisualizer:
         # Labels and title
         scenario = results["scenario_config"]
         title = f"{metric.replace('_', ' ').title()} Distribution\n"
-        title += f"{scenario['org_size'].title()} Org, {scenario['maturity'].title()} Maturity"
+        org = scenario["org_size"].title()
+        mat = scenario["maturity"].title()
+        title += f"{org} Org, {mat} Maturity"
 
         ax.set_xlabel(metric.replace("_", " ").title(), fontsize=12)
         ax.set_ylabel("Frequency", fontsize=12)
@@ -173,9 +175,7 @@ class MonteCarloVisualizer:
 
         # 3. Violin plots
         ax = axes[1, 0]
-        parts = ax.violinplot(
-            data_to_plot, positions=[1, 2], showmeans=True, showmedians=True
-        )
+        ax.violinplot(data_to_plot, positions=[1, 2], showmeans=True, showmedians=True)
         ax.set_xticks([1, 2])
         ax.set_xticklabels([s1_name, s2_name])
         ax.set_ylabel(metric.replace("_", " ").title(), fontsize=11)
@@ -208,7 +208,9 @@ class MonteCarloVisualizer:
         plt.tight_layout()
 
         if save:
-            filename = f"comparison_{metric}_{s1_config['maturity']}_vs_{s2_config['maturity']}.png"
+            s1_mat = s1_config["maturity"]
+            s2_mat = s2_config["maturity"]
+            filename = f"comparison_{metric}_{s1_mat}_vs_{s2_mat}.png"
             filepath = self.output_dir / filename
             plt.savefig(filepath, dpi=300, bbox_inches="tight")
             logger.info(f"Saved comparison plot to {filepath}")
@@ -242,7 +244,9 @@ class MonteCarloVisualizer:
         labels = ["90% CI", "95% CI", "99% CI"]
         colors = ["lightblue", "steelblue", "darkblue"]
 
-        for y, (lower, upper), label, color in zip(y_pos, intervals, labels, colors):
+        for y, (lower, upper), label, color in zip(
+            y_pos, intervals, labels, colors, strict=True
+        ):
             ax.barh(
                 y,
                 upper - lower,
@@ -359,7 +363,7 @@ class MonteCarloVisualizer:
         ax1.grid(True, alpha=0.3, axis="x")
 
         # Add count annotations
-        for i, (risk, count) in enumerate(zip(mean_risks, counts)):
+        for i, (risk, count) in enumerate(zip(mean_risks, counts, strict=True)):
             ax1.text(risk, i, f" n={count}", va="center", fontsize=9)
 
         # 2. Frequency of selection
@@ -414,7 +418,7 @@ class MonteCarloVisualizer:
             all_values, labels=labels, patch_artist=True, notch=True, showmeans=True
         )
 
-        for patch, color in zip(bp["boxes"], colors):
+        for patch, color in zip(bp["boxes"], colors, strict=True):
             patch.set_facecolor(color)
 
         ax1.set_ylabel(metric.replace("_", " ").title(), fontsize=12)
@@ -425,7 +429,7 @@ class MonteCarloVisualizer:
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
         # 2. Violin plot comparison
-        parts = ax2.violinplot(
+        ax2.violinplot(
             all_values,
             positions=range(1, len(all_values) + 1),
             showmeans=True,
