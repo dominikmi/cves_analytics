@@ -215,7 +215,7 @@ class MonteCarloSimulator:
             severities = enriched_cves.get(
                 "severity_reassessed", enriched_cves.get("severity", [])
             )
-            
+
             # Filter indices for truly high-risk vulnerabilities
             high_risk_indices = []
             for i, (epss, severity) in enumerate(
@@ -226,19 +226,21 @@ class MonteCarloSimulator:
                         float(epss) if epss not in [None, "False", "None"] else 0.0
                     )
                     severity_str = str(severity).lower() if severity else ""
-                    
+
                     # Include ONLY if EPSS > 0.1 AND severity is Critical/High
                     if epss_val > 0.1 and severity_str in ["critical", "high"]:
                         high_risk_indices.append(i)
                 except (ValueError, TypeError):
                     continue
 
-            # Calculate overall LR (product of all control LRs)
+            # Calculate overall LR for kill-chain (used later)
             overall_lr = 1.0
             for lr in lr_values.values():
                 overall_lr *= lr
-
-            # Apply LR only to high-risk vulnerabilities
+            
+            # For Monte Carlo, use RAW EPSS scores for high-risk vulnerabilities
+            # to see actual risk distribution, not overly reduced by controls
+            # Controls are modeled separately in kill-chain calculation
             adjusted_risks = []
             for idx in high_risk_indices:
                 epss = epss_scores[idx]
@@ -246,7 +248,8 @@ class MonteCarloSimulator:
                     if epss is None or epss == "False" or epss == "None":
                         adjusted_risks.append(0.0)
                     else:
-                        adjusted_risks.append(float(epss) * overall_lr)
+                        # Use raw EPSS for meaningful risk distribution
+                        adjusted_risks.append(float(epss))
                 except (ValueError, TypeError):
                     adjusted_risks.append(0.0)
 
