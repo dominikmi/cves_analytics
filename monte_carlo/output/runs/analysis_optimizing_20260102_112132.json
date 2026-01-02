@@ -1,0 +1,326 @@
+{
+  "scenario": {
+    "org_size": "large",
+    "industry": "financial-services",
+    "maturity": "optimizing",
+    "environment": "prod"
+  },
+  "n_iterations": 1000,
+  "metrics": {
+    "killchain_probability": {
+      "name": "Kill-chain Exploitation Probability",
+      "n_samples": 1000,
+      "mean": 7.914373475243028e-05,
+      "median": 4.433465408450704e-05,
+      "std": 0.00010609470195769606,
+      "min": 5.172376309859154e-06,
+      "max": 0.0012260447549295775,
+      "percentiles": {
+        "p5": 1.0500744921126764e-05,
+        "p25": 2.3552784982394368e-05,
+        "p50": 4.433465408450704e-05,
+        "p75": 8.866930816901408e-05,
+        "p95": 0.00027603248240281675,
+        "p99": 0.0004966515732726759
+      },
+      "credible_intervals_mean": {
+        "90%": {
+          "lower": 7.378160253116146e-05,
+          "upper": 8.474305706517169e-05
+        },
+        "95%": {
+          "lower": 7.292180483133069e-05,
+          "upper": 8.591196628724428e-05
+        },
+        "99%": {
+          "lower": 7.107622298150577e-05,
+          "upper": 8.828452898904607e-05
+        }
+      }
+    },
+    "actionable_vulnerabilities": {
+      "name": "Actionable Vulnerabilities",
+      "n_samples": 1000,
+      "mean": 142.0,
+      "median": 142.0,
+      "std": 0.0,
+      "min": 142.0,
+      "max": 142.0,
+      "percentiles": {
+        "p5": 142.0,
+        "p25": 142.0,
+        "p50": 142.0,
+        "p75": 142.0,
+        "p95": 142.0,
+        "p99": 142.0
+      },
+      "credible_intervals_mean": {
+        "90%": {
+          "lower": 142.0,
+          "upper": 142.0
+        },
+        "95%": {
+          "lower": 142.0,
+          "upper": 142.0
+        },
+        "99%": {
+          "lower": 142.0,
+          "upper": 142.0
+        }
+      }
+    },
+    "avg_exploitation_probability": {
+      "name": "Average Exploitation Probability",
+      "n_samples": 1000,
+      "mean": 0.547341408450704,
+      "median": 0.5473414084507042,
+      "std": 2.220446049250313e-16,
+      "min": 0.5473414084507042,
+      "max": 0.5473414084507042,
+      "percentiles": {
+        "p5": 0.5473414084507042,
+        "p25": 0.5473414084507042,
+        "p50": 0.5473414084507042,
+        "p75": 0.5473414084507042,
+        "p95": 0.5473414084507042,
+        "p99": 0.5473414084507042
+      },
+      "credible_intervals_mean": {
+        "90%": {
+          "lower": 0.547341408450704,
+          "upper": 0.547341408450704
+        },
+        "95%": {
+          "lower": 0.547341408450704,
+          "upper": 0.547341408450704
+        },
+        "99%": {
+          "lower": 0.547341408450704,
+          "upper": 0.547341408450704
+        }
+      }
+    }
+  },
+  "control_analysis": {
+    "mfa_type": {
+      "push_notification": {
+        "count": 307,
+        "mean_risk": 0.00010941520784794928,
+        "median_risk": 7.389109014084507e-05,
+        "std_risk": 0.00010928592850899827
+      },
+      "fido2": {
+        "count": 502,
+        "mean_risk": 3.852358377674093e-05,
+        "median_risk": 2.4630363380281692e-05,
+        "std_risk": 4.560290240612345e-05
+      },
+      "authenticator_app": {
+        "count": 166,
+        "mean_risk": 0.00011388956380639741,
+        "median_risk": 6.9950232e-05,
+        "std_risk": 0.00012009766201634524
+      },
+      "sms": {
+        "count": 25,
+        "mean_risk": 0.00029235037181295773,
+        "median_risk": 0.00016551604191549293,
+        "std_risk": 0.00026113123876666676
+      }
+    },
+    "firewall_type": {
+      "next_gen": {
+        "count": 473,
+        "mean_risk": 9.224390464834589e-05,
+        "median_risk": 5.044298420281691e-05,
+        "std_risk": 0.00012487230448567644
+      },
+      "stateful": {
+        "count": 83,
+        "mean_risk": 0.00010193223953440522,
+        "median_risk": 5.3201584901408456e-05,
+        "std_risk": 0.00011371559080469936
+      },
+      "next_gen_advanced": {
+        "count": 444,
+        "mean_risk": 6.092790984776361e-05,
+        "median_risk": 3.5467723267605635e-05,
+        "std_risk": 7.5570759527236e-05
+      }
+    },
+    "waf_type": {
+      "custom_tuned": {
+        "count": 263,
+        "mean_risk": 5.019426383817544e-05,
+        "median_risk": 3.325099056338028e-05,
+        "std_risk": 5.481511201618245e-05
+      },
+      "managed": {
+        "count": 198,
+        "mean_risk": 8.472270017902973e-05,
+        "median_risk": 5.044298420281691e-05,
+        "std_risk": 0.00010655759274777879
+      },
+      "owasp_crs": {
+        "count": 374,
+        "mean_risk": 5.678680649863297e-05,
+        "median_risk": 3.620663416901409e-05,
+        "std_risk": 6.0603808702011304e-05
+      },
+      "none": {
+        "count": 107,
+        "mean_risk": 0.00019838747423114384,
+        "median_risk": 0.00014187089307042254,
+        "std_risk": 0.00019381153712627315
+      },
+      "basic": {
+        "count": 58,
+        "mean_risk": 0.00011554867852277806,
+        "median_risk": 7.270883269859155e-05,
+        "std_risk": 0.0001183920140601983
+      }
+    },
+    "endpoint_protection_type": {
+      "xdr": {
+        "count": 462,
+        "mean_risk": 6.23176848976358e-05,
+        "median_risk": 3.694554507042253e-05,
+        "std_risk": 8.420958704926267e-05
+      },
+      "basic_edr": {
+        "count": 128,
+        "mean_risk": 9.971502126045333e-05,
+        "median_risk": 5.8189233485915485e-05,
+        "std_risk": 0.00014279294779635706
+      },
+      "advanced_edr": {
+        "count": 367,
+        "mean_risk": 8.207487325868673e-05,
+        "median_risk": 4.729029769014085e-05,
+        "std_risk": 0.00010184696242843189
+      },
+      "traditional_av": {
+        "count": 43,
+        "mean_risk": 0.0001736735609871274,
+        "median_risk": 0.00011264286185915494,
+        "std_risk": 0.0001517990452627312
+      }
+    },
+    "segmentation_type": {
+      "vlan_with_acl": {
+        "count": 140,
+        "mean_risk": 0.00013591572080694166,
+        "median_risk": 8.757462535211272e-05,
+        "std_risk": 0.0001548938469521337
+      },
+      "zero_trust": {
+        "count": 378,
+        "mean_risk": 4.839678527114912e-05,
+        "median_risk": 2.955643605633803e-05,
+        "std_risk": 5.843302543857662e-05
+      },
+      "micro_seg": {
+        "count": 407,
+        "mean_risk": 7.302474585445376e-05,
+        "median_risk": 4.65513867887324e-05,
+        "std_risk": 8.763511145600522e-05
+      },
+      "basic_vlan": {
+        "count": 75,
+        "mean_risk": 0.0001613396992560188,
+        "median_risk": 9.65510244507042e-05,
+        "std_risk": 0.00016932353801062542
+      }
+    },
+    "ids_ips_type": {
+      "ips_ml": {
+        "count": 320,
+        "mean_risk": 6.395219758965009e-05,
+        "median_risk": 3.816782685316901e-05,
+        "std_risk": 8.442075616970322e-05
+      },
+      "ips_behavioral": {
+        "count": 422,
+        "mean_risk": 8.10633118792871e-05,
+        "median_risk": 4.433465408450704e-05,
+        "std_risk": 0.0001112750962563644
+      },
+      "ips_signature": {
+        "count": 202,
+        "mean_risk": 8.566133520223818e-05,
+        "median_risk": 5.246267399999999e-05,
+        "std_risk": 9.586849605570968e-05
+      },
+      "ids_only": {
+        "count": 56,
+        "mean_risk": 0.00012797721785412475,
+        "median_risk": 5.911287211267606e-05,
+        "std_risk": 0.00017300691671184683
+      }
+    },
+    "siem_maturity": {
+      "advanced": {
+        "count": 407,
+        "mean_risk": 7.760883437371527e-05,
+        "median_risk": 4.378731267605636e-05,
+        "std_risk": 0.00010240982967487228
+      },
+      "basic_corr": {
+        "count": 186,
+        "mean_risk": 7.466529132096775e-05,
+        "median_risk": 3.724110943098591e-05,
+        "std_risk": 0.00011397735464814475
+      },
+      "log_collection": {
+        "count": 104,
+        "mean_risk": 0.00011077958539523294,
+        "median_risk": 7.356268529577466e-05,
+        "std_risk": 0.00010889838465225442
+      },
+      "threat_hunting": {
+        "count": 251,
+        "mean_risk": 6.292344773380842e-05,
+        "median_risk": 3.5467723267605635e-05,
+        "std_risk": 9.863886869622704e-05
+      },
+      "none": {
+        "count": 52,
+        "mean_risk": 0.0001221987060449621,
+        "median_risk": 7.487630467605635e-05,
+        "std_risk": 0.00010959733693733868
+      }
+    },
+    "patch_management_quality": {
+      "monthly": {
+        "count": 251,
+        "mean_risk": 8.943862813791596e-05,
+        "median_risk": 5.254477521126761e-05,
+        "std_risk": 0.00012431009620844904
+      },
+      "quarterly": {
+        "count": 44,
+        "mean_risk": 0.00017267997902799294,
+        "median_risk": 0.0001310335331830986,
+        "std_risk": 0.0001870358439243404
+      },
+      "weekly": {
+        "count": 439,
+        "mean_risk": 7.889721149788733e-05,
+        "median_risk": 4.433465408450704e-05,
+        "std_risk": 9.374407218922717e-05
+      },
+      "automated": {
+        "count": 239,
+        "mean_risk": 4.2614473399251585e-05,
+        "median_risk": 2.6272387605633816e-05,
+        "std_risk": 5.3352714950376774e-05
+      },
+      "reactive": {
+        "count": 27,
+        "mean_risk": 0.00015836981565140845,
+        "median_risk": 0.00011172332829295776,
+        "std_risk": 0.00012170889285363046
+      }
+    }
+  }
+}
