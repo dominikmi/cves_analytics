@@ -209,13 +209,14 @@ class MonteCarloSimulator:
 
         # Calculate statistics based on cached data and new control LRs
         if enriched_cves:
-            # Filter to only high-risk vulnerabilities (EPSS > 0.1 OR Critical/High severity)
+            # Filter to ONLY vulnerabilities with EPSS > 0.1 (>10% exploitation probability)
+            # AND (Critical or High severity post-reassessment)
             epss_scores = enriched_cves["epss_score"]
             severities = enriched_cves.get(
                 "severity_reassessed", enriched_cves.get("severity", [])
             )
-
-            # Filter indices for high-risk vulnerabilities
+            
+            # Filter indices for truly high-risk vulnerabilities
             high_risk_indices = []
             for i, (epss, severity) in enumerate(
                 zip(epss_scores, severities, strict=True)
@@ -225,9 +226,9 @@ class MonteCarloSimulator:
                         float(epss) if epss not in [None, "False", "None"] else 0.0
                     )
                     severity_str = str(severity).lower() if severity else ""
-
-                    # Include if EPSS > 0.1 OR severity is Critical/High
-                    if epss_val > 0.1 or severity_str in ["critical", "high"]:
+                    
+                    # Include ONLY if EPSS > 0.1 AND severity is Critical/High
+                    if epss_val > 0.1 and severity_str in ["critical", "high"]:
                         high_risk_indices.append(i)
                 except (ValueError, TypeError):
                     continue
