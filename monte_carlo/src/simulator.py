@@ -13,7 +13,6 @@ from typing import Any
 import polars as pl
 
 from monte_carlo.src.cache_manager import SimulationCache
-from src.core.bayesian_risk import BayesianRiskAssessor
 from src.core.control_lr_mapper import get_control_lr_from_security_controls
 from src.core.kill_chain_calculator import KillChainCalculator
 from src.simulation.security_controls import SecurityControlsGenerator
@@ -205,20 +204,34 @@ class MonteCarloSimulator:
         }
         lr_values = get_control_lr_from_security_controls(controls_dict)
 
-        # Step 3: Apply Bayesian risk assessment with new LRs (fast, ~0.5s)
+        # Step 3: Calculate risk metrics with new LRs (fast, ~0.5s)
         # Use cached vulnerability data
         enriched_cves = cache["enriched_cves"]
 
-        # Reconstruct DataFrame from cached dict
+        # Calculate statistics based on cached data and new control LRs
         if enriched_cves:
-            df = pl.DataFrame(enriched_cves)
+            # Simple risk calculation: apply LR reduction to EPSS scores
+            epss_scores = enriched_cves["epss_score"]
 
-            # Apply Bayesian reassessment with new control LRs
-            bayesian = BayesianRiskAssessor()
-            reassessed_df = bayesian.reassess_with_controls(df, lr_values)
+            # Calculate overall LR (product of all control LRs)
+            overall_lr = 1.0
+            for lr in lr_values.values():
+                overall_lr *= lr
 
-            # Calculate statistics
-            bayesian_stats = self._calculate_bayesian_stats(reassessed_df)
+            # Apply LR to each vulnerability's EPSS score
+            adjusted_risks = [epss * overall_lr for epss in epss_scores]
+
+            # Count actionable (high risk after adjustment)
+            actionable = sum(1 for risk in adjusted_risks if risk > 0.1)
+
+            bayesian_stats = {
+                "avg_exploitation_probability": sum(adjusted_risks)
+                / len(adjusted_risks)
+                if adjusted_risks
+                else 0.0,
+                "actionable_vulnerabilities": actionable,
+                "total_vulnerabilities": len(epss_scores),
+            }
         else:
             bayesian_stats = {}
 
