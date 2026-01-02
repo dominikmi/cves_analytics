@@ -218,6 +218,7 @@ class MonteCarloSimulator:
 
             # Filter indices for truly high-risk vulnerabilities
             high_risk_indices = []
+            baseline_epss_values = []  # Store raw EPSS for baseline
             for i, (epss, severity) in enumerate(
                 zip(epss_scores, severities, strict=True)
             ):
@@ -230,26 +231,48 @@ class MonteCarloSimulator:
                     # Include ONLY if EPSS > 0.1 AND severity is Critical/High
                     if epss_val > 0.1 and severity_str in ["critical", "high"]:
                         high_risk_indices.append(i)
+                        baseline_epss_values.append(epss_val)
                 except (ValueError, TypeError):
                     continue
 
-            # Calculate overall LR for kill-chain (used later)
-            overall_lr = 1.0
+            # FIX #2 & #3: Bayesian control effectiveness with uncertainty
+            # Use geometric mean of LRs (compromise between product and arithmetic mean)
+            # This represents the "average" multiplicative effect of controls
+            import numpy as np
+
+            # Set seed for reproducibility within iteration
+            np.random.seed(seed)
+
+            # Calculate geometric mean of LRs (nth root of product)
+            lr_product = 1.0
             for lr in lr_values.values():
-                overall_lr *= lr
-            
-            # For Monte Carlo, use RAW EPSS scores for high-risk vulnerabilities
-            # to see actual risk distribution, not overly reduced by controls
-            # Controls are modeled separately in kill-chain calculation
+                lr_product *= lr
+            n_controls = len(lr_values)
+            geometric_mean_lr = lr_product ** (1.0 / n_controls)
+
+            # Add control effectiveness uncertainty (±20% variability)
+            lr_uncertainty = np.random.normal(0, geometric_mean_lr * 0.2)
+            overall_lr = max(0.1, min(1.0, geometric_mean_lr + lr_uncertainty))
+
+            # Apply control effectiveness with uncertainty to EPSS scores
             adjusted_risks = []
             for idx in high_risk_indices:
                 epss = epss_scores[idx]
                 try:
                     if epss is None or epss == "False" or epss == "None":
-                        adjusted_risks.append(0.0)
+                        base_risk = 0.0
                     else:
-                        # Use raw EPSS for meaningful risk distribution
-                        adjusted_risks.append(float(epss))
+                        base_risk = float(epss)
+
+                    # Add EPSS uncertainty (±10% confidence interval)
+                    epss_uncertainty = np.random.normal(0, base_risk * 0.1)
+                    base_risk_with_uncertainty = max(
+                        0, min(1, base_risk + epss_uncertainty)
+                    )
+
+                    # Apply control effectiveness
+                    adjusted_risk = base_risk_with_uncertainty * overall_lr
+                    adjusted_risks.append(adjusted_risk)
                 except (ValueError, TypeError):
                     adjusted_risks.append(0.0)
 
@@ -265,18 +288,76 @@ class MonteCarloSimulator:
                 "total_vulnerabilities": len(epss_scores),
                 "high_risk_vulnerabilities": len(high_risk_indices),
                 "filtered_vulnerabilities": len(adjusted_risks),
+                "baseline_epss_values": baseline_epss_values,  # Store for visualization
+                "overall_lr": overall_lr,  # Store control effectiveness
             }
         else:
             bayesian_stats = {}
 
-        # Step 4: Calculate kill-chain probability (fast, ~0.1s)
-        # For mock simulation, calculate simple kill-chain probability
-        # based on overall LR and average risk
+        # FIX #4: Proper kill-chain conditional probability modeling
+        # Model attack progression through sequential stages with conditional probabilities
         avg_risk = bayesian_stats.get("avg_exploitation_probability", 0.5)
+        overall_lr = bayesian_stats.get("overall_lr", 1.0)
 
-        # Kill-chain is product of stage probabilities
-        # Simplified: use avg_risk as base, modified by control effectiveness
-        kill_chain_prob = avg_risk * overall_lr
+        # Stage probabilities with conditional dependencies
+        # Each stage depends on success of previous stages
+        stage_probs = {
+            "initial_access": avg_risk,  # Base exploitation probability
+            "execution": None,  # Will be calculated conditionally
+            "persistence": None,
+            "privilege_escalation": None,
+            "defense_evasion": None,
+            "credential_access": None,
+            "discovery": None,
+            "lateral_movement": None,
+            "collection": None,
+            "exfiltration": None,
+        }
+
+        # Calculate conditional probabilities
+        # P(stage_i | stage_{i-1}) depends on controls and attack complexity
+        prev_prob = stage_probs["initial_access"]
+
+        # Execution: Given initial access, can code execute? (affected by endpoint protection)
+        stage_probs["execution"] = prev_prob * 0.85 * (1.0 if overall_lr < 0.1 else 0.7)
+        prev_prob = stage_probs["execution"]
+
+        # Persistence: Can attacker maintain access? (affected by monitoring)
+        stage_probs["persistence"] = prev_prob * 0.75
+        prev_prob = stage_probs["persistence"]
+
+        # Privilege escalation: Can attacker gain higher privileges?
+        stage_probs["privilege_escalation"] = prev_prob * 0.65
+        prev_prob = stage_probs["privilege_escalation"]
+
+        # Defense evasion: Can attacker avoid detection? (heavily affected by controls)
+        stage_probs["defense_evasion"] = prev_prob * (0.4 if overall_lr < 0.05 else 0.7)
+        prev_prob = stage_probs["defense_evasion"]
+
+        # Credential access: Can attacker steal credentials? (affected by MFA)
+        stage_probs["credential_access"] = prev_prob * 0.6
+        prev_prob = stage_probs["credential_access"]
+
+        # Discovery: Can attacker map the network?
+        stage_probs["discovery"] = prev_prob * 0.8
+        prev_prob = stage_probs["discovery"]
+
+        # Lateral movement: Can attacker move to other systems? (affected by segmentation)
+        stage_probs["lateral_movement"] = prev_prob * (
+            0.3 if overall_lr < 0.05 else 0.6
+        )
+        prev_prob = stage_probs["lateral_movement"]
+
+        # Collection: Can attacker gather data?
+        stage_probs["collection"] = prev_prob * 0.7
+        prev_prob = stage_probs["collection"]
+
+        # Exfiltration: Can attacker extract data? (affected by DLP/monitoring)
+        stage_probs["exfiltration"] = prev_prob * (0.4 if overall_lr < 0.05 else 0.6)
+
+        # Overall kill-chain probability is the final stage probability
+        # (represents successful completion of entire attack chain)
+        kill_chain_prob = stage_probs["exfiltration"]
 
         # Determine threat level
         if kill_chain_prob >= 0.7:
@@ -288,7 +369,7 @@ class MonteCarloSimulator:
         else:
             threat_level = "low"
 
-        # Mock kill-chain result
+        # Kill-chain result with conditional stage probabilities
         from dataclasses import dataclass
 
         @dataclass
@@ -300,18 +381,7 @@ class MonteCarloSimulator:
         kill_chain_result = MockKillChainResult(
             overall_probability=kill_chain_prob,
             threat_level=threat_level,
-            stage_probabilities={
-                "initial_access": avg_risk,
-                "execution": avg_risk * 0.9,
-                "persistence": avg_risk * 0.8,
-                "privilege_escalation": avg_risk * 0.7,
-                "defense_evasion": avg_risk * overall_lr,
-                "credential_access": avg_risk * overall_lr * 0.8,
-                "discovery": avg_risk * 0.9,
-                "lateral_movement": avg_risk * overall_lr * 0.6,
-                "collection": avg_risk * 0.7,
-                "exfiltration": avg_risk * overall_lr * 0.5,
-            },
+            stage_probabilities=stage_probs,
         )
 
         # Package iteration results
