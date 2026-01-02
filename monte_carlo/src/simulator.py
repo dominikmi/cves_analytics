@@ -236,12 +236,11 @@ class MonteCarloSimulator:
             bayesian_stats = {}
 
         # Step 4: Calculate kill-chain probability (fast, ~0.1s)
-        architecture = cache.get("architecture", {})
-        kill_chain_calc = KillChainCalculator(
-            architecture=architecture, security_controls=controls
-        )
-
-        kill_chain_result = kill_chain_calc.calculate()
+        # KillChainCalculator doesn't take arguments in __init__
+        kill_chain_calc = KillChainCalculator()
+        
+        # Calculate with controls
+        kill_chain_result = kill_chain_calc.calculate(controls)
 
         # Package iteration results
         return {
