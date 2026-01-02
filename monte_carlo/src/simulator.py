@@ -295,68 +295,67 @@ class MonteCarloSimulator:
             bayesian_stats = {}
 
         # FIX #4: Proper kill-chain conditional probability modeling
-        # Model attack progression through sequential stages with conditional probabilities
+        # Model attack progression with INDEPENDENT variation at each stage
         avg_risk = bayesian_stats.get("avg_exploitation_probability", 0.5)
         overall_lr = bayesian_stats.get("overall_lr", 1.0)
 
-        # Stage probabilities with conditional dependencies
-        # Each stage depends on success of previous stages
-        stage_probs = {
-            "initial_access": avg_risk,  # Base exploitation probability
-            "execution": None,  # Will be calculated conditionally
-            "persistence": None,
-            "privilege_escalation": None,
-            "defense_evasion": None,
-            "credential_access": None,
-            "discovery": None,
-            "lateral_movement": None,
-            "collection": None,
-            "exfiltration": None,
-        }
-
-        # Calculate conditional probabilities
-        # P(stage_i | stage_{i-1}) depends on controls and attack complexity
-        prev_prob = stage_probs["initial_access"]
-
-        # Execution: Given initial access, can code execute? (affected by endpoint protection)
-        stage_probs["execution"] = prev_prob * 0.85 * (1.0 if overall_lr < 0.1 else 0.7)
-        prev_prob = stage_probs["execution"]
-
-        # Persistence: Can attacker maintain access? (affected by monitoring)
-        stage_probs["persistence"] = prev_prob * 0.75
-        prev_prob = stage_probs["persistence"]
-
-        # Privilege escalation: Can attacker gain higher privileges?
-        stage_probs["privilege_escalation"] = prev_prob * 0.65
-        prev_prob = stage_probs["privilege_escalation"]
-
-        # Defense evasion: Can attacker avoid detection? (heavily affected by controls)
-        stage_probs["defense_evasion"] = prev_prob * (0.4 if overall_lr < 0.05 else 0.7)
-        prev_prob = stage_probs["defense_evasion"]
-
-        # Credential access: Can attacker steal credentials? (affected by MFA)
-        stage_probs["credential_access"] = prev_prob * 0.6
-        prev_prob = stage_probs["credential_access"]
-
-        # Discovery: Can attacker map the network?
-        stage_probs["discovery"] = prev_prob * 0.8
-        prev_prob = stage_probs["discovery"]
-
-        # Lateral movement: Can attacker move to other systems? (affected by segmentation)
-        stage_probs["lateral_movement"] = prev_prob * (
-            0.3 if overall_lr < 0.05 else 0.6
-        )
-        prev_prob = stage_probs["lateral_movement"]
-
-        # Collection: Can attacker gather data?
-        stage_probs["collection"] = prev_prob * 0.7
-        prev_prob = stage_probs["collection"]
-
-        # Exfiltration: Can attacker extract data? (affected by DLP/monitoring)
-        stage_probs["exfiltration"] = prev_prob * (0.4 if overall_lr < 0.05 else 0.6)
-
+        # Add independent uncertainty to each attack stage
+        # Each stage has its own success probability with variation
+        import numpy as np
+        np.random.seed(seed)
+        
+        # Stage base probabilities (with variation)
+        stage_probs = {}
+        
+        # Initial access: Base exploitation probability
+        stage_probs["initial_access"] = avg_risk
+        
+        # Execution: Can code execute? (affected by endpoint protection + randomness)
+        execution_base = 0.85 if overall_lr < 0.1 else 0.7
+        execution_var = np.random.normal(0, 0.1)  # ±10% variation
+        stage_probs["execution"] = stage_probs["initial_access"] * max(0.5, min(1.0, execution_base + execution_var))
+        
+        # Persistence: Can maintain access? (affected by monitoring + randomness)
+        persistence_base = 0.75
+        persistence_var = np.random.normal(0, 0.15)  # ±15% variation
+        stage_probs["persistence"] = stage_probs["execution"] * max(0.4, min(1.0, persistence_base + persistence_var))
+        
+        # Privilege escalation: Can gain higher privileges? (with randomness)
+        privesc_base = 0.65
+        privesc_var = np.random.normal(0, 0.2)  # ±20% variation
+        stage_probs["privilege_escalation"] = stage_probs["persistence"] * max(0.3, min(1.0, privesc_base + privesc_var))
+        
+        # Defense evasion: Can avoid detection? (heavily affected by controls + randomness)
+        defense_base = 0.4 if overall_lr < 0.05 else 0.7
+        defense_var = np.random.normal(0, 0.15)  # ±15% variation
+        stage_probs["defense_evasion"] = stage_probs["privilege_escalation"] * max(0.2, min(1.0, defense_base + defense_var))
+        
+        # Credential access: Can steal credentials? (affected by MFA + randomness)
+        cred_base = 0.6
+        cred_var = np.random.normal(0, 0.2)  # ±20% variation
+        stage_probs["credential_access"] = stage_probs["defense_evasion"] * max(0.3, min(1.0, cred_base + cred_var))
+        
+        # Discovery: Can map the network? (with randomness)
+        discovery_base = 0.8
+        discovery_var = np.random.normal(0, 0.1)  # ±10% variation
+        stage_probs["discovery"] = stage_probs["credential_access"] * max(0.5, min(1.0, discovery_base + discovery_var))
+        
+        # Lateral movement: Can move to other systems? (affected by segmentation + randomness)
+        lateral_base = 0.3 if overall_lr < 0.05 else 0.6
+        lateral_var = np.random.normal(0, 0.15)  # ±15% variation
+        stage_probs["lateral_movement"] = stage_probs["discovery"] * max(0.2, min(1.0, lateral_base + lateral_var))
+        
+        # Collection: Can gather data? (with randomness)
+        collection_base = 0.7
+        collection_var = np.random.normal(0, 0.15)  # ±15% variation
+        stage_probs["collection"] = stage_probs["lateral_movement"] * max(0.4, min(1.0, collection_base + collection_var))
+        
+        # Exfiltration: Can extract data? (affected by DLP/monitoring + randomness)
+        exfil_base = 0.4 if overall_lr < 0.05 else 0.6
+        exfil_var = np.random.normal(0, 0.2)  # ±20% variation
+        stage_probs["exfiltration"] = stage_probs["collection"] * max(0.2, min(1.0, exfil_base + exfil_var))
+        
         # Overall kill-chain probability is the final stage probability
-        # (represents successful completion of entire attack chain)
         kill_chain_prob = stage_probs["exfiltration"]
 
         # Determine threat level

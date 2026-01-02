@@ -78,11 +78,13 @@ class MonteCarloVisualizer:
         # If baseline values not available (old data), fall back to extraction
         if not baseline_values:
             logger.warning("No baseline EPSS values found, using fallback")
-            baseline_values = [0.547] * first_iter["bayesian_stats"][
-                "high_risk_vulnerabilities"
-            ]
+            baseline_values = [0.547] * first_iter["bayesian_stats"]["high_risk_vulnerabilities"]
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 12))
+        # Extract kill-chain probabilities for 3rd panel
+        killchain_values = self._extract_metric(results["iterations"], "killchain_probability")
+
+        # Create 3-panel plot: baseline, controlled, kill-chain
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 16))
 
         # Top plot: WITHOUT controls (baseline)
         mean_baseline = np.mean(baseline_values)
@@ -184,12 +186,65 @@ class MonteCarloVisualizer:
         # Use more precision for x-axis labels (1 decimal place)
         ax2.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{x:.1%}"))
 
+        # Bottom plot: Kill-chain probability (full attack chain)
+        mean_killchain = np.mean(killchain_values)
+        median_killchain = np.median(killchain_values)
+        std_killchain = np.std(killchain_values)
+        
+        ax3.hist(
+            killchain_values,
+            bins=bins,
+            alpha=0.7,
+            color="purple",
+            edgecolor="black",
+            label="Kill-Chain Probability",
+        )
+        ax3.axvline(
+            mean_killchain,
+            color="darkviolet",
+            linestyle="--",
+            linewidth=2.5,
+            label=f"Mean: {mean_killchain:.2%}",
+        )
+        ax3.axvline(
+            median_killchain,
+            color="indigo",
+            linestyle="--",
+            linewidth=2.5,
+            label=f"Median: {median_killchain:.2%}",
+        )
+        
+        # Add credible interval for kill-chain
+        ci_95_killchain = np.percentile(killchain_values, [2.5, 97.5])
+        ax3.axvspan(
+            ci_95_killchain[0],
+            ci_95_killchain[1],
+            alpha=0.2,
+            color="gray",
+            label=f"95% CI: [{ci_95_killchain[0]:.2%}, {ci_95_killchain[1]:.2%}]",
+        )
+
+        ax3.set_xlabel("Kill-Chain Probability", fontsize=13, fontweight="bold")
+        ax3.set_ylabel("Frequency", fontsize=13, fontweight="bold")
+        ax3.set_title(
+            f"Full Attack Chain Probability ({mat} Maturity)\n"
+            f"Conditional probability through all 10 attack stages",
+            fontsize=14,
+            fontweight="bold",
+            pad=15,
+        )
+        ax3.legend(loc="upper right", fontsize=11)
+        ax3.grid(True, alpha=0.3, linestyle="--")
+        # Use high precision for kill-chain (very small values)
+        ax3.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{x:.2%}"))
+
         # Add overall comparison text (using median for robustness to outliers)
         risk_reduction = ((median_baseline - median_controlled) / median_baseline) * 100
+        attack_reduction = ((median_controlled - median_killchain) / median_controlled) * 100
         fig.suptitle(
-            f"Security Controls Impact: {risk_reduction:.1f}% Risk Reduction\n"
-            f"Baseline Median: {median_baseline:.2%} → With Controls Median: {median_controlled:.2%} "
-            f"(±{std_controlled:.2%} std dev)",
+            f"Three-Level Risk Analysis\n"
+            f"Baseline: {median_baseline:.2%} → Controlled: {median_controlled:.2%} ({risk_reduction:.1f}% reduction) "
+            f"→ Kill-Chain: {median_killchain:.2%} ({attack_reduction:.1f}% further reduction)",
             fontsize=15,
             fontweight="bold",
             y=0.995,

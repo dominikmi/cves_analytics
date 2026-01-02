@@ -168,9 +168,9 @@ def main():
 
             visualizer = MonteCarloVisualizer("monte_carlo/output/visualizations")
 
-            # Distribution plot
+            # Distribution plot - show exploitation probability (not kill-chain)
             logger.info("Creating distribution plot...")
-            visualizer.plot_distribution(results, metric="killchain_probability")
+            visualizer.plot_distribution(results, metric="avg_exploitation_probability")
 
             # Control effectiveness plots
             if not args.skip_analysis:
