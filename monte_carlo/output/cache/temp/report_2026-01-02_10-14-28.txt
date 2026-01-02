@@ -1,0 +1,472 @@
+================================================================================
+VULNERABILITY ASSESSMENT REPORT
+================================================================================
+Generated: 2026-01-02 10:14:28 UTC
+
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+Total Vulnerabilities Scanned: 3932
+Average Exploitation Probability: 0.29%
+Average Uncertainty: ±6.13%
+Business Risk Level: LOW
+
+Original Severity Distribution (Scanner Output):
+  Critical: 159 (4.0%)
+  High: 869 (22.1%)
+  Medium: 1773 (45.1%)
+  Low: 583 (14.8%)
+  Negligible: 536 (13.6%)
+  Unknown: 12 (0.3%)
+
+Bayesian Risk Assessment (After Analysis):
+  Critical: 110 (2.8%)
+  High: 61 (1.6%)
+  Medium: 89 (2.3%)
+  Low: 171 (4.3%)
+  Negligible: 3501 (89.0%)
+
+Actionable Vulnerabilities (Critical+High+Medium): 260
+Critical/High Requiring Immediate Action: 171 (4.3%)
+
+Estimated Remediation Effort: 651 person-hours
+Recommended Timeline: 17 weeks
+
+Known Exploited Vulnerabilities (KEV): 37
+Public Exploits Available: 0
+Metasploit Modules: 0
+High Exploitation Probability (EPSS>=0.5): 73
+
+KILL-CHAIN PROBABILITY ANALYSIS
+--------------------------------------------------------------------------------
+Application: Financial Services Platform
+Type: financial_services
+Description: Banking/trading platform with high security requirements
+Components: 7
+
+Application Components:
+  - load-balancer (ingress): haproxy:2.0 [internet-facing, high value]
+  - api-gateway (backend): tomcat:9.0 [dmz, high value]
+  - auth-service (auth): quay.io/keycloak/keycloak:latest [internal, critical value]
+  - transaction-processor (backend): tomcat:7.0 [internal, critical value]
+  - financial-database (database): redis:6.0 [internal, critical value]
+  - reporting-service (backend): apache/superset:latest [internal, high value]
+  - audit-log (messaging): confluentinc/cp-kafka:5.5 [internal, high value]
+
+KILL-CHAIN SUCCESS PROBABILITY
+Overall Probability: 0.9%
+Threat Level: Negligible
+Bottleneck Stage: Initial Access
+
+STAGE-BY-STAGE ANALYSIS:
+
+Initial Access:
+  Base Probability: 1.0%
+  Conditional Probability: 1.0%
+  Contributing Factors:
+    - no_vulnerabilities: 0.01 (99% reduction)
+
+Execution:
+  Base Probability: 1.0%
+  Conditional Probability: 100.0%
+  Affected Components: backend
+  Contributing Factors:
+    - base_execution: 0.80 (20% reduction)
+    - docker_poor_rce_no_protection: 1.30 (30% increase)
+
+Lateral Movement:
+  Base Probability: 100.0%
+  Conditional Probability: 100.0%
+  Affected Components: auth, backend, database, messaging
+  Contributing Factors:
+    - base_lateral: 0.70 (30% reduction)
+    - flat_network: 1.30 (30% increase)
+    - docker_poor_network_isolation: 1.20 (20% increase)
+
+Objective Achievement:
+  Base Probability: 90.0%
+  Conditional Probability: 90.0%
+  Affected Components: database, messaging
+  Contributing Factors:
+    - base_objective: 0.90 (10% reduction)
+
+DOCKER SECURITY POSTURE:
+  Good Practices: No
+  Impact: 20% reduction in execution/lateral movement
+
+KEY INSIGHTS:
+  • Bottleneck Stage: Initial Access (1.0%) - hardest stage to breach, strong defensive position
+  • Security Impact: Poor Docker practices significantly increase execution risk
+  • Network Isolation: High lateral movement probability (100.0%) suggests flat network topology
+  • Threat Level: Negligible overall risk despite individual stage vulnerabilities
+  • Initial Access: Strong perimeter defenses (1.0%) effectively prevent unauthorized entry
+
+INTERPRETATION:
+  ✓  LOW: Low probability of successful kill-chain execution.
+  However, individual stages require attention:
+
+RECOMMENDED ACTIONS:
+  • Execution (100.0%): CRITICAL - Implement Docker security best practices (non-root users, read-only filesystems, capability dropping)
+  • Lateral Movement (100.0%): Implement network segmentation and micro-segmentation between services
+  • Objective Achievement (90.0%): Implement data encryption at rest, enhance access controls, deploy DLP solutions
+
+RISK-BASED PRIORITIZATION (Bayesian)
+--------------------------------------------------------------------------------
+CRITICAL (Fix ASAP): 39 vulnerabilities
+  1. CVE-2018-0732 - P(Exploit): 95.4% [89.1%-100.0%] in apache-httpd
+      CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 81.09%
+  2. CVE-2025-27363 - P(Exploit): 96.4% [90.4%-100.0%] in modsecurity-waf
+      CVSS: 8.1 (CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H/E:H), EPSS: 76.68%
+  3. CVE-2023-4863 - P(Exploit): 99.4% [94.2%-100.0%] in modsecurity-waf
+      CVSS: 8.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H/E:H), EPSS: 94.12%
+  4. CVE-2023-0286 - P(Exploit): 91.2% [83.6%-98.8%] in modsecurity-waf
+      CVSS: 7.4 (CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:H/E:H), EPSS: 88.47%
+  5. CVE-2018-0737 - P(Exploit): 48.9% [36.4%-61.4%] in apache-httpd
+      CVSS: 5.9 (CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N/E:H), EPSS: 37.09%
+  6. CVE-2019-8457 - P(Exploit): 60.1% [47.3%-72.9%] in modsecurity-waf
+      CVSS: 9.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:U), EPSS: 27.14%
+  7. CVE-2023-45288 - P(Exploit): 82.9% [73.0%-92.9%] in grafana
+      CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 66.64%
+  8. CVE-2021-40438 - P(Exploit): 99.6% [94.5%-100.0%] in apache-httpd
+      CVSS: 9.0 (CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H/E:H), EPSS: 94.43%
+  9. CVE-2024-31449 - P(Exploit): 43.1% [29.5%-56.7%] in redis-cache
+      CVSS: 8.8 (CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H/E:H), EPSS: 58.37%
+  10. CVE-2022-37434 - P(Exploit): 99.0% [93.6%-100.0%] in modsecurity-waf
+      CVSS: 9.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:H), EPSS: 92.05%
+
+HIGH PRIORITY (This Sprint): 37 vulnerabilities
+  1. CVE-2019-6706 - P(Exploit): 29.9% in modsecurity-waf
+  2. CVE-2023-0464 - P(Exploit): 29.9% in modsecurity-waf
+  3. CVE-2015-0228 - P(Exploit): 29.3% in apache-httpd
+  4. CVE-2017-7186 - P(Exploit): 21.7% in apache-httpd
+  5. CVE-2025-46817 - P(Exploit): 16.8% in redis-cache
+  6. CVE-2020-12243 - P(Exploit): 36.9% in apache-httpd
+  7. CVE-2016-3189 - P(Exploit): 37.7% in apache-httpd
+  8. CVE-2019-18276 - P(Exploit): 21.0% in elasticsearch
+  9. CVE-2022-43680 - P(Exploit): 29.9% in modsecurity-waf
+  10. CVE-2023-6246 - P(Exploit): 16.2% in python-flask
+
+MEDIUM PRIORITY (Plan Fix): 32 vulnerabilities
+  1. CVE-2021-22924 - P(Exploit): 12.4%
+  2. CVE-2022-4304 - P(Exploit): 12.4%
+  3. CVE-2018-1301 - P(Exploit): 9.8%
+  4. CVE-2025-64720 - P(Exploit): 14.6%
+  5. CVE-2018-0735 - P(Exploit): 10.9%
+
+LOW PRIORITY (Backlog): 923 vulnerabilities
+
+REMEDIATION ROADMAP
+--------------------------------------------------------------------------------
+PHASE 1: Emergency (Week 1 (ASAP))
+  Vulnerabilities: 20
+  Estimated Effort: 80 hours (2 weeks)
+  Severity: Critical
+    1. CVE-2017-9798 in apache-httpd
+    2. CVE-2023-44487 in modsecurity-waf
+    3. CVE-2023-44487 in modsecurity-waf
+    4. CVE-2021-40438 in apache-httpd
+    5. CVE-2023-4863 in modsecurity-waf
+    ... and 15 more
+
+PHASE 2: High Priority (Weeks 2-4)
+  Vulnerabilities: 50
+  Estimated Effort: 100 hours (3 weeks)
+  Severity: High
+
+PHASE 3: Medium Priority (Weeks 5-7)
+  Vulnerabilities: 89
+  Estimated Effort: 89 hours (3 weeks)
+  Severity: Medium
+
+SCANNED ENVIRONMENT (Simulated)
+--------------------------------------------------------------------------------
+Organization Size: large
+Geographic Reach: global
+Industry: financial-services
+Environment Type: prod
+Security Maturity: optimizing
+
+Services Scanned: 18
+  - nginx-proxy (load_balancer): nginx:latest [internet-facing]
+  - haproxy (load_balancer): haproxy:2.4 [internet-facing]
+  - apache-httpd (web_server): httpd:2.2 [internet-facing]
+  - nginx-web (web_server): nginx:alpine [internet-facing]
+  - python-flask (app_server): python:3.7-slim [internal]
+  - node-api (api_server): node:18-alpine [internal]
+  - mongo-db (database): mongo:4.4 [internal]
+  - redis-cache (cache): redis:6.0 [internal]
+  - snort-ids (ids): linuxserver/snort3:latest [internal]
+  - modsecurity-waf (waf): owasp/modsecurity-crs:3.3-nginx [internet-facing]
+  - grafana (visualization): grafana/grafana:9.0.0 [internal]
+  - prometheus (monitoring): prom/prometheus:latest [internal]
+  - superset (bi_tool): apache/superset:1.3 [internal]
+  - metabase (bi_tool): metabase/metabase:latest [internal]
+  - elasticsearch (siem_storage): docker.elastic.co/elasticsearch/elasticsearch:7.17.0 [internal]
+  - grafana (visualization): grafana/grafana:8.5.0 [internal]
+  - coredns (service_discovery): coredns/coredns:latest [internal]
+  - consul (service_discovery): hashicorp/consul:latest [internal]
+
+Active Security Controls: 12
+  segmentation_type, firewall_type, waf_type, ids_ips_type, endpoint_protection_type, mfa_type, privileged_access_mgmt, patch_management_quality, siem_maturity, soc_24x7, incident_response_plan, security_training
+
+SCAN RESULTS SUMMARY
+--------------------------------------------------------------------------------
+Total Vulnerabilities Found: 3932
+
+Vulnerability Severity Distribution:
+  Negligible: 536
+  Medium: 1773
+  Low: 583
+  High: 869
+  Critical: 159
+  Unknown: 12
+
+Original Severity → Bayesian Risk Assessment:
+  Negligible: Low(14), High(14), Critical(1), Negligible(502), Medium(5)
+  High: Low(31), High(27), Critical(72), Medium(14), Negligible(725)
+  Unknown: Negligible(12)
+  Medium: Low(93), High(15), Medium(43), Critical(21), Negligible(1601)
+  Low: Negligible(537), Low(26), Medium(19), High(1)
+  Critical: Low(7), High(4), Critical(16), Negligible(124), Medium(8)
+
+ATTACK SCENARIO & VULNERABILITY ANALYSIS
+--------------------------------------------------------------------------------
+Total Vulnerabilities: 3932
+
+Attack Graph Statistics:
+  Nodes (CVEs): 200
+  Edges (Dependencies): 182
+  Graph Density: 0.005
+  Is DAG: True
+
+Identified 10 potential attack paths:
+  1. Direct internet attack on apache-httpd via CVE-2021-40438
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.9
+  2. Direct internet attack on apache-httpd via CVE-2021-44790
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.98
+  3. Direct internet attack on apache-httpd via CVE-2017-9798
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.75
+  4. Direct internet attack on apache-httpd via CVE-2022-23943
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.98
+  5. Direct internet attack on apache-httpd via CVE-2018-0732
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.75
+  6. Direct internet attack on apache-httpd via CVE-2018-1000001
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.78
+  7. Direct internet attack on apache-httpd via CVE-2022-22720
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.93
+  8. Direct internet attack on apache-httpd via CVE-2021-39275
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.98
+  9. Direct internet attack on apache-httpd via CVE-2022-26377
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.75
+  10. Direct internet attack on apache-httpd via CVE-2016-9841
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.9
+
+TOP VULNERABILITIES BY BAYESIAN RISK
+--------------------------------------------------------------------------------
+1. CVE-2025-3891 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Negligible - P(Exploit): 0.4% [0.0%-5.5%]
+   EPSS (Prior): 1.53%
+   Attack Category: denial_of_service
+   CVSS: UNKNOWN (N/A)
+   CWE: CWE-248
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+2. CVE-2023-6228 in nginx-web (nginx:alpine)
+   Bayesian Risk: Negligible - P(Exploit): 0.0% [0.0%-5.0%]
+   EPSS (Prior): 0.01%
+   Attack Category: denial_of_service, buffer_overflow
+   CVSS: UNKNOWN (N/A)
+   CWE: CWE-787
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+3. CVE-2025-23165 in node-api (node:18-alpine)
+   Bayesian Risk: Negligible - P(Exploit): 0.0% [0.0%-5.0%]
+   EPSS (Prior): 0.07%
+   Attack Category: denial_of_service, information_disclosure
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: high
+   Service Role: api_server
+   Ownership: DEV
+
+4. CVE-2025-23166 in node-api (node:18-alpine)
+   Bayesian Risk: Negligible - P(Exploit): 0.0% [0.0%-5.0%]
+   EPSS (Prior): 0.04%
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: high
+   Service Role: api_server
+   Ownership: DEV
+
+5. CVE-2025-23167 in node-api (node:18-alpine)
+   Bayesian Risk: Low - P(Exploit): 2.0% [0.0%-7.7%]
+   EPSS (Prior): 0.01%
+   CVSS: UNKNOWN (N/A)
+   Exploits Available: GitHub PoC
+   Exposure: internal
+   Asset Value: high
+   Service Role: api_server
+   Ownership: DEV
+
+6. CVE-2025-52099 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+7. CVE-2020-35537 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+8. CVE-2020-35537 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+9. CVE-2023-45918 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+10. CVE-2023-45918 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+11. CVE-2023-36191 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+12. CVE-2020-35537 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+13. CVE-2023-45918 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+14. CVE-2023-45918 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+15. CVE-2023-45918 in mongo-db (mongo:4.4)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+16. CVE-2023-6228 in modsecurity-waf (owasp/modsecurity-crs:3.3-nginx)
+   Bayesian Risk: Negligible - P(Exploit): 0.0% [0.0%-5.0%]
+   EPSS (Prior): 0.01%
+   Attack Category: denial_of_service, buffer_overflow
+   CVSS: UNKNOWN (N/A)
+   CWE: CWE-787
+   Exposure: internet-facing
+   Asset Value: medium
+   Service Role: waf
+   Ownership: SECURITY
+
+17. CVE-2023-22041 in elasticsearch (docker.elastic.co/elasticsearch/elasticsearch:7.17.0)
+   Bayesian Risk: Negligible - P(Exploit): 0.0% [0.0%-5.0%]
+   EPSS (Prior): 0.06%
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: medium
+   Service Role: siem_storage
+   Ownership: DEV
+
+18. CVE-2021-20223 in elasticsearch (docker.elastic.co/elasticsearch/elasticsearch:7.17.0)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: medium
+   Service Role: siem_storage
+   Ownership: DEV
+
+19. CVE-2025-52099 in elasticsearch (docker.elastic.co/elasticsearch/elasticsearch:7.17.0)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: medium
+   Service Role: siem_storage
+   Ownership: DEV
+
+20. CVE-2020-35537 in elasticsearch (docker.elastic.co/elasticsearch/elasticsearch:7.17.0)
+   Bayesian Risk: Negligible - P(Exploit): 0.1% [0.0%-5.2%]
+   EPSS (Prior): False
+   CVSS: UNKNOWN (N/A)
+   Exposure: internal
+   Asset Value: medium
+   Service Role: siem_storage
+   Ownership: DEV
+
+
+TEAM-BASED BAYESIAN RISK HEATMAP
+--------------------------------------------------------------------------------
+Ownership\Risk      Critical   High       Medium     Low        Negligible
+DEV                 65         36         54         130        2119      
+SECURITY            29         22         19         9          557       
+DBTEAM              16         2          14         27         661       
+DEVOPS              0          1          2          5          164       
+
+================================================================================
