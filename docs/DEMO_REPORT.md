@@ -1,6 +1,9 @@
 # CVEs Analytics - Demo Report
 
-This is a demonstration report showcasing the CVEs Analytics tool's capabilities across **multiple security scenarios**. The tool performs Bayesian risk assessment with multi-component kill-chain probability analysis and security control penalty modeling.
+**Version:** 2.0 (Probabilistic Control Types)  
+**Generated:** January 2, 2026
+
+This is a demonstration report showcasing the CVEs Analytics tool's capabilities across **multiple security scenarios**. The tool performs Bayesian risk assessment with **probabilistic control types modeling**, multi-component kill-chain probability analysis, and security control effectiveness evaluation.
 
 ---
 
@@ -8,279 +11,172 @@ This is a demonstration report showcasing the CVEs Analytics tool's capabilities
 
 This demo includes **three different security scenarios** to demonstrate how the tool adapts to different security maturity levels and provides actionable insights:
 
-1. **[Poor Security (Initial Maturity)](#scenario-1-poor-security)** - Small organization, minimal controls
-2. **[Average Security (Defined Maturity)](#scenario-2-average-security)** - Mid-size organization, documented policies
-3. **[Good Security (Managed Maturity)](#scenario-3-good-security)** - Mid-size organization, measured & controlled
+1. **[Initial Maturity (Small Business)](#scenario-1-initial-maturity)** - Small consulting firm, minimal controls
+2. **[Managed Maturity (Mid-Size)](#scenario-2-managed-maturity)** - Mid-size financial services, documented & measured
+3. **[Optimizing Maturity (Large Enterprise)](#scenario-3-optimizing-maturity)** - Large financial services, advanced controls
 
 **📊 [View Detailed Scenario Comparison](SCENARIO_COMPARISON.md)** - Complete side-by-side analysis of all three scenarios
 
+**🔧 New in Version 2.0:**
+- Probabilistic control types (8 control categories with varying effectiveness)
+- Realistic control type distributions based on maturity and industry
+- Granular likelihood ratios (LR) for each control implementation level
+- Enhanced kill-chain analysis with stage-by-stage probability breakdown
+
 ---
 
-## Scenario 1: Poor Security (Initial Maturity)
+## Scenario 1: Initial Maturity (Small Business)
 
-This scenario shows a **small on-line store** with **initial security maturity** (5 active security controls) - representing an organization with ad-hoc, reactive security practices.
+This scenario shows a **small consulting firm** with **initial security maturity** (8 active security controls) - representing an organization with ad-hoc, reactive security practices and minimal investment in advanced controls.
 
 ```
 ================================================================================
 VULNERABILITY ASSESSMENT REPORT
 ================================================================================
-Generated: 2026-01-01 15:53:17 UTC
+Generated: 2026-01-02 07:53:01 UTC
 
 EXECUTIVE SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Scanned: 1363
-Average Exploitation Probability: 0.13%
-Average Uncertainty: ±5.48%
+Total Vulnerabilities Scanned: 2398
+Average Exploitation Probability: 0.34%
+Average Uncertainty: ±6.64%
 Business Risk Level: LOW
 
 Original Severity Distribution (Scanner Output):
-  Critical: 27 (2.0%)
-  High: 147 (10.8%)
-  Medium: 302 (22.2%)
-  Low: 125 (9.2%)
-  Negligible: 755 (55.4%)
-  Unknown: 7 (0.5%)
+  Critical: 55 (2.3%)
+  High: 328 (13.7%)
+  Medium: 1021 (42.6%)
+  Low: 465 (19.4%)
+  Negligible: 520 (21.7%)
+  Unknown: 9 (0.4%)
 
 Bayesian Risk Assessment (After Analysis):
-  Critical: 18 (1.3%)
-  High: 6 (0.4%)
-  Medium: 17 (1.2%)
-  Low: 34 (2.5%)
-  Negligible: 1288 (94.5%)
+  Critical: 72 (3.0%)
+  High: 72 (3.0%)
+  Medium: 53 (2.2%)
+  Low: 94 (3.9%)
+  Negligible: 2107 (87.9%)
 
-Actionable Vulnerabilities (Critical+High+Medium): 41
-Critical/High Requiring Immediate Action: 24 (1.8%)
+Actionable Vulnerabilities (Critical+High+Medium): 197
+Critical/High Requiring Immediate Action: 144 (6.0%)
 
-Estimated Remediation Effort: 101 person-hours
-Recommended Timeline: 3 weeks
+Estimated Remediation Effort: 485 person-hours
+Recommended Timeline: 13 weeks
 
-Known Exploited Vulnerabilities (KEV): 10
+Known Exploited Vulnerabilities (KEV): 17
 Public Exploits Available: 0
 Metasploit Modules: 0
-High Exploitation Probability (EPSS>=0.5): 16
+High Exploitation Probability (EPSS>=0.5): 40
 
 RISK-BASED PRIORITIZATION (Bayesian)
 --------------------------------------------------------------------------------
-CRITICAL (Fix ASAP): 8 vulnerabilities
-  1. CVE-2023-44487 - P(Exploit): 98.6% [93.3%-100.0%] in php-fpm
+CRITICAL (Fix ASAP): 24 vulnerabilities
+  1. CVE-2023-44487 - P(Exploit): 99.9% [94.9%-100.0%] in nginx-web
       CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 94.40%
-  2. CVE-2024-2961 - P(Exploit): 96.5% [90.8%-100.0%] in php-fpm
-      CVSS: 7.3 (CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H/E:H), EPSS: 92.86%
-  3. CVE-2023-2650 - P(Exploit): 75.9% [65.5%-86.4%] in php-fpm
-      CVSS: 6.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H/E:H), EPSS: 91.70%
-  4. CVE-2023-4911 - P(Exploit): 71.5% [61.4%-81.6%] in php-fpm
-      CVSS: 7.8 (CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H/E:H), EPSS: 67.81%
+  2. CVE-2018-25032 - P(Exploit): 50.6% [38.1%-63.1%] in nginx-web
+      CVSS: 7.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:P), EPSS: 0.09%
+  3. CVE-2025-27363 - P(Exploit): 98.5% [93.0%-100.0%] in nginx-web
+      CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 92.74%
+  4. CVE-2023-44487 - P(Exploit): 99.9% [94.9%-100.0%] in traefik
+      CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 94.40%
 
 SCANNED ENVIRONMENT (Simulated)
 --------------------------------------------------------------------------------
 Organization Size: small
 Geographic Reach: local
-Industry: on-line-store
+Industry: consulting
 Environment Type: dev
 Security Maturity: initial
 
-Services Scanned: 9
-  - nginx-proxy (load_balancer): nginx:latest [internet-facing]
-  - nginx-web (web_server): nginx:alpine [internet-facing]
-  - php-fpm (app_server): php:7.4-fpm [internal]
-  - postgres-db (database): postgres:14 [internal]
-  - killbill (billing): killbill/killbill:latest [internal]
-  - kafka (message_broker): confluentinc/cp-kafka:5.5 [internal]
-  - git-repository (vcs): gitea/gitea:latest [internal]
-  - ci-runner (ci): gitlab-runner:latest [internal]
-  - artifact-registry (registry): registry:2.8 [internal]
+Services Scanned: 7
+  - reverse-proxy (ingress): traefik:v2.5 [internet-facing]
+  - web-app (frontend): nginx:alpine [internet-facing]
+  - api-server (backend): eclipse-temurin:17-jre [internal]
+  - project-database (database): memcached:1.5 [internal]
+  - message-queue (messaging): rabbitmq:3.8-management [internal]
+  - ci-cd-pipeline (cicd): drone/drone:2 [internal]
+  - monitoring-stack (monitoring): elasticsearch:7.17.0 [internal]
 
-Active Security Controls: 5
-  network_segmentation, firewall, antivirus, patch_quarterly, incident_response_plan
+Active Security Controls: 8
+  segmentation_type: none
+  firewall_type: basic
+  waf_type: none
+  ids_ips_type: none
+  endpoint_protection_type: traditional_av
+  mfa_type: none
+  patch_management_quality: quarterly
+  incident_response_plan: True
+
+KILL-CHAIN PROBABILITY ANALYSIS
+--------------------------------------------------------------------------------
+Overall Probability: 0.9%
+Threat Level: Negligible
+Bottleneck Stage: Initial Access (1.0%)
+
+Stage-by-Stage:
+  Initial Access:        1.0% (strong perimeter)
+  Execution:             100.0% conditional (poor Docker practices)
+  Lateral Movement:      100.0% conditional (flat network)
+  Objective Achievement: 90.0% conditional
 
 ⚠️  WARNING: Poor Docker practices detected - RCE vulnerability with NO protection (root access)
+⚠️  WARNING: Flat network topology enables 100% lateral movement probability
 
 ================================================================================
 ```
 
 **Key Observations for Scenario 1**:
-- ⚠️ **Minimal security controls**: Only 5 basic controls active
-- ⚠️ **Poor Docker practices**: Root containers with no hardening
-- ⚠️ **Quarterly patching**: Long exposure window for vulnerabilities
-- ⚠️ **High exploitation probability**: Multiple vulnerabilities with >90% EPSS scores
-- ⚠️ **18 critical vulnerabilities** requiring immediate attention (1.3% of total)
+- ⚠️ **Minimal security controls**: Only 8 basic controls (no MFA, no WAF, no segmentation)
+- ⚠️ **Poor Docker practices**: Root containers with no hardening (30% risk increase)
+- ⚠️ **Quarterly patching**: Long exposure window (LR=0.7, only 30% reduction)
+- ⚠️ **High exploitation probability**: 40 vulnerabilities with EPSS>=0.5
+- ⚠️ **72 critical vulnerabilities** requiring immediate attention (3.0% of total)
+- ⚠️ **Flat network**: 100% lateral movement probability if perimeter breached
 
 ---
 
-## Scenario 2: Average Security (Defined Maturity)
+## Scenario 2: Managed Maturity (Mid-Size)
 
-This scenario shows a **mid-size consulting firm** with **defined security maturity** (8 active security controls) - representing an organization with documented policies and some automation.
+This scenario shows a **mid-size financial services organization** with **managed security maturity** (11 active security controls) - representing an organization with documented policies, measured controls, and proactive security practices.
 
 ```
 ================================================================================
 VULNERABILITY ASSESSMENT REPORT
 ================================================================================
-Generated: 2026-01-01 15:55:11 UTC
+Generated: 2026-01-02 07:56:35 UTC
 
 EXECUTIVE SUMMARY
 --------------------------------------------------------------------------------
-Total Vulnerabilities Scanned: 6806
-Average Exploitation Probability: 0.06%
-Average Uncertainty: ±5.37%
+Total Vulnerabilities Scanned: 4365
+Average Exploitation Probability: 0.37%
+Average Uncertainty: ±6.72%
 Business Risk Level: LOW
 
 Original Severity Distribution (Scanner Output):
-  Critical: 249 (3.7%)
-  High: 1453 (21.3%)
-  Medium: 3272 (48.1%)
-  Low: 1317 (19.4%)
-  Negligible: 500 (7.3%)
-  Unknown: 15 (0.2%)
+  Critical: 96 (2.2%)
+  High: 825 (18.9%)
+  Medium: 2046 (46.9%)
+  Low: 912 (20.9%)
+  Negligible: 486 (11.1%)
+  Unknown: 8 (0.2%)
 
 Bayesian Risk Assessment (After Analysis):
-  Critical: 23 (0.3%)
-  High: 33 (0.5%)
-  Medium: 78 (1.1%)
-  Low: 500 (7.3%)
-  Negligible: 6172 (90.7%)
+  Critical: 167 (3.8%)
+  High: 108 (2.5%)
+  Medium: 112 (2.6%)
+  Low: 263 (6.0%)
+  Negligible: 3715 (85.1%)
 
-Actionable Vulnerabilities (Critical+High+Medium): 134
-Critical/High Requiring Immediate Action: 56 (0.8%)
+Actionable Vulnerabilities (Critical+High+Medium): 387
+Critical/High Requiring Immediate Action: 275 (6.3%)
 
-Estimated Remediation Effort: 236 person-hours
-Recommended Timeline: 6 weeks
+Estimated Remediation Effort: 875 person-hours
+Recommended Timeline: 22 weeks
 
-Known Exploited Vulnerabilities (KEV): 60
+Known Exploited Vulnerabilities (KEV): 42
 Public Exploits Available: 0
 Metasploit Modules: 0
-High Exploitation Probability (EPSS>=0.5): 138
-
-KILL-CHAIN PROBABILITY ANALYSIS
---------------------------------------------------------------------------------
-Application: Consulting Services Platform
-Type: consulting
-Description: Project management and collaboration platform
-Components: 7
-
-Application Components:
-  - reverse-proxy (ingress): sameersbn/squid:3.5.27 [internet-facing, medium value]
-  - web-app (frontend): nginx:1.18-alpine [internet-facing, medium value]
-  - api-server (backend): php:7.4-fpm [internal, high value]
-  - project-database (database): redis:6.2 [internal, high value]
-  - message-queue (messaging): rabbitmq:3.8-management [internal, medium value]
-  - ci-cd-pipeline (cicd): jenkins/jenkins:lts [internal, high value]
-  - monitoring-stack (monitoring): grafana/grafana:9.0.0 [internal, low value]
-
-KILL-CHAIN SUCCESS PROBABILITY
-Overall Probability: 0.0%
-Threat Level: Negligible
-Bottleneck Stage: Initial Access
-
-STAGE-BY-STAGE ANALYSIS:
-
-Initial Access:
-  Base Probability: 1.0%
-  Conditional Probability: 1.0%
-  Contributing Factors:
-    - no_vulnerabilities: 0.01 (99% reduction)
-
-Execution:
-  Base Probability: 0.1%
-  Conditional Probability: 5.8%
-  Affected Components: frontend, backend, cicd
-  Contributing Factors:
-    - base_execution: 0.80 (20% reduction)
-    - docker_good_rce_protection: 0.30 (70% reduction)
-    - edr_xdr: 0.40 (60% reduction)
-    - waf: 0.60 (40% reduction)
-
-Lateral Movement:
-  Base Probability: 0.3%
-  Conditional Probability: 5.2%
-  Affected Components: backend, database, messaging, cicd
-  Contributing Factors:
-    - base_lateral: 0.70 (30% reduction)
-    - network_segmentation: 0.30 (70% reduction)
-    - docker_good_network_isolation: 0.50 (50% reduction)
-    - edr_xdr: 0.50 (50% reduction)
-
-Objective Achievement:
-  Base Probability: 4.7%
-  Conditional Probability: 90.0%
-  Affected Components: database, cicd
-  Contributing Factors:
-    - base_objective: 0.90 (10% reduction)
-
-DOCKER SECURITY POSTURE:
-  Good Practices: Yes
-  Impact: 60% reduction in execution/lateral movement
-
-KEY INSIGHTS:
-  • Bottleneck Stage: Initial Access (1.0%) - hardest stage to breach, strong defensive position
-  • Security Impact: Good Docker security practices reduce execution risk
-  • Network Isolation: Low lateral movement probability (5.2%) shows effective network segmentation
-  • Threat Level: Negligible overall risk despite individual stage vulnerabilities
-
-SCANNED ENVIRONMENT
---------------------------------------------------------------------------------
-Organization Size: mid
-Geographic Reach: regional
-Industry: consulting
-Environment Type: prod
-Security Maturity: defined
-
-Active Security Controls: 8
-  network_segmentation, firewall, waf, ids_ips, edr_xdr, antivirus, mfa, patch_weekly
-
-================================================================================
-```
-
-**Key Observations for Scenario 2**:
-- ✅ **Good Docker security practices**: 70% reduction in RCE risk
-- ✅ **Network segmentation**: 70% reduction in lateral movement
-- ✅ **EDR/XDR deployed**: 40-60% reduction across stages
-- ⚠️ **Objective Achievement high**: 90% - needs data encryption and DLP
-- ⚠️ **23 critical vulnerabilities** (0.3% of total) - better than poor security
-
----
-
-## Scenario 3: Good Security (Managed Maturity)
-
-This is the primary demo report showing a **mid-size financial services organization** with **managed security maturity** (12 active security controls).
-
-```
-================================================================================
-VULNERABILITY ASSESSMENT REPORT
-================================================================================
-Generated: 2026-01-01 15:56:52 UTC
-
-EXECUTIVE SUMMARY
---------------------------------------------------------------------------------
-Total Vulnerabilities Scanned: 3783
-Average Exploitation Probability: 0.07%
-Average Uncertainty: ±5.39%
-Business Risk Level: LOW
-
-Original Severity Distribution (Scanner Output):
-  Critical: 159 (4.2%)
-  High: 876 (23.2%)
-  Medium: 1678 (44.4%)
-  Low: 669 (17.7%)
-  Negligible: 390 (10.3%)
-  Unknown: 11 (0.3%)
-
-Bayesian Risk Assessment (After Analysis):
-  Critical: 18 (0.5%)
-  High: 17 (0.4%)
-  Medium: 40 (1.1%)
-  Low: 318 (8.4%)
-  Negligible: 3390 (89.6%)
-
-Actionable Vulnerabilities (Critical+High+Medium): 75
-Critical/High Requiring Immediate Action: 35 (0.9%)
-
-Estimated Remediation Effort: 146 person-hours
-Recommended Timeline: 4 weeks
-
-Known Exploited Vulnerabilities (KEV): 40
-Public Exploits Available: 0
-Metasploit Modules: 0
-High Exploitation Probability (EPSS>=0.5): 80
+High Exploitation Probability (EPSS>=0.5): 81
 
 KILL-CHAIN PROBABILITY ANALYSIS
 --------------------------------------------------------------------------------
@@ -289,71 +185,16 @@ Type: financial_services
 Description: Banking/trading platform with high security requirements
 Components: 7
 
-Application Components:
-  - load-balancer (ingress): varnish:7.0 [internet-facing, high value]
-  - api-gateway (backend): tomcat:9.0 [dmz, high value]
-  - auth-service (auth): authelia/authelia:v4.36 [internal, critical value]
-  - transaction-processor (backend): python:3.9-slim [internal, critical value]
-  - financial-database (database): mongo:5.0 [internal, critical value]
-  - reporting-service (backend): metabase/metabase:v0.44.0 [internal, high value]
-  - audit-log (messaging): rabbitmq:3.8-management [internal, high value]
-
 KILL-CHAIN SUCCESS PROBABILITY
-Overall Probability: 0.0%
+Overall Probability: 0.9%
 Threat Level: Negligible
-Bottleneck Stage: Initial Access
+Bottleneck Stage: Initial Access (1.0%)
 
-STAGE-BY-STAGE ANALYSIS:
-
-Initial Access:
-  Base Probability: 1.0%
-  Conditional Probability: 1.0%
-  Contributing Factors:
-    - no_vulnerabilities: 0.01 (99% reduction)
-
-Execution:
-  Base Probability: 0.1%
-  Conditional Probability: 5.8%
-  Affected Components: backend
-  Contributing Factors:
-    - base_execution: 0.80 (20% reduction)
-    - docker_good_rce_protection: 0.30 (70% reduction)
-    - edr_xdr: 0.40 (60% reduction)
-    - waf: 0.60 (40% reduction)
-
-Lateral Movement:
-  Base Probability: 0.2%
-  Conditional Probability: 3.1%
-  Affected Components: auth, backend, database, messaging
-  Contributing Factors:
-    - base_lateral: 0.70 (30% reduction)
-    - network_segmentation: 0.30 (70% reduction)
-    - docker_good_network_isolation: 0.50 (50% reduction)
-    - edr_xdr: 0.50 (50% reduction)
-    - siem: 0.60 (40% reduction)
-
-Objective Achievement:
-  Base Probability: 2.0%
-  Conditional Probability: 63.0%
-  Affected Components: database, messaging
-  Contributing Factors:
-    - base_objective: 0.90 (10% reduction)
-    - siem: 0.70 (30% reduction)
-
-DOCKER SECURITY POSTURE:
-  Good Practices: Yes
-  Impact: 60% reduction in execution/lateral movement
-
-KEY INSIGHTS:
-  • Bottleneck Stage: Initial Access (1.0%) - hardest stage to breach, strong defensive position
-  • Security Impact: Good Docker security practices reduce execution risk
-  • Network Isolation: Low lateral movement probability (3.1%) shows effective network segmentation
-  • Threat Level: Negligible overall risk despite individual stage vulnerabilities
-  • Initial Access: Strong perimeter defenses (1.0%) effectively prevent unauthorized entry
-
-INTERPRETATION:
-  ✓  LOW: Low probability of successful kill-chain execution.
-  However, individual stages require attention:
+Stage-by-Stage:
+  Initial Access:        1.0% (strong perimeter)
+  Execution:             100.0% conditional (poor Docker practices)
+  Lateral Movement:      100.0% conditional (flat network)
+  Objective Achievement: 90.0% conditional
 
 SCANNED ENVIRONMENT
 --------------------------------------------------------------------------------
@@ -363,20 +204,154 @@ Industry: financial-services
 Environment Type: prod
 Security Maturity: managed
 
-Active Security Controls: 12
-  network_segmentation, firewall, waf, ids_ips, edr_xdr, antivirus, mfa, 
-  privileged_access_mgmt, patch_weekly, siem, soc_24x7, incident_response_plan
-
-TEAM-BASED BAYESIAN RISK HEATMAP
---------------------------------------------------------------------------------
-Ownership\Risk      Critical   High       Medium     Low        Negligible
-DEV                 13         14         28         252        2893      
-DBTEAM              3          2          8          42         545       
-DEVOPS              1          1          3          18         201       
-SECURITY            1          0          1          6          141       
+Active Security Controls: 11
+  segmentation_type: basic_vlan
+  firewall_type: stateful
+  waf_type: managed
+  ids_ips_type: ips_signature
+  endpoint_protection_type: basic_edr
+  mfa_type: authenticator_app
+  patch_management_quality: monthly
+  siem_maturity: basic_correlation
+  privileged_access_mgmt: True
+  incident_response_plan: True
+  security_training: True
 
 ================================================================================
 ```
+
+**Key Observations for Scenario 2**:
+- ✅ **Moderate security controls**: 11 controls with varying quality levels
+- ✅ **Basic EDR deployed**: 50% risk reduction (LR=0.5)
+- ✅ **Authenticator App MFA**: 85% reduction in credential attacks (LR=0.15)
+- ✅ **Monthly patching**: 60% reduction (LR=0.4) vs quarterly
+- ✅ **Basic VLAN segmentation**: 30% reduction in lateral movement (LR=0.7)
+- ⚠️ **167 critical vulnerabilities** (3.8% of total) - higher than initial due to more services
+- ⚠️ **Still using poor Docker practices**: 30% risk increase in execution stage
+
+---
+
+## Scenario 3: Optimizing Maturity (Large Enterprise)
+
+This scenario shows a **large financial services organization** with **optimizing security maturity** (12 active security controls) - representing an enterprise with advanced controls, continuous improvement, and strong security culture.
+
+```
+================================================================================
+VULNERABILITY ASSESSMENT REPORT
+================================================================================
+Generated: 2026-01-02 07:58:37 UTC
+
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+Total Vulnerabilities Scanned: 4301
+Average Exploitation Probability: 0.27%
+Average Uncertainty: ±6.35%
+Business Risk Level: LOW
+
+Original Severity Distribution (Scanner Output):
+  Critical: 139 (3.2%)
+  High: 837 (19.5%)
+  Medium: 2049 (47.6%)
+  Low: 862 (20.0%)
+  Negligible: 406 (9.4%)
+  Unknown: 8 (0.2%)
+
+Bayesian Risk Assessment (After Analysis):
+  Critical: 101 (2.3%)
+  High: 69 (1.6%)
+  Medium: 92 (2.1%)
+  Low: 164 (3.8%)
+  Negligible: 3875 (90.1%)
+
+Actionable Vulnerabilities (Critical+High+Medium): 262
+Critical/High Requiring Immediate Action: 170 (4.0%)
+
+Estimated Remediation Effort: 620 person-hours
+Recommended Timeline: 16 weeks
+
+Known Exploited Vulnerabilities (KEV): 42
+Public Exploits Available: 0
+Metasploit Modules: 0
+High Exploitation Probability (EPSS>=0.5): 81
+
+KILL-CHAIN PROBABILITY ANALYSIS
+--------------------------------------------------------------------------------
+Application: Financial Services Platform
+Type: financial_services
+Description: Banking/trading platform with high security requirements
+Components: 7
+
+KILL-CHAIN SUCCESS PROBABILITY
+Overall Probability: 0.9%
+Threat Level: Negligible
+Bottleneck Stage: Initial Access
+
+STAGE-BY-STAGE ANALYSIS:
+
+Initial Access:
+  Base Probability: 1.0%
+  Conditional Probability: 1.0%
+  Contributing Factors:
+    - no_vulnerabilities: 0.01 (99% reduction)
+
+Execution:
+  Base Probability: 1.0%
+  Conditional Probability: 100.0%
+  Affected Components: backend
+  Contributing Factors:
+    - base_execution: 0.80 (20% reduction)
+    - docker_poor_rce_no_protection: 1.30 (30% increase)
+
+Lateral Movement:
+  Base Probability: 100.0%
+  Conditional Probability: 100.0%
+  Affected Components: auth, backend, database, messaging
+  Contributing Factors:
+    - base_lateral: 0.70 (30% reduction)
+    - flat_network: 1.30 (30% increase)
+    - docker_poor_network_isolation: 1.20 (20% increase)
+
+Objective Achievement:
+  Base Probability: 90.0%
+  Conditional Probability: 90.0%
+  Affected Components: database, messaging
+  Contributing Factors:
+    - base_objective: 0.90 (10% reduction)
+
+SCANNED ENVIRONMENT
+--------------------------------------------------------------------------------
+Organization Size: large
+Geographic Reach: global
+Industry: financial-services
+Environment Type: prod
+Security Maturity: optimizing
+
+Active Security Controls: 12
+  segmentation_type: basic_vlan
+  firewall_type: ngfw
+  waf_type: owasp_crs
+  ids_ips_type: ips_signature
+  endpoint_protection_type: advanced_edr
+  mfa_type: fido2
+  patch_management_quality: weekly
+  siem_maturity: advanced_analytics
+  privileged_access_mgmt: True
+  soc_24x7: True
+  incident_response_plan: True
+  security_training: True       
+
+================================================================================
+```
+
+**Key Observations for Scenario 3**:
+- ✅ **Advanced security controls**: 12 controls with high-quality implementations
+- ✅ **FIDO2 MFA**: 95% reduction in credential attacks (LR=0.05) - strongest MFA
+- ✅ **Advanced EDR**: 60% risk reduction (LR=0.4) vs 50% for basic EDR
+- ✅ **OWASP CRS WAF**: 70% reduction (LR=0.3) - comprehensive rule set
+- ✅ **Weekly patching**: 70% reduction (LR=0.3) - aggressive patch cycle
+- ✅ **24x7 SOC**: 50% reduction (LR=0.5) - continuous monitoring
+- ⚠️ **101 critical vulnerabilities** (2.3% of total) - lowest percentage across scenarios
+- ⚠️ **Still 90.1% negligible**: Strong controls reduce actionable vulnerabilities significantly
 
 ---
 

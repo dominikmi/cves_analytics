@@ -291,23 +291,35 @@ class DataEnricher:
             active_list = list(control_counts.keys())
             self.logger.info(f"  {exposure}: {active_list}")
 
-    def _convert_posture_to_controls(self, posture: dict[str, Any]) -> dict[str, bool]:
-        """Convert legacy security_posture dict to security_controls format."""
+    def _convert_posture_to_controls(self, posture: dict[str, Any]) -> dict[str, Any]:
+        """Convert legacy security_posture dict to security_controls format.
+
+        Now returns control types instead of booleans for major controls.
+        """
         controls = {
-            "network_segmentation": posture.get("network_segmentation", False),
-            "mfa": posture.get("mfa_enforced", False),
-            "firewall": True,  # Assume basic firewall is always present
-            "antivirus": True,  # Assume basic AV is always present
+            # Control types (not booleans)
+            "segmentation_type": "basic_vlan"
+            if posture.get("network_segmentation", False)
+            else "none",
+            "mfa_type": "authenticator_app"
+            if posture.get("mfa_enforced", False)
+            else "none",
+            "firewall_type": "stateful",  # Assume stateful firewall is present
+            "endpoint_protection_type": "traditional_av",  # Assume basic AV
+            "waf_type": "none",  # Default to none unless specified
+            "ids_ips_type": "none",  # Default to none unless specified
+            "siem_maturity": "none",  # Default to none unless specified
+            # Boolean controls (unchanged)
             "incident_response_plan": posture.get("incident_response_plan", False),
             "security_training": posture.get("security_training", False),
+            "privileged_access_mgmt": False,
+            "soc_24x7": False,
+            "air_gapped": False,
         }
 
-        # Map patch management cadence
+        # Map patch management cadence to quality
         patch_mgmt = posture.get("patch_management", "monthly")
-        controls["patch_daily"] = patch_mgmt == "daily"
-        controls["patch_weekly"] = patch_mgmt == "weekly"
-        controls["patch_monthly"] = patch_mgmt == "monthly"
-        controls["patch_quarterly"] = patch_mgmt == "quarterly"
+        controls["patch_management_quality"] = patch_mgmt
 
         return controls
 

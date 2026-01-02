@@ -35,6 +35,7 @@ from typing import Any
 import polars as pl
 from pydantic import BaseModel, Field, field_validator
 
+from src.core.control_lr_mapper import get_control_lr_from_security_controls
 from src.utils.logging_config import get_logger
 from src.utils.security_controls_config import get_security_controls_config
 
@@ -786,18 +787,16 @@ class BayesianRiskAssessor:
 
     def _apply_control_lrs(
         self,
-        controls: dict[str, bool],
+        controls: dict[str, bool | str | Any],
         exposure: str = "internal",
     ) -> tuple[float, list[tuple[str, float, str]]]:
-        """Apply likelihood ratios for security controls with exposure conditioning.
+        """Apply likelihood ratios for security controls.
 
-        This implements a simplified form of conditional Bayes where control
-        effectiveness depends on the exposure context. For example:
-        - WAF is highly effective for internet-facing (LR=0.3, 70% reduction)
-        - WAF has minimal effect on internal services (LR=0.9, 10% reduction)
+        Now supports control types with varying effectiveness levels.
+        Uses control_lr_mapper to extract LR values from control types.
 
         Args:
-            controls: Dictionary of control name -> present (bool)
+            controls: Dictionary with control types and boolean controls
             exposure: Exposure context (internet-facing, dmz, internal, restricted)
 
         Returns:
@@ -807,34 +806,17 @@ class BayesianRiskAssessor:
         total_log_lr = 0.0
         factors = []
 
-        for control, present in controls.items():
-            if not present:
-                continue
+        # Extract LR values from control types
+        control_lrs = get_control_lr_from_security_controls(controls)
 
-            # Check if it's a patch management control
-            if control.startswith("patch_"):
-                patch_level = control.replace("patch_", "")
-                lr = self.patch_lrs.get(patch_level, 1.0)
-                if lr != 1.0:
-                    total_log_lr += math.log(lr)
-                    factors.append(
-                        (
-                            f"Patch management: {patch_level}",
-                            lr,
-                            f"reduces risk by {(1 - lr) * 100:.0f}%",
-                        ),
-                    )
-                continue
-
-            # Use config-based LR for security controls
-            lr = get_control_lr(control)
+        for control_name, lr in control_lrs.items():
             if lr != 1.0:
                 total_log_lr += math.log(lr)
-                control_name = control.replace("_", " ").title()
+                control_display = control_name.replace("_", " ").title()
                 reduction = (1 - lr) * 100
                 factors.append(
                     (
-                        f"Control: {control_name}",
+                        f"Control: {control_display}",
                         lr,
                         f"reduces risk by {reduction:.0f}%",
                     ),

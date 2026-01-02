@@ -72,10 +72,10 @@ app_server:
     role: app_server
     exposure: internal
   - name: java-spring
-    image: openjdk:17-slim
+    image: eclipse-temurin:17-jre
     versions:
-      - openjdk:17-slim
-      - openjdk:11-slim
+      - eclipse-temurin:17-jre
+      - eclipse-temurin:11-jre
     role: app_server
     exposure: internal
   - name: php-fpm
@@ -107,7 +107,7 @@ database:
     image: mysql:8.0
     versions:
       - mysql:8.0
-      - mysql:5.7
+      - mysql:8.0.36
     role: database
     exposure: internal
   - name: mongo-db
@@ -135,10 +135,10 @@ database:
 
 security:
   - name: modsecurity-waf
-    image: owasp/modsecurity-crs
+    image: owasp/modsecurity-crs:nginx
     versions:
-      - owasp/modsecurity-crs:latest
-      - owasp/modsecurity-crs:3.3
+      - owasp/modsecurity-crs:nginx
+      - owasp/modsecurity-crs:3.3-nginx
     role: waf
     exposure: internet-facing
   - name: vault
@@ -155,18 +155,18 @@ security:
     role: vpn
     exposure: internet-facing
   - name: snort-ids
-    image: lsiio/snort
+    image: linuxserver/snort3:latest
     versions:
-      - lsiio/snort:latest
+      - linuxserver/snort3:latest
     role: ids
     exposure: internal
 
 monitoring:
   - name: prometheus
-    image: prom/prometheus
+    image: prom/prometheus:latest
     versions:
       - prom/prometheus:latest
-      - prom/prometheus:v2.30
+      - prom/prometheus:v2.45.0
     role: monitoring
     exposure: internal
   - name: grafana
@@ -278,7 +278,7 @@ cicd:
     image: gitlab/gitlab-runner:latest
     versions:
       - gitlab/gitlab-runner:latest
-      - gitlab/gitlab-runner:v16.0.0
+      - gitlab/gitlab-runner:alpine
     role: ci
     exposure: internal
   - name: drone-ci
