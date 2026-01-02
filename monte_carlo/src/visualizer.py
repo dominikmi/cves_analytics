@@ -18,9 +18,15 @@ import seaborn as sns
 
 logger = logging.getLogger(__name__)
 
-sns.set_theme(style="darkgrid")
-plt.rcParams["figure.figsize"] = (12, 8)
+sns.set_theme(style="whitegrid")
+plt.rcParams["figure.figsize"] = (14, 10)
 plt.rcParams["figure.dpi"] = 300
+plt.rcParams["font.size"] = 11
+plt.rcParams["axes.labelsize"] = 12
+plt.rcParams["axes.titlesize"] = 14
+plt.rcParams["xtick.labelsize"] = 10
+plt.rcParams["ytick.labelsize"] = 10
+plt.rcParams["legend.fontsize"] = 10
 
 
 class MonteCarloVisualizer:
@@ -62,7 +68,7 @@ class MonteCarloVisualizer:
         """
         values = self._extract_metric(results["iterations"], metric)
 
-        fig, ax = plt.subplots(figsize=(12, 8))
+        fig, ax = plt.subplots(figsize=(14, 10))
 
         # Histogram
         ax.hist(values, bins=bins, alpha=0.7, color="steelblue", edgecolor="black")
@@ -70,42 +76,85 @@ class MonteCarloVisualizer:
         # Add mean and median lines
         mean_val = np.mean(values)
         median_val = np.median(values)
+        std_val = np.std(values)
+        p95 = np.percentile(values, 95)
 
         ax.axvline(
             mean_val,
             color="red",
             linestyle="--",
-            linewidth=2,
-            label=f"Mean: {mean_val:.3f}",
+            linewidth=2.5,
+            label=f"Mean: {mean_val:.1%}",
         )
         ax.axvline(
             median_val,
             color="green",
             linestyle="--",
-            linewidth=2,
-            label=f"Median: {median_val:.3f}",
+            linewidth=2.5,
+            label=f"Median: {median_val:.1%}",
         )
 
         # Add credible interval
         ci_95 = np.percentile(values, [2.5, 97.5])
         ax.axvspan(
-            ci_95[0], ci_95[1], alpha=0.2, color="gray", label="95% Credible Interval"
+            ci_95[0],
+            ci_95[1],
+            alpha=0.2,
+            color="gray",
+            label=f"95% CI: [{ci_95[0]:.1%}, {ci_95[1]:.1%}]",
         )
 
-        # Labels and title
+        # Labels and title with explanation
         scenario = results["scenario_config"]
-        title = f"{metric.replace('_', ' ').title()} Distribution\n"
+        n_iters = results.get("n_iterations", len(results["iterations"]))
+        n_vulns = results["iterations"][0]["bayesian_stats"].get(
+            "high_risk_vulnerabilities", 0
+        )
+
+        title = "Exploitation Probability Distribution\n"
         org = scenario["org_size"].title()
         mat = scenario["maturity"].title()
-        title += f"{org} Org, {mat} Maturity"
+        title += f"{org} Organization, {mat} Security Maturity\n"
+        title += f"({n_iters:,} iterations, {n_vulns} high-risk vulnerabilities)"
 
-        ax.set_xlabel(metric.replace("_", " ").title(), fontsize=12)
-        ax.set_ylabel("Frequency", fontsize=12)
-        ax.set_title(title, fontsize=14, fontweight="bold")
-        ax.legend(fontsize=10)
-        ax.grid(True, alpha=0.3)
+        # Add explanation text box
+        textstr = (
+            f"Statistics:\n"
+            f"  Mean: {mean_val:.1%}\n"
+            f"  Median: {median_val:.1%}\n"
+            f"  Std Dev: {std_val:.1%}\n"
+            f"  95th %ile: {p95:.1%}\n\n"
+            f"Interpretation:\n"
+            f"  Average exploitation probability\n"
+            f"  across all high-risk vulnerabilities\n"
+            f"  (EPSS > 10% AND Critical/High)"
+        )
+        props = dict(boxstyle="round", facecolor="wheat", alpha=0.8)
+        ax.text(
+            0.98,
+            0.97,
+            textstr,
+            transform=ax.transAxes,
+            fontsize=10,
+            verticalalignment="top",
+            horizontalalignment="right",
+            bbox=props,
+        )
 
-        plt.tight_layout()
+        ax.set_xlabel(
+            "Exploitation Probability (EPSS Score)",
+            fontsize=13,
+            fontweight="bold",
+        )
+        ax.set_ylabel("Frequency (Count)", fontsize=13, fontweight="bold")
+        ax.set_title(title, fontsize=15, fontweight="bold", pad=20)
+        ax.legend(loc="upper left", fontsize=11, framealpha=0.9)
+        ax.grid(True, alpha=0.3, linestyle="--")
+
+        # Format x-axis as percentages
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{x:.0%}"))
+
+        plt.tight_layout(pad=2.0)
 
         if save:
             filename = (
@@ -338,7 +387,7 @@ class MonteCarloVisualizer:
         std_risks = [std_risks[i] for i in sorted_indices]
         counts = [counts[i] for i in sorted_indices]
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 10))
 
         # 1. Mean risk with error bars
         y_pos = np.arange(len(control_values))
@@ -349,32 +398,123 @@ class MonteCarloVisualizer:
             mean_risks,
             xerr=std_risks,
             color=colors,
-            alpha=0.7,
+            alpha=0.8,
             edgecolor="black",
+            linewidth=1.5,
         )
         ax1.set_yticks(y_pos)
-        ax1.set_yticklabels(control_values)
-        ax1.set_xlabel("Mean Kill-Chain Probability", fontsize=12)
-        ax1.set_title(
-            f"Control Effectiveness: {control_type.replace('_', ' ').title()}",
+        ax1.set_yticklabels(control_values, fontsize=11)
+        ax1.set_xlabel(
+            "Average Exploitation Probability",
             fontsize=13,
             fontweight="bold",
         )
-        ax1.grid(True, alpha=0.3, axis="x")
 
-        # Add count annotations
-        for i, (risk, count) in enumerate(zip(mean_risks, counts, strict=True)):
-            ax1.text(risk, i, f" n={count}", va="center", fontsize=9)
+        control_name = control_type.replace("_", " ").title()
+        ax1.set_title(
+            f"Control Effectiveness Analysis\n{control_name}",
+            fontsize=14,
+            fontweight="bold",
+            pad=15,
+        )
+        ax1.grid(True, alpha=0.3, axis="x", linestyle="--")
+
+        # Format x-axis as percentages
+        ax1.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{x:.0%}"))
+
+        # Add value and count annotations
+        for i, (risk, std, count) in enumerate(
+            zip(mean_risks, std_risks, counts, strict=True)
+        ):
+            ax1.text(
+                risk + std + 0.01,
+                i,
+                f"{risk:.1%} (n={count})",
+                va="center",
+                fontsize=10,
+                fontweight="bold",
+            )
+
+        # Add explanation text box
+        textstr = (
+            "Interpretation:\n"
+            "• Lower values = More effective control\n"
+            "• Error bars show variability (±1 std dev)\n"
+            "• n = number of iterations with this control\n\n"
+            "This shows how different control types\n"
+            "affect average exploitation probability\n"
+            "across high-risk vulnerabilities."
+        )
+        props = dict(boxstyle="round", facecolor="lightblue", alpha=0.8)
+        ax1.text(
+            0.98,
+            0.02,
+            textstr,
+            transform=ax1.transAxes,
+            fontsize=9,
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            bbox=props,
+        )
 
         # 2. Frequency of selection
-        ax2.barh(y_pos, counts, color=colors, alpha=0.7, edgecolor="black")
+        ax2.barh(
+            y_pos,
+            counts,
+            color=colors,
+            alpha=0.8,
+            edgecolor="black",
+            linewidth=1.5,
+        )
         ax2.set_yticks(y_pos)
-        ax2.set_yticklabels(control_values)
-        ax2.set_xlabel("Selection Frequency", fontsize=12)
-        ax2.set_title("Control Selection Frequency", fontsize=13, fontweight="bold")
-        ax2.grid(True, alpha=0.3, axis="x")
+        ax2.set_yticklabels(control_values, fontsize=11)
+        ax2.set_xlabel(
+            "Number of Iterations",
+            fontsize=13,
+            fontweight="bold",
+        )
+        ax2.set_title(
+            f"Control Selection Frequency\n{control_name}",
+            fontsize=14,
+            fontweight="bold",
+            pad=15,
+        )
+        ax2.grid(True, alpha=0.3, axis="x", linestyle="--")
 
-        plt.tight_layout()
+        # Add count annotations
+        for i, count in enumerate(counts):
+            ax2.text(
+                count + max(counts) * 0.01,
+                i,
+                f"{count}",
+                va="center",
+                fontsize=10,
+                fontweight="bold",
+            )
+
+        # Add explanation text box
+        textstr2 = (
+            "Interpretation:\n"
+            "• Shows how often each control\n"
+            "  was randomly selected across\n"
+            "  Monte Carlo iterations\n\n"
+            f"• Total iterations: {sum(counts)}\n"
+            "• Distribution reflects random\n"
+            "  control selection in simulation"
+        )
+        props2 = dict(boxstyle="round", facecolor="lightyellow", alpha=0.8)
+        ax2.text(
+            0.98,
+            0.02,
+            textstr2,
+            transform=ax2.transAxes,
+            fontsize=9,
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            bbox=props2,
+        )
+
+        plt.tight_layout(pad=2.0)
 
         if save:
             scenario = analysis["scenario"]
