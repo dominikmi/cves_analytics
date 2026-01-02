@@ -14,7 +14,6 @@ import polars as pl
 
 from monte_carlo.src.cache_manager import SimulationCache
 from src.core.control_lr_mapper import get_control_lr_from_security_controls
-from src.core.kill_chain_calculator import KillChainCalculator
 from src.simulation.security_controls import SecurityControlsGenerator
 
 logger = logging.getLogger(__name__)
@@ -210,19 +209,39 @@ class MonteCarloSimulator:
 
         # Calculate statistics based on cached data and new control LRs
         if enriched_cves:
-            # Simple risk calculation: apply LR reduction to EPSS scores
+            # Filter to only high-risk vulnerabilities (EPSS > 0.1 OR Critical/High severity)
             epss_scores = enriched_cves["epss_score"]
-            
+            severities = enriched_cves.get(
+                "severity_reassessed", enriched_cves.get("severity", [])
+            )
+
+            # Filter indices for high-risk vulnerabilities
+            high_risk_indices = []
+            for i, (epss, severity) in enumerate(
+                zip(epss_scores, severities, strict=True)
+            ):
+                try:
+                    epss_val = (
+                        float(epss) if epss not in [None, "False", "None"] else 0.0
+                    )
+                    severity_str = str(severity).lower() if severity else ""
+
+                    # Include if EPSS > 0.1 OR severity is Critical/High
+                    if epss_val > 0.1 or severity_str in ["critical", "high"]:
+                        high_risk_indices.append(i)
+                except (ValueError, TypeError):
+                    continue
+
             # Calculate overall LR (product of all control LRs)
             overall_lr = 1.0
             for lr in lr_values.values():
                 overall_lr *= lr
-            
-            # Apply LR to each vulnerability's EPSS score (convert to float, skip invalid)
+
+            # Apply LR only to high-risk vulnerabilities
             adjusted_risks = []
-            for epss in epss_scores:
+            for idx in high_risk_indices:
+                epss = epss_scores[idx]
                 try:
-                    # Handle None, False, or other non-numeric values
                     if epss is None or epss == "False" or epss == "None":
                         adjusted_risks.append(0.0)
                     else:
@@ -240,6 +259,8 @@ class MonteCarloSimulator:
                 else 0.0,
                 "actionable_vulnerabilities": actionable,
                 "total_vulnerabilities": len(epss_scores),
+                "high_risk_vulnerabilities": len(high_risk_indices),
+                "filtered_vulnerabilities": len(adjusted_risks),
             }
         else:
             bayesian_stats = {}
@@ -248,11 +269,11 @@ class MonteCarloSimulator:
         # For mock simulation, calculate simple kill-chain probability
         # based on overall LR and average risk
         avg_risk = bayesian_stats.get("avg_exploitation_probability", 0.5)
-        
+
         # Kill-chain is product of stage probabilities
         # Simplified: use avg_risk as base, modified by control effectiveness
         kill_chain_prob = avg_risk * overall_lr
-        
+
         # Determine threat level
         if kill_chain_prob >= 0.7:
             threat_level = "critical"
@@ -262,16 +283,16 @@ class MonteCarloSimulator:
             threat_level = "medium"
         else:
             threat_level = "low"
-        
+
         # Mock kill-chain result
         from dataclasses import dataclass
-        
+
         @dataclass
         class MockKillChainResult:
             overall_probability: float
             threat_level: str
             stage_probabilities: dict
-        
+
         kill_chain_result = MockKillChainResult(
             overall_probability=kill_chain_prob,
             threat_level=threat_level,
@@ -286,7 +307,7 @@ class MonteCarloSimulator:
                 "lateral_movement": avg_risk * overall_lr * 0.6,
                 "collection": avg_risk * 0.7,
                 "exfiltration": avg_risk * overall_lr * 0.5,
-            }
+            },
         )
 
         # Package iteration results
