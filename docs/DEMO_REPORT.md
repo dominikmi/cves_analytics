@@ -500,9 +500,9 @@ The analysis incorporates actual security controls with realistic impact:
 - **[SCENARIO_COMPARISON.md](SCENARIO_COMPARISON.md)** - Detailed side-by-side comparison of all three scenarios
 - **[README.md](README.md)** - Full feature documentation and setup instructions
 - **Individual Reports**:
-  - [Poor Security Report](output/scenarios/poor_security/report_2026-01-01_15-53-17.txt)
-  - [Average Security Report](output/scenarios/average_security/report_2026-01-01_15-55-11.txt)
-  - [Good Security Report](output/scenarios/good_security/report_2026-01-01_15-56-52.txt)
+  - [Poor Security Report](examples/poor_security/report_2026-01-03_09-05-56.txt)
+  - [Average Security Report](examples/average_security/report_2026-01-03_09-06-36.txt)
+  - [Good Security Report](examples/good_security/report_2026-01-03_09-07-41.txt)
 
 ---
 

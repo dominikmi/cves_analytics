@@ -1,0 +1,521 @@
+================================================================================
+VULNERABILITY ASSESSMENT REPORT
+================================================================================
+Generated: 2026-01-03 09:05:56 UTC
+
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+Total Vulnerabilities Scanned: 2431
+Average Exploitation Probability: 0.37%
+Average Uncertainty: ±6.39%
+Business Risk Level: LOW
+
+Original Severity Distribution (Scanner Output):
+  Critical: 58 (2.4%)
+  High: 356 (14.6%)
+  Medium: 641 (26.4%)
+  Low: 248 (10.2%)
+  Negligible: 1121 (46.1%)
+  Unknown: 7 (0.3%)
+
+Bayesian Risk Assessment (After Analysis):
+  Critical: 94 (3.9%)
+  High: 45 (1.9%)
+  Medium: 59 (2.4%)
+  Low: 122 (5.0%)
+  Negligible: 2111 (86.8%)
+
+Actionable Vulnerabilities (Critical+High+Medium): 198
+Critical/High Requiring Immediate Action: 139 (5.7%)
+
+Estimated Remediation Effort: 525 person-hours
+Recommended Timeline: 14 weeks
+
+Known Exploited Vulnerabilities (KEV): 22
+Public Exploits Available: 0
+Metasploit Modules: 0
+High Exploitation Probability (EPSS>=0.5): 32
+
+KILL-CHAIN PROBABILITY ANALYSIS
+--------------------------------------------------------------------------------
+Application: E-Commerce Platform
+Type: ecommerce
+Description: Online store with product catalog, shopping cart, and payment processing
+Components: 6
+
+Application Components:
+  - nginx-ingress (ingress): haproxy:2.2 [internet-facing, high value]
+  - web-frontend (frontend): nginx:1.18-alpine [internet-facing, high value]
+  - api-backend (backend): eclipse-temurin:17-jre [internal, high value]
+  - product-database (database): mongo:5.0 [internal, critical value]
+  - session-cache (cache): mongo:4.4 [internal, medium value]
+  - payment-service (payment): stripe/stripe-mock:latest [internal, critical value]
+
+KILL-CHAIN SUCCESS PROBABILITY
+Overall Probability: 0.9%
+Threat Level: Negligible
+Bottleneck Stage: Initial Access
+
+STAGE-BY-STAGE ANALYSIS:
+
+Initial Access:
+  Base Probability: 1.0%
+  Conditional Probability: 1.0%
+  Contributing Factors:
+    - no_vulnerabilities: 0.01 (99% reduction)
+
+Execution:
+  Base Probability: 1.0%
+  Conditional Probability: 100.0%
+  Affected Components: frontend, backend
+  Contributing Factors:
+    - base_execution: 0.80 (20% reduction)
+    - docker_poor_rce_no_protection: 1.30 (30% increase)
+
+Lateral Movement:
+  Base Probability: 100.0%
+  Conditional Probability: 100.0%
+  Affected Components: backend, database, cache, payment
+  Contributing Factors:
+    - base_lateral: 0.70 (30% reduction)
+    - flat_network: 1.30 (30% increase)
+    - docker_poor_network_isolation: 1.20 (20% increase)
+
+Objective Achievement:
+  Base Probability: 90.0%
+  Conditional Probability: 90.0%
+  Affected Components: database, payment
+  Contributing Factors:
+    - base_objective: 0.90 (10% reduction)
+
+DOCKER SECURITY POSTURE:
+  Good Practices: No
+  Impact: 20% reduction in execution/lateral movement
+
+KEY INSIGHTS:
+  • Bottleneck Stage: Initial Access (1.0%) - hardest stage to breach, strong defensive position
+  • Security Impact: Poor Docker practices significantly increase execution risk
+  • Network Isolation: High lateral movement probability (100.0%) suggests flat network topology
+  • Threat Level: Negligible overall risk despite individual stage vulnerabilities
+  • Initial Access: Strong perimeter defenses (1.0%) effectively prevent unauthorized entry
+
+INTERPRETATION:
+  ✓  LOW: Low probability of successful kill-chain execution.
+  However, individual stages require attention:
+
+RECOMMENDED ACTIONS:
+  • Execution (100.0%): CRITICAL - Implement Docker security best practices (non-root users, read-only filesystems, capability dropping)
+  • Lateral Movement (100.0%): Implement network segmentation and micro-segmentation between services
+  • Objective Achievement (90.0%): Implement data encryption at rest, enhance access controls, deploy DLP solutions
+
+RISK-BASED PRIORITIZATION (Bayesian)
+--------------------------------------------------------------------------------
+CRITICAL (Fix ASAP): 46 vulnerabilities
+  1. CVE-2023-50868 - P(Exploit): 44.4% [30.2%-58.7%] in varnish
+      CVSS: 7.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:P), EPSS: 14.12%
+      EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 41.69%, 30d ago: 49.45%]
+  2. CVE-2024-2961 - P(Exploit): 98.9% [93.6%-100.0%] in varnish
+      CVSS: 7.3 (CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H/E:H), EPSS: 92.74%
+      EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 92.65%, 30d ago: 92.67%]
+  3. CVE-2023-4863 - P(Exploit): 98.9% [93.6%-100.0%] in varnish
+      CVSS: 8.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H/E:H), EPSS: 94.12%
+      EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 93.95%, 30d ago: 94.08%]
+  4. CVE-1999-0678 - P(Exploit): 78.9% [67.7%-90.1%] in apache-httpd
+      CVSS: 4.5 (AV:N/AC:L/Au:N/C:P/I:N/A:N/E:POC), EPSS: 17.19%
+      EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 17.19%, 30d ago: 17.19%]
+  5. CVE-2016-9841 - P(Exploit): 86.1% [76.9%-95.3%] in apache-httpd
+      CVSS: 9.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:U), EPSS: 20.28%
+      EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 20.28%, 30d ago: 20.28%]
+  6. CVE-2022-31813 - P(Exploit): 71.9% [60.3%-83.5%] in apache-httpd
+      CVSS: 9.3 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:P), EPSS: 0.03%
+      EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 0.04%, 30d ago: 0.04%]
+  7. CVE-2019-18276 - P(Exploit): 80.0% [69.3%-90.6%] in apache-httpd
+      CVSS: 7.8 (CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H/E:H), EPSS: 49.61%
+      EPSS Trajectory: ↑ RISING (factor: 1.20x, active exploitation increasing) [90d ago: 40.02%, 30d ago: 49.61%]
+  8. CVE-2016-9840 - P(Exploit): 59.2% [45.8%-72.7%] in apache-httpd
+      CVSS: 8.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H/E:U), EPSS: 13.00%
+      EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 13.00%, 30d ago: 13.00%]
+  9. CVE-2022-22719 - P(Exploit): 79.2% [68.4%-90.0%] in apache-httpd
+      CVSS: 6.9 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:U), EPSS: 13.53%
+      EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 32.90%, 30d ago: 13.53%]
+  10. CVE-2018-1000001 - P(Exploit): 86.9% [78.2%-95.6%] in apache-httpd
+      CVSS: 7.8 (CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H/E:H), EPSS: 35.25%
+      EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 44.63%, 30d ago: 43.63%]
+
+HIGH PRIORITY (This Sprint): 23 vulnerabilities
+  1. CVE-2009-4488 - P(Exploit): 20.4% in varnish
+  2. CVE-2023-1999 - P(Exploit): 20.4% in varnish
+  3. CVE-2022-43680 - P(Exploit): 20.4% in varnish
+  4. CVE-2022-41717 - P(Exploit): 27.7% in mongo-db
+  5. CVE-2025-48060 - P(Exploit): 27.7% in mongo-db
+  6. CVE-2022-2097 - P(Exploit): 20.4% in varnish
+  7. CVE-2019-8457 - P(Exploit): 22.4% in varnish
+  8. CVE-2019-0053 - P(Exploit): 17.6% in apache-httpd
+  9. CVE-2018-6952 - P(Exploit): 28.1% in php-fpm
+  10. CVE-2021-33560 - P(Exploit): 20.4% in varnish
+
+MEDIUM PRIORITY (Plan Fix): 22 vulnerabilities
+  1. CVE-2015-3276 - P(Exploit): 5.1%
+  2. CVE-2018-6797 - P(Exploit): 5.0%
+  3. CVE-2011-3389 - P(Exploit): 9.3%
+  4. CVE-2022-42898 - P(Exploit): 11.0%
+  5. CVE-2019-13565 - P(Exploit): 5.4%
+
+LOW PRIORITY (Backlog): 532 vulnerabilities
+
+REMEDIATION ROADMAP
+--------------------------------------------------------------------------------
+PHASE 1: Emergency (Week 1 (ASAP))
+  Vulnerabilities: 20
+  Estimated Effort: 80 hours (2 weeks)
+  Severity: Critical
+    1. CVE-2017-9798 in apache-httpd
+    2. CVE-2021-40438 in apache-httpd
+    3. CVE-2023-44487 in mongo-db
+    4. CVE-2021-44790 in apache-httpd
+    5. CVE-2023-44487 in varnish
+    ... and 15 more
+
+PHASE 2: High Priority (Weeks 2-4)
+  Vulnerabilities: 45
+  Estimated Effort: 90 hours (3 weeks)
+  Severity: High
+
+PHASE 3: Medium Priority (Weeks 5-6)
+  Vulnerabilities: 59
+  Estimated Effort: 59 hours (2 weeks)
+  Severity: Medium
+
+SCANNED ENVIRONMENT (Simulated)
+--------------------------------------------------------------------------------
+Organization Size: small
+Geographic Reach: local
+Industry: on-line-store
+Environment Type: dev
+Security Maturity: initial
+
+Services Scanned: 9
+  - varnish (cache_proxy): varnish:7.0 [internal]
+  - apache-httpd (web_server): httpd:2.2 [internet-facing]
+  - php-fpm (app_server): php:8.1-fpm [internal]
+  - mongo-db (database): mongo:4.4 [internal]
+  - killbill (billing): killbill/killbill:0.22 [internal]
+  - kafka (message_broker): confluentinc/cp-kafka:latest [internal]
+  - git-repository (vcs): gitea/gitea:latest [internal]
+  - ci-runner (ci): gitlab-runner:latest [internal]
+  - artifact-registry (registry): registry:2.8 [internal]
+
+Active Security Controls: 8
+  segmentation_type, firewall_type, waf_type, ids_ips_type, endpoint_protection_type, mfa_type, patch_management_quality, siem_maturity
+
+SCAN RESULTS SUMMARY
+--------------------------------------------------------------------------------
+Total Vulnerabilities Found: 2431
+
+Vulnerability Severity Distribution:
+  Critical: 58
+  Medium: 641
+  Unknown: 7
+  Negligible: 1121
+  High: 356
+  Low: 248
+
+Original Severity → Bayesian Risk Assessment:
+  Negligible: Negligible(1052), Medium(12), Low(41), High(5), Critical(11)
+  High: Low(28), High(11), Critical(50), Medium(21), Negligible(246)
+  Critical: High(4), Negligible(43), Critical(7), Low(4)
+  Low: High(11), Negligible(214), Medium(4), Low(19)
+  Medium: Negligible(549), High(14), Critical(26), Medium(22), Low(30)
+  Unknown: Negligible(7)
+
+ATTACK SCENARIO & VULNERABILITY ANALYSIS
+--------------------------------------------------------------------------------
+Total Vulnerabilities: 2431
+
+Attack Graph Statistics:
+  Nodes (CVEs): 200
+  Edges (Dependencies): 1499
+  Graph Density: 0.038
+  Is DAG: True
+
+Identified 10 potential attack paths:
+  1. Direct internet attack on apache-httpd via CVE-2021-40438
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.9
+  2. Direct internet attack on apache-httpd via CVE-2021-44790
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.98
+  3. Direct internet attack on apache-httpd via CVE-2017-9798
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.75
+  4. Direct internet attack on apache-httpd via CVE-2022-23943
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.98
+  5. Direct internet attack on apache-httpd via CVE-2018-0732
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.75
+  6. Direct internet attack on apache-httpd via CVE-2018-1000001
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.78
+  7. Direct internet attack on apache-httpd via CVE-2022-22720
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.93
+  8. Direct internet attack on apache-httpd via CVE-2021-39275
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.9
+  9. Direct internet attack on apache-httpd via CVE-2022-26377
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.71
+  10. Direct internet attack on apache-httpd via CVE-2016-9841
+     Target Asset: apache-httpd (Team: DEV)
+     Risk Score: 10.0, Likelihood: 1.0, Impact: 0.9
+
+TOP VULNERABILITIES BY RE-ASSESSED RISK
+--------------------------------------------------------------------------------
+1. CVE-2017-9798 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 100.0% [94.9%-100.0%]
+   EPSS (Prior): 93.84%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 93.98%, 30d ago: 93.84%]
+   CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N/E:H)
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+2. CVE-2021-40438 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 99.9% [94.9%-100.0%]
+   EPSS (Prior): 94.43%
+   EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 94.43%, 30d ago: 94.43%]
+   CVSS: 9.0 (CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H/E:H)
+   CWE: CWE-918
+   MITRE ATT&CK Tactic: Execution
+   Exploits Available: Nuclei, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+3. CVE-2023-44487 in mongo-db (mongo:4.4)
+   Bayesian Risk: Critical - P(Exploit): 99.7% [94.6%-100.0%]
+   EPSS (Prior): 94.36%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 94.44%, 30d ago: 94.39%]
+   Attack Category: denial_of_service
+   CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H)
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+4. CVE-2021-44790 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 99.7% [94.6%-100.0%]
+   EPSS (Prior): 86.34%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 87.09%, 30d ago: 86.34%]
+   Attack Category: buffer_overflow
+   CVSS: 9.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:H)
+   CWE: CWE-787
+   Exploits Available: ExploitDB, GitHub PoC
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+5. CVE-2023-44487 in varnish (varnish:7.0)
+   Bayesian Risk: Critical - P(Exploit): 99.6% [94.5%-100.0%]
+   EPSS (Prior): 94.36%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 94.44%, 30d ago: 94.39%]
+   Attack Category: denial_of_service
+   CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H)
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: medium
+   Service Role: cache_proxy
+   Ownership: DEV
+
+6. CVE-2023-4863 in varnish (varnish:7.0)
+   Bayesian Risk: Critical - P(Exploit): 98.9% [93.6%-100.0%]
+   EPSS (Prior): 94.12%
+   EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 93.95%, 30d ago: 94.08%]
+   Attack Category: buffer_overflow
+   CVSS: 8.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H/E:H)
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: medium
+   Service Role: cache_proxy
+   Ownership: DEV
+
+7. CVE-2024-2961 in varnish (varnish:7.0)
+   Bayesian Risk: Critical - P(Exploit): 98.9% [93.6%-100.0%]
+   EPSS (Prior): 92.74%
+   EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 92.65%, 30d ago: 92.67%]
+   CVSS: 7.3 (CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H/E:H)
+   CWE: CWE-787
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: medium
+   Service Role: cache_proxy
+   Ownership: DEV
+
+8. CVE-2018-0732 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 97.3% [91.3%-100.0%]
+   EPSS (Prior): 59.46%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 81.09%, 30d ago: 59.46%]
+   CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H)
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+9. CVE-2022-23943 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 96.2% [89.8%-100.0%]
+   EPSS (Prior): 50.67%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 65.91%, 30d ago: 50.67%]
+   Attack Category: buffer_overflow
+   CVSS: 9.8 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:H)
+   CWE: CWE-787
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+10. CVE-2022-22720 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 94.3% [87.5%-100.0%]
+   EPSS (Prior): 25.30%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 33.37%, 30d ago: 25.30%]
+   CVSS: 9.3 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:P)
+   CWE: CWE-444
+   Exploits Available: GitHub PoC
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+11. CVE-2025-27363 in varnish (varnish:7.0)
+   Bayesian Risk: Critical - P(Exploit): 94.1% [87.2%-100.0%]
+   EPSS (Prior): 76.68%
+   EPSS Trajectory: ↑ RISING (factor: 1.20x, active exploitation increasing) [90d ago: 67.14%, 30d ago: 76.68%]
+   Attack Category: remote_code_execution, buffer_overflow
+   CVSS: 8.1 (CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H/E:H)
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: medium
+   Service Role: cache_proxy
+   Ownership: DEV
+
+12. CVE-2022-26377 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 93.6% [86.6%-100.0%]
+   EPSS (Prior): 23.08%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 32.20%, 30d ago: 22.62%]
+   CVSS: 7.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N/E:P)
+   CWE: CWE-444
+   Exploits Available: GitHub PoC
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+13. CVE-2023-45288 in mongo-db (mongo:4.4)
+   Bayesian Risk: Critical - P(Exploit): 93.6% [86.5%-100.0%]
+   EPSS (Prior): 66.64%
+   EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 66.64%, 30d ago: 66.64%]
+   CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H)
+   Exploits Available: GitHub PoC
+   Exposure: internal
+   Asset Value: critical
+   Service Role: database
+   Ownership: DBTEAM
+
+14. CVE-2018-1303 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 92.8% [85.6%-100.0%]
+   EPSS (Prior): 9.79%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 36.12%, 30d ago: 9.79%]
+   CVSS: 7.5 (CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H)
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+15. CVE-2023-2650 in varnish (varnish:7.0)
+   Bayesian Risk: Critical - P(Exploit): 91.5% [83.4%-99.6%]
+   EPSS (Prior): 91.70%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 91.97%, 30d ago: 91.54%]
+   Attack Category: denial_of_service
+   CVSS: 6.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H/E:H)
+   Exposure: internal
+   Asset Value: medium
+   Service Role: cache_proxy
+   Ownership: DEV
+
+16. CVE-2023-4911 in varnish (varnish:7.0)
+   Bayesian Risk: Critical - P(Exploit): 90.3% [82.3%-98.4%]
+   EPSS (Prior): 69.79%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 78.36%, 30d ago: 69.79%]
+   Attack Category: buffer_overflow
+   CVSS: 7.8 (CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H/E:H)
+   CWE: CWE-122
+   Exploits Available: GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internal
+   Asset Value: medium
+   Service Role: cache_proxy
+   Ownership: DEV
+
+17. CVE-2021-39275 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 89.0% [80.6%-97.4%]
+   EPSS (Prior): 24.96%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 46.97%, 30d ago: 24.96%]
+   CVSS: 9.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:U)
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+18. CVE-2018-1000001 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 86.9% [78.2%-95.6%]
+   EPSS (Prior): 35.25%
+   EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 44.63%, 30d ago: 43.63%]
+   CVSS: 7.8 (CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H/E:H)
+   Exploits Available: ExploitDB, GitHub PoC
+   CISA KEV: Actively Exploited
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+19. CVE-2016-9841 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 86.1% [76.9%-95.3%]
+   EPSS (Prior): 20.28%
+   EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 20.28%, 30d ago: 20.28%]
+   CVSS: 9.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:U)
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+20. CVE-2018-12015 in apache-httpd (httpd:2.2)
+   Bayesian Risk: Critical - P(Exploit): 81.2% [70.8%-91.5%]
+   EPSS (Prior): 15.07%
+   EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 15.07%, 30d ago: 15.07%]
+   CVSS: 6.9 (CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N/E:U)
+   Exposure: internet-facing
+   Asset Value: high
+   Service Role: web_server
+   Ownership: DEV
+
+
+VULNERABILITY ASSIGNMENTS BY TEAM
+--------------------------------------------------------------------------------
+Ownership\Risk      Critical   High       Medium     Low        Negligible
+DEV                 79         38         56         97         1659      
+DBTEAM              15         7          3          25         452       
+
+================================================================================
