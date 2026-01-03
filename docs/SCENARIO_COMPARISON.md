@@ -1,7 +1,7 @@
 # CVEs Analytics - Multi-Scenario Comparison
 
-**Version:** 2.1  
-**Generated:** January 2, 2026  
+**Version:** 2.2  
+**Generated:** January 3, 2026  
 **Document Type:** Examples & Demonstrations  
 **Estimated Reading Time:** 15-20 minutes
 
@@ -25,6 +25,9 @@
 This document showcases the CVEs Analytics tool's capabilities across three different security maturity levels, demonstrating how **probabilistic control types** and security practices impact vulnerability risk and kill-chain attack probabilities.
 
 **Key Enhancement in v2.0:** Control types are now modeled probabilistically with varying effectiveness levels (e.g., FIDO2 vs SMS for MFA, NGFW vs Basic Firewall), providing more realistic and granular risk assessments.
+
+> **IMPORTANT NOTE ON LIKELIHOOD RATIOS:**
+> The control effectiveness values (LR values) shown in this document are informed heuristics based on security principles and industry observations, not empirically validated measurements. The percentage reductions represent theoretical effectiveness under ideal implementation conditions. Actual effectiveness varies by implementation quality, organizational context, configuration, and threat landscape. These comparisons are best used for **relative assessment** (comparing maturity levels) rather than **absolute prediction** (exact risk reduction).
 
 ---
 
@@ -55,12 +58,12 @@ This document showcases the CVEs Analytics tool's capabilities across three diff
 ### Control Types Deployed
 ```
 MFA:                  none
-Firewall:             basic (LR=0.7, 30% reduction)
+Firewall:             basic (LR=0.7, ~30% reduction)
 WAF:                  none
-Endpoint Protection:  traditional_av (LR=0.7, 30% reduction)
+Endpoint Protection:  traditional_av (LR=0.7, ~30% reduction)
 Network Segmentation: none
 IDS/IPS:              none
-Patch Management:     quarterly (LR=0.7, 30% reduction)
+Patch Management:     quarterly (LR=0.7, ~30% reduction)
 Incident Response:    True
 ```
 
@@ -119,14 +122,14 @@ Incident Response:    True
 
 ### Control Types Deployed
 ```
-MFA:                  authenticator_app (LR=0.15, 85% reduction)
-Firewall:             stateful (LR=0.5, 50% reduction)
-WAF:                  managed (LR=0.4, 60% reduction)
-Endpoint Protection:  basic_edr (LR=0.5, 50% reduction)
-Network Segmentation: basic_vlan (LR=0.7, 30% reduction)
-IDS/IPS:              ips_signature (LR=0.5, 50% reduction)
-SIEM:                 basic_correlation (LR=0.6, 40% reduction)
-Patch Management:     monthly (LR=0.4, 60% reduction)
+MFA:                  authenticator_app (LR=0.15, ~85% reduction)
+Firewall:             stateful (LR=0.5, ~50% reduction)
+WAF:                  managed (LR=0.4, ~60% reduction)
+Endpoint Protection:  basic_edr (LR=0.5, ~50% reduction)
+Network Segmentation: basic_vlan (LR=0.7, ~30% reduction)
+IDS/IPS:              ips_signature (LR=0.5, ~50% reduction)
+SIEM:                 basic_correlation (LR=0.6, ~40% reduction)
+Patch Management:     monthly (LR=0.4, ~60% reduction)
 Privileged Access:    True
 Incident Response:    True
 Security Training:    True
@@ -186,16 +189,16 @@ Security Training:    True
 
 ### Control Types Deployed
 ```
-MFA:                  fido2 (LR=0.05, 95% reduction)
-Firewall:             ngfw (LR=0.4, 60% reduction)
-WAF:                  owasp_crs (LR=0.3, 70% reduction)
-Endpoint Protection:  advanced_edr (LR=0.4, 60% reduction)
-Network Segmentation: basic_vlan (LR=0.7, 30% reduction)
-IDS/IPS:              ips_signature (LR=0.5, 50% reduction)
-SIEM:                 advanced_analytics (LR=0.5, 50% reduction)
-Patch Management:     weekly (LR=0.3, 70% reduction)
+MFA:                  fido2 (LR=0.05, ~95% reduction)
+Firewall:             ngfw (LR=0.4, ~60% reduction)
+WAF:                  owasp_crs (LR=0.3, ~70% reduction)
+Endpoint Protection:  advanced_edr (LR=0.4, ~60% reduction)
+Network Segmentation: basic_vlan (LR=0.7, ~30% reduction)
+IDS/IPS:              ips_signature (LR=0.5, ~50% reduction)
+SIEM:                 advanced_analytics (LR=0.5, ~50% reduction)
+Patch Management:     weekly (LR=0.3, ~70% reduction)
 Privileged Access:    True
-24x7 SOC:             True (LR=0.5, 50% reduction)
+24x7 SOC:             True (LR=0.5, ~50% reduction)
 Incident Response:    True
 Security Training:    True
 ```
@@ -247,18 +250,20 @@ Security Training:    True
 
 ## 📈 Comparative Analysis
 
+> **Note:** The scenarios below are simulated demonstrations using the CVEs Analytics pipeline to illustrate how control types affect risk assessment. Values shown are based on the framework's Bayesian calculations with heuristic LR values.
+
 ### Control Type Effectiveness Comparison
 
 | Control Type | Initial | Managed | Optimizing | Impact |
 |--------------|---------|---------|------------|--------|
-| **MFA** | none | authenticator_app (LR=0.15) | fido2 (LR=0.05) | **0% -> 85% -> 95% reduction** |
-| **Firewall** | basic (LR=0.7) | stateful (LR=0.5) | ngfw (LR=0.4) | **30% -> 50% -> 60% reduction** |
-| **WAF** | none | managed (LR=0.4) | owasp_crs (LR=0.3) | **0% -> 60% -> 70% reduction** |
-| **Endpoint** | traditional_av (LR=0.7) | basic_edr (LR=0.5) | advanced_edr (LR=0.4) | **30% -> 50% -> 60% reduction** |
-| **Segmentation** | none | basic_vlan (LR=0.7) | basic_vlan (LR=0.7) | **0% -> 30% -> 30% reduction** |
-| **Patch Mgmt** | quarterly (LR=0.7) | monthly (LR=0.4) | weekly (LR=0.3) | **30% -> 60% -> 70% reduction** |
-| **SIEM** | none | basic_correlation (LR=0.6) | advanced_analytics (LR=0.5) | **0% -> 40% -> 50% reduction** |
-| **SOC** | none | none | 24x7 (LR=0.5) | **0% -> 0% -> 50% reduction** |
+| **MFA** | none | authenticator_app (LR=0.15) | fido2 (LR=0.05) | **0% -> ~85% -> ~95% reduction** |
+| **Firewall** | basic (LR=0.7) | stateful (LR=0.5) | ngfw (LR=0.4) | **~30% -> ~50% -> ~60% reduction** |
+| **WAF** | none | managed (LR=0.4) | owasp_crs (LR=0.3) | **0% -> ~60% -> ~70% reduction** |
+| **Endpoint** | traditional_av (LR=0.7) | basic_edr (LR=0.5) | advanced_edr (LR=0.4) | **~30% -> ~50% -> ~60% reduction** |
+| **Segmentation** | none | basic_vlan (LR=0.7) | basic_vlan (LR=0.7) | **0% -> ~30% -> ~30% reduction** |
+| **Patch Mgmt** | quarterly (LR=0.7) | monthly (LR=0.4) | weekly (LR=0.3) | **~30% -> ~60% -> ~70% reduction** |
+| **SIEM** | none | basic_correlation (LR=0.6) | advanced_analytics (LR=0.5) | **0% -> ~40% -> ~50% reduction** |
+| **SOC** | none | none | 24x7 (LR=0.5) | **0% -> 0% -> ~50% reduction** |
 
 ### Vulnerability Risk Comparison
 
@@ -283,9 +288,13 @@ Security Training:    True
 
 **Key Insight**: Kill-chain probabilities are similar across scenarios because the **bottleneck is Initial Access** (1.0%), which is consistently strong. However, **individual control quality** varies significantly, affecting defense-in-depth.
 
+> **Note:** These probabilities are calculated using the kill-chain methodology with stage-specific LR values. Identical overall probabilities indicate that the bottleneck stage dominates the result. See [EXTENDED_KILL_CHAIN_METHOD.md](EXTENDED_KILL_CHAIN_METHOD.md) for methodology details.
+
 ---
 
 ## 🎯 Key Takeaways
+
+> **Note:** The effectiveness values below are based on heuristic LR estimates. Actual improvements vary by implementation quality and organizational factors.
 
 ### 1. **Control Type Quality Matters More Than Quantity**
 - **Initial (8 controls)**: Basic implementations, 87.9% negligible
@@ -295,26 +304,27 @@ Security Training:    True
 
 ### 2. **MFA Effectiveness Varies Dramatically**
 - **No MFA**: 100% vulnerable to credential attacks
-- **Authenticator App (LR=0.15)**: 85% reduction
-- **FIDO2 (LR=0.05)**: 95% reduction
-- **Impact**: FIDO2 is **10% more effective** than authenticator apps
+- **Authenticator App (LR=0.15)**: ~85% reduction
+- **FIDO2 (LR=0.05)**: ~95% reduction
+- **Impact**: FIDO2 is **~10% more effective** than authenticator apps
 
 ### 3. **Patch Cadence Has Significant Impact**
-- **Quarterly (LR=0.7)**: 30% reduction, long exposure window
-- **Monthly (LR=0.4)**: 60% reduction, **2x more effective**
-- **Weekly (LR=0.3)**: 70% reduction, **2.3x more effective**
+- **Quarterly (LR=0.7)**: ~30% reduction, long exposure window
+- **Monthly (LR=0.4)**: ~60% reduction, **~2x more effective**
+- **Weekly (LR=0.3)**: ~70% reduction, **~2.3x more effective**
 - **Insight**: Aggressive patching provides exponential benefits
 
 ### 4. **Endpoint Protection Evolution**
-- **Traditional AV (LR=0.7)**: 30% reduction
-- **Basic EDR (LR=0.5)**: 50% reduction, **67% more effective**
-- **Advanced EDR (LR=0.4)**: 60% reduction, **100% more effective**
+- **Traditional AV (LR=0.7)**: ~30% reduction
+- **Basic EDR (LR=0.5)**: ~50% reduction, **~67% more effective**
+- **Advanced EDR (LR=0.4)**: ~60% reduction, **~100% more effective**
 - **Impact**: EDR/XDR provides 2x better protection than traditional AV
 
 ### 5. **Defense-in-Depth Multiplies Effectiveness**
-- **Single control**: Linear reduction (e.g., 50%)
-- **Multiple controls**: Multiplicative reduction (0.5 × 0.4 × 0.3 = 0.06 = 94% total)
-- **Example**: FIDO2 (0.05) + OWASP WAF (0.3) + Advanced EDR (0.4) = **99.4% combined reduction**
+- **Single control**: Linear reduction (e.g., ~50%)
+- **Multiple controls**: Multiplicative reduction (0.5 × 0.4 × 0.3 = 0.06 = ~94% total)
+- **Example**: FIDO2 (0.05) + OWASP WAF (0.3) + Advanced EDR (0.4) = **~99.4% combined reduction**
+- **Note:** Assumes conditional independence; actual effectiveness may vary due to control correlations
 
 ### 6. **Bottleneck Analysis Guides Priorities**
 - All scenarios: **Initial Access (1.0%)** is the bottleneck
@@ -355,14 +365,10 @@ Security Training:    True
 - Docker security impact assessment
 
 ### ✅ Bayesian Risk Assessment
-- EPSS-based prior probabilities
+- EPSS-based prior probability (empirically validated by FIRST.org)
+- EPSS trajectory analysis for temporal risk adjustment (v2.2)
 - Environmental context integration
 - Control effectiveness application
-- Uncertainty quantification (95% credible intervals)
-
-### ✅ Bayesian Risk Assessment
-- EPSS-based prior probability
-- Environmental context integration
 - Uncertainty quantification (95% credible intervals)
 
 ### ✅ Adaptive Analysis
@@ -382,7 +388,7 @@ Security Training:    True
 4. Implement MFA for authentication
 5. Deploy WAF for internet-facing services
 
-**Expected Impact**: 60-70% reduction in critical vulnerabilities
+**Expected Impact**: ~60-70% reduction in critical vulnerabilities
 
 ### Average Security (Defined Maturity)
 **Priority Actions**:
@@ -392,7 +398,7 @@ Security Training:    True
 4. Add privileged access management
 5. Establish SOC for 24x7 monitoring
 
-**Expected Impact**: 30-40% additional risk reduction
+**Expected Impact**: ~30-40% additional risk reduction
 
 ### Good Security (Managed Maturity)
 **Priority Actions**:
@@ -403,3 +409,16 @@ Security Training:    True
 5. Continuous improvement based on metrics
 
 **Expected Impact**: Maintain strong security posture, prevent degradation
+
+---
+
+## ⚠️ Methodology Limitations
+
+These scenarios demonstrate the CVEs Analytics pipeline's capabilities but should be understood in context:
+
+1. **Heuristic LR Values**: Control effectiveness values are informed estimates, not empirically measured
+2. **Ideal Implementation**: Percentages assume proper configuration and implementation
+3. **Relative Comparison**: Framework optimized for comparing scenarios, not absolute prediction
+4. **Validation Needed**: Real-world effectiveness requires validation against actual breach data
+
+See [BAYESIAN_RISK_ASSESSMENT.md](BAYESIAN_RISK_ASSESSMENT.md) and [EXTENDED_KILL_CHAIN_METHOD.md](EXTENDED_KILL_CHAIN_METHOD.md) for detailed methodology and caveats.

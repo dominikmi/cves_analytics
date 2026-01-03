@@ -1,6 +1,6 @@
 # Security Controls Configuration Guide
 
-**Version:** 2.1  
+**Version:** 2.2  
 **Last Updated:** January 3, 2026  
 **Document Type:** Configuration Reference  
 **Estimated Reading Time:** 40-50 minutes
@@ -53,6 +53,8 @@ This guide explains the security controls configuration system used in the CVE A
 > - Exposure context (internet-facing vs internal)
 > 
 > These defaults provide a reasonable starting point for relative risk assessment. Organizations should calibrate values based on their own red team exercises, breach analysis, and security testing.
+> 
+> The LR values and probability distributions in this guide provide a **starting point for relative comparison** (comparing security maturity levels or control types) rather than **absolute prediction** (exact risk reduction percentages). See [BAYESIAN_RISK_ASSESSMENT.md](BAYESIAN_RISK_ASSESSMENT.md) and [EXTENDED_KILL_CHAIN_METHOD.md](EXTENDED_KILL_CHAIN_METHOD.md) for detailed methodology and validation requirements.
 
 ### What This Configuration Controls
 
@@ -277,10 +279,10 @@ Each major security control now has **multiple implementation types** with varyi
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-SMS:                 LR = 0.35 (65% reduction)
-Authenticator App:   LR = 0.15 (85% reduction)
-Push Notification:   LR = 0.15 (85% reduction)
-FIDO2:               LR = 0.05 (95% reduction)
+SMS:                 LR = 0.35 (~65% reduction)
+Authenticator App:   LR = 0.15 (~85% reduction)
+Push Notification:   LR = 0.15 (~85% reduction)
+FIDO2:               LR = 0.05 (~95% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -299,10 +301,10 @@ FIDO2:               LR = 0.05 (95% reduction)
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-Basic:               LR = 0.7  (30% reduction)
-Stateful:            LR = 0.5  (50% reduction)
-Next-Gen (NGFW):     LR = 0.4  (60% reduction)
-NGFW Advanced:       LR = 0.3  (70% reduction)
+Basic:               LR = 0.7  (~30% reduction)
+Stateful:            LR = 0.5  (~50% reduction)
+Next-Gen (NGFW):     LR = 0.4  (~60% reduction)
+NGFW Advanced:       LR = 0.3  (~70% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -316,10 +318,10 @@ NGFW Advanced:       LR = 0.3  (70% reduction)
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-Basic:               LR = 0.6  (40% reduction)
-Managed:             LR = 0.4  (60% reduction)
-OWASP CRS:           LR = 0.3  (70% reduction)
-Custom Tuned:        LR = 0.25 (75% reduction)
+Basic:               LR = 0.6  (~40% reduction)
+Managed:             LR = 0.4  (~60% reduction)
+OWASP CRS:           LR = 0.3  (~70% reduction)
+Custom Tuned:        LR = 0.25 (~75% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -333,10 +335,10 @@ Custom Tuned:        LR = 0.25 (75% reduction)
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-Traditional AV:      LR = 0.7  (30% reduction)
-Basic EDR:           LR = 0.5  (50% reduction)
-Advanced EDR:        LR = 0.4  (60% reduction)
-XDR:                 LR = 0.3  (70% reduction)
+Traditional AV:      LR = 0.7  (~30% reduction)
+Basic EDR:           LR = 0.5  (~50% reduction)
+Advanced EDR:        LR = 0.4  (~60% reduction)
+XDR:                 LR = 0.3  (~70% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -351,10 +353,10 @@ XDR:                 LR = 0.3  (70% reduction)
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-Basic VLAN:          LR = 0.7  (30% reduction)
-VLAN + ACL:          LR = 0.5  (50% reduction)
-Micro-Segmentation:  LR = 0.3  (70% reduction)
-Zero Trust:          LR = 0.2  (80% reduction)
+Basic VLAN:          LR = 0.7  (~30% reduction)
+VLAN + ACL:          LR = 0.5  (~50% reduction)
+Micro-Segmentation:  LR = 0.3  (~70% reduction)
+Zero Trust:          LR = 0.2  (~80% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -368,10 +370,10 @@ Zero Trust:          LR = 0.2  (80% reduction)
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-IDS Only:            LR = 0.8  (20% reduction)
-IPS Signature:       LR = 0.5  (50% reduction)
-IPS Behavioral:      LR = 0.4  (60% reduction)
-IPS ML:              LR = 0.35 (65% reduction)
+IDS Only:            LR = 0.8  (~20% reduction)
+IPS Signature:       LR = 0.5  (~50% reduction)
+IPS Behavioral:      LR = 0.4  (~60% reduction)
+IPS ML:              LR = 0.35 (~65% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -385,10 +387,10 @@ IPS ML:              LR = 0.35 (65% reduction)
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-Log Collection:      LR = 0.8  (20% reduction)
-Basic Correlation:   LR = 0.6  (40% reduction)
-Advanced Analytics:  LR = 0.5  (50% reduction)
-Threat Hunting:      LR = 0.4  (60% reduction)
+Log Collection:      LR = 0.8  (~20% reduction)
+Basic Correlation:   LR = 0.6  (~40% reduction)
+Advanced Analytics:  LR = 0.5  (~50% reduction)
+Threat Hunting:      LR = 0.4  (~60% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -402,11 +404,11 @@ Threat Hunting:      LR = 0.4  (60% reduction)
 **Types:**
 ```
 None:                LR = 1.0  (0% reduction)
-Reactive:            LR = 0.9  (10% reduction)
-Quarterly:           LR = 0.7  (30% reduction)
-Monthly:             LR = 0.4  (60% reduction)
-Weekly:              LR = 0.3  (70% reduction)
-Automated:           LR = 0.2  (80% reduction)
+Reactive:            LR = 0.9  (~10% reduction)
+Quarterly:           LR = 0.7  (~30% reduction)
+Monthly:             LR = 0.4  (~60% reduction)
+Weekly:              LR = 0.3  (~70% reduction)
+Automated:           LR = 0.2  (~80% reduction)
 ```
 
 **Effectiveness Rationale:**
@@ -460,13 +462,15 @@ LR = P(Exploitation | Control Present) / P(Exploitation | Control Absent)
 
 ### Interpretation
 
+> **Note:** These interpretations assume ideal implementation conditions. Actual effectiveness varies by configuration, threat sophistication, and organizational context.
+
 | LR Value | Meaning | Example |
 |----------|---------|---------|
-| **0.1** | 90% reduction | Control blocks 9 out of 10 attacks |
-| **0.3** | 70% reduction | Control blocks 7 out of 10 attacks |
-| **0.5** | 50% reduction | Control blocks half of attacks |
-| **0.7** | 30% reduction | Control blocks 3 out of 10 attacks |
-| **0.9** | 10% reduction | Control blocks 1 out of 10 attacks |
+| **0.1** | ~90% reduction | Control blocks ~9 out of 10 attacks |
+| **0.3** | ~70% reduction | Control blocks ~7 out of 10 attacks |
+| **0.5** | ~50% reduction | Control blocks ~half of attacks |
+| **0.7** | ~30% reduction | Control blocks ~3 out of 10 attacks |
+| **0.9** | ~10% reduction | Control blocks ~1 out of 10 attacks |
 | **1.0** | No effect | Control doesn't help |
 | **2.0** | 100% increase | Factor doubles exploitation risk |
 | **3.0** | 200% increase | Factor triples exploitation risk |
@@ -475,24 +479,26 @@ LR = P(Exploitation | Control Present) / P(Exploitation | Control Absent)
 
 ```yaml
 waf:
-  default: 0.4  # 60% reduction
+  default: 0.4  # ~60% reduction
   description: "Blocks SQL injection, XSS, and other web attacks"
 ```
 
 **What this means:**
 - Without WAF: 100% of web attacks reach the application
-- With WAF: Only 40% of web attacks reach the application
-- **Effectiveness: 60% of attacks blocked**
+- With WAF: Only ~40% of web attacks reach the application
+- **Effectiveness: ~60% of attacks blocked**
 
 **Basis:**
 - **Heuristic estimate**: Industry observations suggest WAF effectiveness ranges from 40-85%
-- Conservative default (60% = LR 0.4) assumes properly configured WAF
+- Conservative default (~60% = LR 0.4) assumes properly configured WAF
 - Effectiveness highly dependent on: rule quality, tuning, maintenance
 - See BAYESIAN_RISK_ASSESSMENT.md for exposure-conditional values
 
 ---
 
 ## Control Categories
+
+> **Note on Evidence:** Effectiveness ranges cite industry observations and publicly available reports where available (e.g., Microsoft 2019, Mandiant M-Trends 2024, Verizon DBIR). Most LR values are informed heuristics requiring organization-specific calibration.
 
 ### 1. Network Controls
 
@@ -501,7 +507,7 @@ waf:
 #### Firewall
 ```yaml
 firewall:
-  default: 0.5  # 50% reduction
+  default: 0.5  # ~50% reduction
 ```
 - **What it does:** Blocks unauthorized network connections
 - **Effectiveness:** Moderate - blocks known bad IPs/ports
@@ -513,7 +519,7 @@ firewall:
 #### Web Application Firewall (WAF)
 ```yaml
 waf:
-  default: 0.4  # 60% reduction (exposure-independent baseline)
+  default: 0.4  # ~60% reduction (exposure-independent baseline)
   # Exposure-conditional: 0.3 (internet), 0.4 (DMZ), 0.9 (internal)
 ```
 - **What it does:** Blocks OWASP Top 10 attacks (SQLi, XSS, etc.)
@@ -527,7 +533,7 @@ waf:
 #### IDS/IPS (Intrusion Detection/Prevention)
 ```yaml
 ids_ips:
-  default: 0.5  # 50% reduction (baseline)
+  default: 0.5  # ~50% reduction (baseline)
   # Exposure-conditional: 0.4 (internet), 0.45 (DMZ), 0.7 (internal), 0.5 (restricted)
 ```
 - **What it does:** Detects and blocks known attack patterns
@@ -542,7 +548,7 @@ ids_ips:
 #### Network Segmentation
 ```yaml
 network_segmentation:
-  default: 0.3  # 70% reduction (baseline for internal)
+  default: 0.3  # ~70% reduction (baseline for internal)
   # Exposure-conditional: 0.5 (internet), 0.4 (DMZ), 0.3 (internal), 0.2 (restricted)
 ```
 - **What it does:** Isolates network zones to prevent lateral movement
@@ -558,7 +564,7 @@ network_segmentation:
 #### Zero Trust Network Access (ZTNA)
 ```yaml
 zero_trust:
-  default: 0.3  # 70% reduction
+  default: 0.3  # ~70% reduction
 ```
 - **What it does:** Verify every access request, never trust by default
 - **Effectiveness:** Very high - modern security architecture
@@ -576,7 +582,7 @@ zero_trust:
 #### EDR/XDR (Endpoint Detection & Response)
 ```yaml
 edr_xdr:
-  default: 0.4  # 60% reduction
+  default: 0.4  # ~60% reduction
 ```
 - **What it does:** Behavioral detection, blocks malicious execution
 - **Effectiveness:** High - catches unknown malware (40-80% range)
@@ -591,7 +597,7 @@ edr_xdr:
 #### Traditional Antivirus
 ```yaml
 antivirus:
-  default: 0.7  # 30% reduction
+  default: 0.7  # ~30% reduction
 ```
 - **What it does:** Signature-based malware detection
 - **Effectiveness:** Low - misses modern threats
@@ -603,7 +609,7 @@ antivirus:
 #### Application Whitelisting
 ```yaml
 application_whitelisting:
-  default: 0.3  # 70% reduction
+  default: 0.3  # ~70% reduction
 ```
 - **What it does:** Only approved applications can execute
 - **Effectiveness:** Very high - blocks all unauthorized execution
@@ -615,7 +621,7 @@ application_whitelisting:
 #### Device Encryption
 ```yaml
 device_encryption:
-  default: 0.5  # 50% reduction
+  default: 0.5  # ~50% reduction
 ```
 - **What it does:** Full disk encryption (BitLocker, FileVault)
 - **Effectiveness:** Moderate - protects data at rest
@@ -633,7 +639,7 @@ device_encryption:
 #### Multi-Factor Authentication (MFA)
 ```yaml
 mfa:
-  default: 0.3  # 70% reduction (exposure-independent baseline)
+  default: 0.3  # ~70% reduction (exposure-independent baseline)
   # Exposure-conditional: 0.2 (internet), 0.25 (DMZ), 0.5 (internal)
 ```
 - **What it does:** Requires 2+ authentication factors
@@ -652,7 +658,7 @@ mfa:
 #### Privileged Access Management (PAM)
 ```yaml
 privileged_access_mgmt:
-  default: 0.4  # 60% reduction
+  default: 0.4  # ~60% reduction
 ```
 - **What it does:** Manages and monitors admin account access
 - **Effectiveness:** High - prevents privilege escalation
@@ -664,7 +670,7 @@ privileged_access_mgmt:
 #### Just-In-Time (JIT) Access
 ```yaml
 jit_access:
-  default: 0.4  # 60% reduction
+  default: 0.4  # ~60% reduction
 ```
 - **What it does:** Temporary elevated privileges, expires automatically
 - **Effectiveness:** High - reduces standing privileges
@@ -676,7 +682,7 @@ jit_access:
 #### Role-Based Access Control (RBAC)
 ```yaml
 rbac:
-  default: 0.6  # 40% reduction
+  default: 0.6  # ~40% reduction
 ```
 - **What it does:** Assigns permissions based on job roles
 - **Effectiveness:** Moderate - reduces attack surface
@@ -694,7 +700,7 @@ rbac:
 #### SIEM (Security Information & Event Management)
 ```yaml
 siem:
-  default: 0.6  # 40% reduction
+  default: 0.6  # ~40% reduction
 ```
 - **What it does:** Aggregates and analyzes security logs
 - **Effectiveness:** Moderate - detection capability
@@ -707,7 +713,7 @@ siem:
 #### SOC 24x7 (Security Operations Center)
 ```yaml
 soc_24x7:
-  default: 0.5  # 50% reduction
+  default: 0.5  # ~50% reduction
 ```
 - **What it does:** Continuous security monitoring and response
 - **Effectiveness:** High - human analysis and response
@@ -720,7 +726,7 @@ soc_24x7:
 #### SOAR (Security Orchestration, Automation & Response)
 ```yaml
 soar:
-  default: 0.5  # 50% reduction
+  default: 0.5  # ~50% reduction
 ```
 - **What it does:** Automates incident response workflows
 - **Effectiveness:** High - faster response than manual
@@ -732,7 +738,7 @@ soar:
 #### Threat Intelligence
 ```yaml
 threat_intelligence:
-  default: 0.6  # 40% reduction
+  default: 0.6  # ~40% reduction
 ```
 - **What it does:** Threat feeds, IOCs, adversary TTPs
 - **Effectiveness:** Moderate - proactive threat awareness
@@ -744,7 +750,7 @@ threat_intelligence:
 #### Vulnerability Management
 ```yaml
 vulnerability_management:
-  default: 0.5  # 50% reduction
+  default: 0.5  # ~50% reduction
 ```
 - **What it does:** Regular vulnerability scanning and remediation
 - **Effectiveness:** High - reduces attack surface
@@ -762,7 +768,7 @@ vulnerability_management:
 #### Data Loss Prevention (DLP)
 ```yaml
 data_loss_prevention:
-  default: 0.3  # 70% reduction
+  default: 0.3  # ~70% reduction
 ```
 - **What it does:** Monitors and blocks unauthorized data transfers
 - **Effectiveness:** Very high - prevents exfiltration
@@ -774,7 +780,7 @@ data_loss_prevention:
 #### Encryption at Rest
 ```yaml
 encryption_at_rest:
-  default: 0.5  # 50% reduction
+  default: 0.5  # ~50% reduction
 ```
 - **What it does:** Encrypts stored data (databases, files)
 - **Effectiveness:** Moderate - data less useful if stolen
@@ -786,7 +792,7 @@ encryption_at_rest:
 #### Backup & Recovery
 ```yaml
 backup_recovery:
-  default: 0.6  # 40% reduction
+  default: 0.6  # ~40% reduction
 ```
 - **What it does:** Regular backups enable recovery from ransomware
 - **Effectiveness:** Moderate - reduces ransomware impact
@@ -805,7 +811,7 @@ backup_recovery:
 #### Secure SDLC
 ```yaml
 secure_sdlc:
-  default: 0.6  # 40% reduction
+  default: 0.6  # ~40% reduction
 ```
 - **What it does:** Security integrated into development process
 - **Effectiveness:** Moderate - prevents vulnerabilities
@@ -817,7 +823,7 @@ secure_sdlc:
 #### SAST/DAST (Static/Dynamic Application Security Testing)
 ```yaml
 sast_dast:
-  default: 0.6  # 40% reduction
+  default: 0.6  # ~40% reduction
 ```
 - **What it does:** Automated security testing of applications
 - **Effectiveness:** Moderate - catches common vulnerabilities
@@ -829,7 +835,7 @@ sast_dast:
 #### Software Composition Analysis (SCA)
 ```yaml
 software_composition_analysis:
-  default: 0.6  # 40% reduction
+  default: 0.6  # ~40% reduction
 ```
 - **What it does:** Scans for vulnerable third-party components
 - **Effectiveness:** Moderate - identifies known vulnerable libraries
@@ -916,6 +922,8 @@ mfa:
 ---
 
 ## Maturity Levels
+
+> **Note:** Probability estimates are based on industry observations and reports (Verizon DBIR, IBM Security). Actual rates vary by sector, region, and organization size.
 
 ### NIST Cybersecurity Framework Maturity Levels
 
@@ -1042,6 +1050,8 @@ level_5_optimizing:
 ---
 
 ## Sector-Specific Adjustments
+
+> **Note:** Sector multipliers are informed estimates based on regulatory requirements, industry reports, and security investment patterns. Actual control adoption varies significantly within sectors based on organization size, maturity, and leadership commitment.
 
 ### How Sector Multipliers Work
 
@@ -1480,22 +1490,24 @@ effective_probability = base_probability * sector_multiplier
 
 ## Appendix: Quick Reference Tables
 
+> **Important:** All LR values and probability estimates in these tables are heuristic starting points requiring organization-specific calibration. See main sections for detailed rationale and adjustment guidance.
+
 ### Control Effectiveness Quick Reference
 
 | Control | LR | Reduction | Strength | When to Use |
 |---------|----|-----------| ---------|-------------|
-| Network Segmentation | 0.3 | 70% | Very High | Always (strongest network control) |
-| Zero Trust | 0.3 | 70% | Very High | Modern architectures |
-| MFA | 0.3 | 70% | Very High | Always (strongest access control) |
-| DLP | 0.3 | 70% | Very High | Data protection required |
-| App Whitelisting | 0.3 | 70% | Very High | High-security environments |
-| WAF | 0.4 | 60% | High | Web applications |
-| EDR/XDR | 0.4 | 60% | High | All endpoints |
-| PAM | 0.4 | 60% | High | Privileged accounts |
-| Firewall | 0.5 | 50% | Moderate | Basic network protection |
-| IDS/IPS | 0.5 | 50% | Moderate | Network monitoring |
-| SIEM | 0.6 | 40% | Moderate | Log aggregation |
-| Antivirus | 0.7 | 30% | Low | Legacy (replaced by EDR) |
+| Network Segmentation | 0.3 | ~70% | Very High | Always (strongest network control) |
+| Zero Trust | 0.3 | ~70% | Very High | Modern architectures |
+| MFA | 0.3 | ~70% | Very High | Always (strongest access control) |
+| DLP | 0.3 | ~70% | Very High | Data protection required |
+| App Whitelisting | 0.3 | ~70% | Very High | High-security environments |
+| WAF | 0.4 | ~60% | High | Web applications |
+| EDR/XDR | 0.4 | ~60% | High | All endpoints |
+| PAM | 0.4 | ~60% | High | Privileged accounts |
+| Firewall | 0.5 | ~50% | Moderate | Basic network protection |
+| IDS/IPS | 0.5 | ~50% | Moderate | Network monitoring |
+| SIEM | 0.6 | ~40% | Moderate | Log aggregation |
+| Antivirus | 0.7 | ~30% | Low | Legacy (replaced by EDR) |
 
 ### Maturity Level Quick Reference
 
@@ -1526,9 +1538,22 @@ effective_probability = base_probability * sector_multiplier
 
 ---
 
+## Validation and Calibration
+
+These default values provide a reasonable starting point but should be calibrated for your organization:
+
+1. **Red Team Testing**: Validate control effectiveness through controlled penetration tests
+2. **Breach Analysis**: Review historical incidents to measure actual control performance
+3. **Continuous Monitoring**: Track control efficacy through SIEM/SOC metrics
+4. **Peer Comparison**: Benchmark against similar organizations in your sector
+
+**Organizations should treat these values as initial estimates, not absolute truths.** Regular validation and adjustment based on empirical data will improve risk assessment accuracy.
+
+---
+
 **End of Guide**
 
 For questions or clarifications, refer to:
 - Configuration file: `config/security_controls.yaml`
-- Mathematical review: `docs/MATHEMATICAL_REVIEW.md`
+- Mathematical review: `docs/BAYESIAN_RISK_ASSESSMENT.md`
 - Test suite: `tests/test_control_correlation.py`
