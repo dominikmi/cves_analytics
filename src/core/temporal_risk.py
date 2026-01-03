@@ -1,10 +1,27 @@
 """Temporal probability adjustments for vulnerability exploitation.
 
 Implements temporal factors from EXTENDED_KILL_CHAIN_METHOD.md:
-- Vulnerability age impact
-- Zero-day status
-- Patch availability
-- Probability floors for KEV and negligence
+- Vulnerability age impact (empirically-based decay curve)
+- Zero-day status (5x multiplier for active APT targeting)
+- EPSS trajectory analysis (replaces static patch availability)
+- Probability floors for KEV and critical zero-days
+
+Theoretical Foundation:
+Based on the Work-Averse Cyberattacker Model (Allodi et al., 2021):
+- Weaponization lag: Attackers face high initial costs, causing delays between
+  disclosure and mass exploitation
+- Selective exploitation: Not all vulnerabilities are weaponized
+- Attack complexity preference: Mass attackers prefer low-complexity exploits
+
+Key Change (v2.2):
+Removed incorrect patch availability factors that decreased risk over time.
+Replaced with EPSS trajectory analysis that captures patch adoption through
+observed exploitation trends (declining EPSS = patch adoption reducing risk).
+
+References:
+- Allodi, L., Massacci, F., & Williams, J. (2021). "The Work-Averse
+  Cyberattacker Model: Theory and Evidence from Two Million Attack Signatures".
+  Risk Analysis, 42(8), 1623-1642. https://doi.org/10.1111/risa.13732
 """
 
 from datetime import datetime
@@ -17,22 +34,31 @@ from src.utils.security_controls_config import get_security_controls_config
 # Load config once at module level
 _config = get_security_controls_config()
 
+# EPSS trajectory analysis (optional - requires historical data)
+try:
+    from src.core.epss_trajectory import EPSSTrajectory
+
+    _epss_trajectory = EPSSTrajectory()
+except ImportError:
+    _epss_trajectory = None
+
 
 class TemporalFactors(BaseModel):
     """Temporal factors affecting exploitation probability."""
 
     days_since_disclosure: int = Field(ge=0)
-    days_since_patch: int | None = None
+    days_since_patch: int | None = None  # Kept for negligence floor only
     is_zero_day: bool = False
     is_kev: bool = False
     cvss_score: float = Field(ge=0.0, le=10.0)
+    epss_trajectory_factor: float = Field(default=1.0, ge=0.0)  # From EPSS analysis
 
 
 class TemporalAdjustment(BaseModel):
     """Result of temporal probability adjustment."""
 
     age_factor: float = Field(gt=0.0)
-    patch_factor: float = Field(gt=0.0)
+    epss_trajectory_factor: float = Field(gt=0.0)  # Replaces patch_factor
     kev_multiplier: float = Field(gt=0.0)
     floor_applied: str | None = None
     adjusted_probability: float = Field(ge=0.0, le=1.0)
@@ -76,35 +102,23 @@ def calculate_age_factor(days_since_disclosure: int, is_zero_day: bool) -> float
         return max(0.01, 0.1 * (0.5 ** (years - 1)))
 
 
-def calculate_patch_factor(days_since_patch: int | None) -> float:
-    """Calculate patch availability factor from config.
+def get_epss_trajectory_factor(temporal_factors: TemporalFactors) -> float:
+    """Get EPSS trajectory factor if available.
 
-    Patch availability reduces exploitation probability based on
-    values defined in security_controls.yaml temporal_factors section.
+    EPSS trajectory analysis replaces static patch availability factors.
+    If EPSS historical data is available, trajectory factor captures:
+    - Declining EPSS = patch adoption reducing risk (1.0x)
+    - Rising EPSS = active exploitation increasing (1.2x)
+    - Stable EPSS = sustained threat (1.0x)
 
     Args:
-        days_since_patch: Days since patch was released (None if no patch)
+        temporal_factors: Temporal factors including EPSS trajectory
 
     Returns:
-        Patch factor multiplier
+        EPSS trajectory factor (default 1.0 if not available)
 
     """
-    if days_since_patch is None:
-        return _config.temporal_factors.get("no_patch", 1.0)
-
-    # Get thresholds and factors from config
-    temporal = _config.temporal_factors
-
-    if days_since_patch <= 7:
-        return temporal.get("patch_lt_7d", 0.8)
-    elif days_since_patch <= 30:
-        return temporal.get("patch_7_30d", 0.5)
-    elif days_since_patch <= 90:
-        return temporal.get("patch_30_90d", 0.3)
-    elif days_since_patch <= 365:
-        return temporal.get("patch_90_365d", 0.2)
-    else:
-        return temporal.get("patch_gt_1yr", 0.1)  # Extreme negligence
+    return temporal_factors.epss_trajectory_factor
 
 
 def apply_temporal_adjustment(
@@ -131,14 +145,17 @@ def apply_temporal_adjustment(
         temporal_factors.is_zero_day,
     )
 
-    patch_factor = calculate_patch_factor(temporal_factors.days_since_patch)
+    # EPSS trajectory factor (replaces incorrect patch availability logic)
+    epss_trajectory_factor = get_epss_trajectory_factor(temporal_factors)
 
     # KEV multiplier: KEV status maintains high probability despite age
     kev_multiplier = 1.5 if temporal_factors.is_kev else 1.0
 
     # Apply factors to PROBABILITY (not odds)
     # Temporal decay is not Bayesian evidence - it's a time-based multiplier
-    adjusted_prob = posterior_probability * age_factor * patch_factor * kev_multiplier
+    adjusted_prob = (
+        posterior_probability * age_factor * epss_trajectory_factor * kev_multiplier
+    )
 
     # Cap at 95% (practical maximum)
     adjusted_prob = min(adjusted_prob, 0.95)
@@ -170,7 +187,7 @@ def apply_temporal_adjustment(
 
     return TemporalAdjustment(
         age_factor=age_factor,
-        patch_factor=patch_factor,
+        epss_trajectory_factor=epss_trajectory_factor,
         kev_multiplier=kev_multiplier,
         floor_applied=floor_applied,
         adjusted_probability=adjusted_prob,

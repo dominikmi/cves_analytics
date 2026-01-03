@@ -1,5 +1,30 @@
 # Extended Kill-Chain Bayesian Exploitation Probability Assessment Methodology
 
+**Version:** 2.1  
+**Last Updated:** January 3, 2026  
+**Document Type:** Methodology Guide  
+**Estimated Reading Time:** 60-90 minutes
+
+## Intended Audience
+
+**Primary:** Security architects, penetration testers, threat modelers  
+**Secondary:** Risk assessors, security researchers, compliance auditors
+
+**Prerequisites:**
+- Understanding of attack kill chains and MITRE ATT&CK framework
+- Familiarity with Bayesian probability (recommended: read BAYESIAN_RISK_ASSESSMENT.md first)
+- Knowledge of containerized applications and microservices architecture
+- Experience with security controls and defense strategies
+
+**What You'll Learn:**
+- Multi-stage kill-chain probability calculation methodology
+- Sequential Markov chain modeling for attack progression
+- Stage-specific control effectiveness and bottleneck identification
+- Uncertainty quantification with credible intervals
+- Real-world implementation examples with Docker security assessment
+
+---
+
 ## Executive Summary
 
 This document describes the **implemented kill-chain analysis** for multi-component containerized applications using **Bayesian probability** with **exploitability gating** and **exposure-conditional likelihood ratios**. The methodology calculates the probability of successful attack chain execution from initial access to objective achievement (data exfiltration, service disruption, or persistence).
@@ -365,16 +390,29 @@ stage_1_prob = 0.257 x 0.3 = 0.077 = 7.7%
 | **Decline (180-365d)** | 0.5 | Most systems patched |
 | **Long-Tail (1yr+)** | 0.1 | Only unpatched targets |
 
-### 4.2 Patch Availability Factor
+### 4.2 EPSS Trajectory Analysis (v2.2)
 
-| Time Since Patch | Patch Factor | Interpretation |
-|------------------|--------------|----------------|
-| No patch (0d) | 1.0 | No mitigation available |
-| 1-7 days | 0.8 | Grace period |
-| 8-30 days | 0.5 | Should be patched |
-| 31-90 days | 0.3 | Negligence begins |
-| 91-365 days | 0.1 | Serious negligence |
-| 1+ years | 0.05 | Extreme negligence |
+**IMPORTANT CHANGE**: Previous versions used static patch availability factors that incorrectly decreased risk over time. This was scientifically unsound.
+
+**New Approach**: EPSS trajectory analysis captures patch adoption through observed exploitation trends.
+
+| EPSS Trend | Trajectory Factor | Interpretation |
+|------------|------------------|----------------|
+| **Declining** (< -0.1% per day) | 1.0x | Patch adoption reducing risk |
+| **Stable** (-0.1% to +0.1% per day) | 1.0x | Sustained threat level |
+| **Rising** (> +0.1% per day) | 1.2x | Active exploitation increasing |
+
+**Why This Works:**
+- EPSS naturally reflects patch adoption: as systems patch, exploitation probability declines
+- Declining EPSS after patch release = widespread adoption reducing attacker targets
+- Persistent high EPSS despite patch = many unpatched systems (sustained threat)
+- Rising EPSS = active exploitation campaigns or new exploit releases
+
+**Data Requirements:**
+- Current EPSS score
+- EPSS score 30 days ago
+- EPSS score 90 days ago
+- Available from FIRST.org EPSS API: https://www.first.org/epss/api
 
 ### 4.3 Temporal Adjustment Formula
 
@@ -382,7 +420,7 @@ stage_1_prob = 0.257 x 0.3 = 0.077 = 7.7%
 def apply_temporal_adjustment(
     posterior_prob: float,
     age_factor: float,
-    patch_factor: float,
+    epss_trajectory_factor: float,  # Replaces patch_factor
     is_kev: bool = False,
     is_zero_day: bool = False,
     cvss_score: float = 0.0
@@ -393,14 +431,14 @@ def apply_temporal_adjustment(
     IMPORTANT: Temporal factors are NOT likelihood ratios.
     They represent time-based decay/amplification and should be
     applied to probability directly, not to odds.
+    
+    v2.2 Change: Replaced static patch_factor with EPSS trajectory analysis.
     """
-    # KEV overrides age decay
-    if is_kev:
-        age_factor = max(age_factor, 0.8)
+    # KEV multiplier: maintains high probability despite age
+    kev_multiplier = 1.5 if is_kev else 1.0
     
     # Apply temporal factors to PROBABILITY (not odds)
-    # This represents decay over time, not Bayesian evidence
-    adjusted_prob = posterior_prob * age_factor * patch_factor
+    adjusted_prob = posterior_prob * age_factor * epss_trajectory_factor * kev_multiplier
     
     # Apply probability floors to prevent misleading ratings
     if is_zero_day and cvss_score >= 9.0:

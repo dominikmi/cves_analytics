@@ -237,8 +237,8 @@ class ReportGenerator:
 
             report.append("")
 
-            # Top Vulnerabilities by Bayesian Risk
-            report.append("TOP VULNERABILITIES BY BAYESIAN RISK")
+            # Top Vulnerabilities by Re-Assessed Risk
+            report.append("TOP VULNERABILITIES BY RE-ASSESSED RISK")
             report.append("-" * 80)
 
             if not enriched_results.is_empty():
@@ -275,14 +275,11 @@ class ReportGenerator:
                         enriched_rank = enriched_results.unique(subset=[cve_col])
 
                     if "risk_sort" in enriched_rank.columns:
-                        enriched_results = enriched_results.with_columns(
-                            pl.col("cvss_score").fill_null(-1).alias("risk_sort")
-                        )
-                        top_vulns = enriched_results.sort(
+                        top_vulns = enriched_rank.sort(
                             "risk_sort", descending=True
                         ).head(20)
                     else:
-                        top_vulns = enriched_results.head(20)
+                        top_vulns = enriched_rank.head(20)
 
                     for idx, row in enumerate(top_vulns.to_dicts(), 1):
                         img = row.get(image_col, "unknown") if image_col else "unknown"
@@ -308,6 +305,71 @@ class ReportGenerator:
                                 report.append(f"   EPSS (Prior): {epss_val:.2%}")
                             except (ValueError, TypeError):
                                 report.append(f"   EPSS (Prior): {epss_score}")
+
+                        # EPSS Trajectory
+                        trajectory_factor = row.get("epss_trajectory_factor")
+                        epss_30d = row.get("epss_30d_ago")
+                        epss_90d = row.get("epss_90d_ago")
+
+                        if trajectory_factor is not None:
+                            try:
+                                traj_f = float(trajectory_factor)
+                                epss_current = float(epss_score) if epss_score else 0.0
+
+                                # Determine trend
+                                if traj_f > 1.0:
+                                    trend = "↑ RISING"
+                                    trend_desc = "active exploitation increasing"
+                                elif traj_f < 1.0:
+                                    trend = "↓ DECLINING"
+                                    trend_desc = "patch adoption reducing risk"
+                                else:
+                                    if epss_30d is not None and epss_90d is not None:
+                                        try:
+                                            e90 = float(epss_90d)
+                                            if epss_current < e90:
+                                                trend = "↓ DECLINING"
+                                                trend_desc = (
+                                                    "patch adoption reducing risk"
+                                                )
+                                            elif epss_current > e90:
+                                                trend = "→ STABLE"
+                                                trend_desc = "sustained threat level"
+                                            else:
+                                                trend = "→ STABLE"
+                                                trend_desc = "sustained threat level"
+                                        except (ValueError, TypeError):
+                                            trend = "→ STABLE"
+                                            trend_desc = "sustained threat level"
+                                    else:
+                                        trend = "→ BASELINE"
+                                        trend_desc = "no historical data"
+
+                                trajectory_line = f"   EPSS Trajectory: {trend} (factor: {traj_f:.2f}x, {trend_desc})"
+
+                                # Add historical EPSS if available
+                                if epss_30d is not None or epss_90d is not None:
+                                    hist_parts = []
+                                    if epss_90d is not None:
+                                        try:
+                                            hist_parts.append(
+                                                f"90d ago: {float(epss_90d):.2%}"
+                                            )
+                                        except (ValueError, TypeError):
+                                            pass
+                                    if epss_30d is not None:
+                                        try:
+                                            hist_parts.append(
+                                                f"30d ago: {float(epss_30d):.2%}"
+                                            )
+                                        except (ValueError, TypeError):
+                                            pass
+                                    if hist_parts:
+                                        trajectory_line += f" [{', '.join(hist_parts)}]"
+
+                                report.append(trajectory_line)
+                            except (ValueError, TypeError):
+                                pass
 
                         # NLP-extracted attack category (explains why it's a top vuln)
                         nlp_attack_types = row.get("nlp_attack_types", [])
@@ -395,8 +457,8 @@ class ReportGenerator:
 
             report.append("")
 
-            # Team-based Bayesian Risk Heatmap
-            report.append("TEAM-BASED BAYESIAN RISK HEATMAP")
+            # Vulnerability Assignments by Team
+            report.append("VULNERABILITY ASSIGNMENTS BY TEAM")
             report.append("-" * 80)
 
             if (
@@ -991,6 +1053,66 @@ class ReportGenerator:
                     report.append(
                         f"      CVSS: {cvss:.1f} ({row.get('cvss_vector', 'N/A')}), EPSS: {epss:.2%}"
                     )
+
+                    # Add EPSS trajectory information
+                    trajectory_factor = row.get("epss_trajectory_factor")
+                    epss_30d = row.get("epss_30d_ago")
+                    epss_90d = row.get("epss_90d_ago")
+
+                    if trajectory_factor is not None:
+                        try:
+                            traj_f = float(trajectory_factor)
+                            if traj_f > 1.0:
+                                trend = "↑ RISING"
+                                trend_desc = "active exploitation increasing"
+                            elif traj_f < 1.0:
+                                trend = "↓ DECLINING"
+                                trend_desc = "patch adoption reducing risk"
+                            else:
+                                if epss_30d is not None and epss_90d is not None:
+                                    try:
+                                        e90 = float(epss_90d)
+                                        if epss < e90:
+                                            trend = "↓ DECLINING"
+                                            trend_desc = "patch adoption reducing risk"
+                                        elif epss > e90:
+                                            trend = "→ STABLE"
+                                            trend_desc = "sustained threat level"
+                                        else:
+                                            trend = "→ STABLE"
+                                            trend_desc = "sustained threat level"
+                                    except (ValueError, TypeError):
+                                        trend = "→ STABLE"
+                                        trend_desc = "sustained threat level"
+                                else:
+                                    trend = "→ BASELINE"
+                                    trend_desc = "no historical data"
+
+                            trajectory_line = f"      EPSS Trajectory: {trend} (factor: {traj_f:.2f}x, {trend_desc})"
+
+                            # Add historical EPSS if available
+                            if epss_30d is not None or epss_90d is not None:
+                                hist_parts = []
+                                if epss_90d is not None:
+                                    try:
+                                        hist_parts.append(
+                                            f"90d ago: {float(epss_90d):.2%}"
+                                        )
+                                    except (ValueError, TypeError):
+                                        pass
+                                if epss_30d is not None:
+                                    try:
+                                        hist_parts.append(
+                                            f"30d ago: {float(epss_30d):.2%}"
+                                        )
+                                    except (ValueError, TypeError):
+                                        pass
+                                if hist_parts:
+                                    trajectory_line += f" [{', '.join(hist_parts)}]"
+
+                            report.append(trajectory_line)
+                        except (ValueError, TypeError):
+                            pass
                 else:
                     risk_score = row.get("risk_score", 0) or 0
                     report.append(
@@ -1010,8 +1132,28 @@ class ReportGenerator:
 
                 if has_bayesian:
                     bayes_risk = row.get("bayesian_risk_score", 0) or 0
+
+                    # Get EPSS and trajectory info
+                    epss_raw = row.get("epss_score")
+                    try:
+                        epss = float(epss_raw) if epss_raw else 0.0
+                    except (ValueError, TypeError):
+                        epss = 0.0
+
+                    trajectory_factor = row.get("epss_trajectory_factor")
+                    traj_info = ""
+                    if trajectory_factor is not None:
+                        try:
+                            traj_f = float(trajectory_factor)
+                            if traj_f > 1.0:
+                                traj_info = f" [EPSS ↑ {traj_f:.2f}x]"
+                            elif traj_f < 1.0:
+                                traj_info = f" [EPSS ↓ {traj_f:.2f}x]"
+                        except (ValueError, TypeError):
+                            pass
+
                     report.append(
-                        f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%} in {service}",
+                        f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%}{traj_info} in {service}",
                     )
                 else:
                     risk_score = row.get("risk_score", 0) or 0
@@ -1030,7 +1172,23 @@ class ReportGenerator:
                 cve_id = row.get("cve_id", "unknown")
                 if has_bayesian:
                     bayes_risk = row.get("bayesian_risk_score", 0) or 0
-                    report.append(f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%}")
+
+                    # Get trajectory info
+                    trajectory_factor = row.get("epss_trajectory_factor")
+                    traj_info = ""
+                    if trajectory_factor is not None:
+                        try:
+                            traj_f = float(trajectory_factor)
+                            if traj_f > 1.0:
+                                traj_info = f" [EPSS ↑ {traj_f:.2f}x]"
+                            elif traj_f < 1.0:
+                                traj_info = f" [EPSS ↓ {traj_f:.2f}x]"
+                        except (ValueError, TypeError):
+                            pass
+
+                    report.append(
+                        f"  {idx}. {cve_id} - P(Exploit): {bayes_risk:.1%}{traj_info}"
+                    )
                 else:
                     risk_score = row.get("risk_score", 0) or 0
                     report.append(f"  {idx}. {cve_id} - Risk: {risk_score:.1f}")

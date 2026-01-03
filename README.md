@@ -45,6 +45,7 @@ The framework addresses these principles through three main pillars:
 Instead of relying solely on CVSS scores, I use Bayesian inference to calculate exploitation probability. This approach combines:
 
 - **EPSS (Exploit Prediction Scoring System)** as the prior probability - representing real-world exploitation likelihood based on threat intelligence
+- **EPSS Trajectory Analysis** (v2.2) - tracks exploitation trends over 90 days to identify rising threats and validate patch adoption effectiveness
 - **Environmental factors** as evidence that updates the probability - including security controls, network exposure, asset criticality
 - **Uncertainty quantification** - providing 95% credible intervals to express confidence in risk estimates - I am 95% confident that the true exploitation probability lies between ci_low and ci_high. It directly expresses the degree of a given belief about this parameter given the available evidence. (I cannot believe I was able to write it down myself)
 
@@ -66,6 +67,16 @@ Typical uncertainty ranges from 5% (high confidence with strong evidence) to 30%
 **Key innovation: Exploitability gating**
 
 Through numerous experiments and computations I discovered (quite logically) that amplification factors (like internet exposure) should only apply when exploitation is actually plausible. For example, an internet-facing service with a vulnerability that has 0.1% EPSS and no known exploits should not be amplified to high risk just because it is exposed - there is no evidence anyone can exploit it. My gating mechanism ensures amplification only applies when EPSS >= 5% or known exploits exist.
+
+**EPSS Trajectory Analysis (v2.2)**
+
+Building on the Work-Averse Cyberattacker Model (Allodi et al., 2021), which found that attackers face high initial costs for exploit development leading to selective exploitation and weaponization lag, I implemented EPSS trajectory tracking to capture exploitation trends over time:
+
+- **Rising EPSS (↑)**: Exploitation increasing → 1.2x risk amplification (active campaigns or new exploits)
+- **Declining EPSS (↓)**: Exploitation decreasing → validates patch adoption effectiveness
+- **Stable EPSS (→)**: Sustained threat level → consistent exploitation probability
+
+This replaces the previous incorrect approach of using static patch availability factors that decreased risk over time. EPSS trajectory naturally captures patch adoption through observed exploitation patterns - as systems patch, exploitation probability declines in the real world, which EPSS reflects.
 
 ### 2. Kill-Chain Probability Analysis
 

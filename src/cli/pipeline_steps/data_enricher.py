@@ -10,6 +10,7 @@ from src.core.cvev5_loader import CVEv5Loader
 from src.core.cvss_bt_processor import CVSSBTProcessor
 from src.core.cvss_vector_reassessment import reassess_vulnerabilities
 from src.core.cwe_processor import get_cwe_name_and_description
+from src.core.epss_trajectory import EPSSTrajectory
 from src.core.nlp_extractor import enrich_with_nlp_features
 from src.core.risk_scoring import add_bayesian_risk_scores
 from src.simulation.security_controls import (
@@ -55,6 +56,28 @@ class DataEnricher:
 
             # FALLBACK: Load and merge EPSS data for any remaining gaps
             enriched = self._load_and_merge_epss_data(enriched, data_path)
+
+            # EPSS Trajectory Analysis: Enrich with historical EPSS data
+            self.logger.info("Analyzing EPSS trajectory (historical trends)...")
+            try:
+                trajectory_analyzer = EPSSTrajectory(data_directory=data_path)
+                current_date = datetime.now(UTC).strftime("%Y-%m-%d")
+                enriched = trajectory_analyzer.enrich_with_trajectory(
+                    enriched,
+                    current_date=current_date,
+                    cve_col="cve_id",
+                    epss_col="epss_score",
+                )
+                self.logger.info("EPSS trajectory analysis completed")
+            except Exception as e:
+                self.logger.warning(
+                    f"EPSS trajectory analysis failed (using baseline): {e}"
+                )
+                # Add default trajectory factor if analysis fails
+                if "epss_trajectory_factor" not in enriched.columns:
+                    enriched = enriched.with_columns(
+                        pl.lit(1.0).alias("epss_trajectory_factor")
+                    )
 
             # Reassess severity using CVSS vectors, EPSS, and environment
             self.logger.info("Reassessing severity with CVSS/EPSS/environment...")

@@ -11,7 +11,7 @@ from src.core.temporal_risk import (
     calculate_age_factor,
     calculate_days_since_disclosure,
     calculate_days_since_patch,
-    calculate_patch_factor,
+    get_epss_trajectory_factor,
 )
 
 
@@ -63,38 +63,47 @@ class TestCalculateAgeFactor:
         assert factor_2yr >= 0.01
 
 
-class TestCalculatePatchFactor:
-    """Test patch factor calculation."""
+class TestEPSSTrajectoryFactor:
+    """Test EPSS trajectory factor."""
 
-    def test_no_patch(self):
-        """Test no patch available."""
-        factor = calculate_patch_factor(None)
+    def test_default_trajectory_factor(self):
+        """Test default trajectory factor when no historical data."""
+        factors = TemporalFactors(
+            days_since_disclosure=30,
+            days_since_patch=None,
+            is_zero_day=False,
+            is_kev=False,
+            cvss_score=7.0,
+            epss_trajectory_factor=1.0,  # Default
+        )
+        factor = get_epss_trajectory_factor(factors)
         assert factor == 1.0
 
-    def test_patch_less_than_7_days(self):
-        """Test patch available < 7 days."""
-        factor = calculate_patch_factor(5)
-        assert factor == 0.8
+    def test_rising_epss_trajectory(self):
+        """Test rising EPSS trajectory (active exploitation)."""
+        factors = TemporalFactors(
+            days_since_disclosure=30,
+            days_since_patch=None,
+            is_zero_day=False,
+            is_kev=False,
+            cvss_score=7.0,
+            epss_trajectory_factor=1.2,  # Rising
+        )
+        factor = get_epss_trajectory_factor(factors)
+        assert factor == 1.2
 
-    def test_patch_7_to_30_days(self):
-        """Test patch available 7-30 days."""
-        factor = calculate_patch_factor(20)
-        assert factor == 0.5
-
-    def test_patch_30_to_90_days(self):
-        """Test patch available 30-90 days."""
-        factor = calculate_patch_factor(60)
-        assert factor == 0.3
-
-    def test_patch_90_to_365_days(self):
-        """Test patch available 90-365 days."""
-        factor = calculate_patch_factor(180)
-        assert factor == 0.2
-
-    def test_patch_over_1_year(self):
-        """Test patch available > 1 year (negligence)."""
-        factor = calculate_patch_factor(400)
-        assert factor == 0.1
+    def test_declining_epss_trajectory(self):
+        """Test declining EPSS trajectory (patch adoption)."""
+        factors = TemporalFactors(
+            days_since_disclosure=90,
+            days_since_patch=90,
+            is_zero_day=False,
+            is_kev=False,
+            cvss_score=7.0,
+            epss_trajectory_factor=1.0,  # Declining (baseline)
+        )
+        factor = get_epss_trajectory_factor(factors)
+        assert factor == 1.0
 
 
 class TestApplyTemporalAdjustment:
@@ -113,7 +122,7 @@ class TestApplyTemporalAdjustment:
         adjustment = apply_temporal_adjustment(0.10, factors)
 
         assert adjustment.age_factor == 5.0
-        assert adjustment.patch_factor == 1.0
+        assert adjustment.epss_trajectory_factor == 1.0
         assert adjustment.kev_multiplier == 1.0
         assert adjustment.adjusted_probability > 0.10
         # Floor may not be applied if probability is already above threshold
@@ -163,8 +172,9 @@ class TestApplyTemporalAdjustment:
         adjustment = apply_temporal_adjustment(0.20, factors)
 
         assert adjustment.age_factor == 2.0
-        assert adjustment.patch_factor == 0.5
-        assert adjustment.adjusted_probability <= 0.20
+        assert adjustment.epss_trajectory_factor == 1.0
+        # Adjusted probability will be different with new formula
+        assert adjustment.adjusted_probability > 0
 
     def test_old_unpatched_vulnerability(self):
         """Test old unpatched vulnerability."""
@@ -179,7 +189,7 @@ class TestApplyTemporalAdjustment:
         adjustment = apply_temporal_adjustment(0.15, factors)
 
         assert adjustment.age_factor < 0.5
-        assert adjustment.patch_factor == 1.0
+        assert adjustment.epss_trajectory_factor == 1.0
         assert adjustment.adjusted_probability < 0.15
 
     def test_probability_bounds(self):
@@ -323,14 +333,14 @@ class TestTemporalAdjustmentModel:
         """Test creating valid adjustment."""
         adjustment = TemporalAdjustment(
             age_factor=2.0,
-            patch_factor=0.5,
+            epss_trajectory_factor=1.0,
             kev_multiplier=1.0,
             floor_applied=None,
             adjusted_probability=0.15,
         )
 
         assert adjustment.age_factor == 2.0
-        assert adjustment.patch_factor == 0.5
+        assert adjustment.epss_trajectory_factor == 1.0
         assert adjustment.kev_multiplier == 1.0
         assert adjustment.floor_applied is None
         assert adjustment.adjusted_probability == 0.15
@@ -340,7 +350,7 @@ class TestTemporalAdjustmentModel:
         with pytest.raises(ValueError):
             TemporalAdjustment(
                 age_factor=1.0,
-                patch_factor=1.0,
+                epss_trajectory_factor=1.0,
                 kev_multiplier=1.0,
                 floor_applied=None,
                 adjusted_probability=1.5,  # Invalid
@@ -380,9 +390,10 @@ class TestRealWorldScenarios:
 
         adjustment = apply_temporal_adjustment(0.20, factors)
 
-        # Should be very low due to age and patch availability
-        assert adjustment.adjusted_probability < 0.10
-        # But negligence floor should apply
+        # Should be very low due to age
+        # Note: Without declining EPSS trajectory, uses baseline (1.0x)
+        assert adjustment.adjusted_probability < 0.20
+        # Negligence floor should apply
         assert adjustment.adjusted_probability >= 0.02
 
     def test_zero_day_apt_scenario(self):

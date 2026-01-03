@@ -1,4 +1,28 @@
-# CVEs Analytics
+# CVEs Analytics - Technical Setup & Quick Start
+
+**Version:** 2.1  
+**Last Updated:** January 3, 2026  
+**Document Type:** Installation & Setup Guide  
+**Estimated Reading Time:** 15-20 minutes
+
+## Intended Audience
+
+**Primary:** New users, system administrators, DevOps engineers  
+**Secondary:** Developers setting up development environment
+
+**Prerequisites:**
+- Python 3.12+ installed
+- Basic command-line experience
+- Docker installed (for container scanning features)
+- Git installed
+
+**What You'll Learn:**
+- How to install and configure CVEs Analytics
+- Basic CLI usage and examples
+- System requirements and dependencies
+- Quick start guide for first vulnerability assessment
+
+---
 
 A comprehensive Python application for CVE (Common Vulnerabilities and Exposures) data analytics, vulnerability assessment, and Docker image scanning with advanced Bayesian risk modeling and kill-chain probability analysis.
 

@@ -1,5 +1,30 @@
 # Mathematical Reference & Foundations
 
+**Version:** 2.1  
+**Last Updated:** January 3, 2026  
+**Document Type:** Academic Reference  
+**Estimated Reading Time:** 25-35 minutes
+
+## Intended Audience
+
+**Primary:** Researchers, academics, mathematicians validating methodology  
+**Secondary:** Advanced security analysts, data scientists
+
+**Prerequisites:**
+- Strong background in probability theory and statistics
+- Understanding of Bayesian inference
+- Familiarity with likelihood ratios and odds forms
+
+**What You'll Learn:**
+- Mathematical foundations of Bayesian risk assessment
+- Academic references and validation sources
+- Formal proofs and derivations
+- Limitations and assumptions of the methodology
+
+**Note:** This document will be consolidated into METHODOLOGY.md as an appendix. For practical usage, see BAYESIAN_RISK_ASSESSMENT.md or EXTENDED_KILL_CHAIN_METHOD.md.
+
+---
+
 ## Overview
 
 This document provides mathematical foundations and academic references for the probability calculations and Bayesian methods used in the vulnerability assessment framework.
