@@ -580,6 +580,10 @@ The framework attempts to answer: which vulnerabilities to patch first, which se
 
 - **[Demo Report](docs/DEMO_REPORT.md)** - Example vulnerability assessment report with EPSS trajectory analysis (v2.2)
 - **[Scenario Comparison](docs/SCENARIO_COMPARISON.md)** - Comparative analysis across different security maturity levels
+- **Example Reports** (Generated January 3, 2026):
+  - [Scenario 1: Initial Maturity (Small/Dev)](docs/examples/scenario1_initial_small_dev.txt)
+  - [Scenario 2: Managed Maturity (Mid/Prod)](docs/examples/scenario2_managed_mid_prod.txt)
+  - [Scenario 3: Optimizing Maturity (Large/Prod)](docs/examples/scenario3_optimizing_large_prod.txt)
 
 ## References and Data Sources
 
