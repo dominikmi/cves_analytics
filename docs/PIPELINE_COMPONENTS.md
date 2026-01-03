@@ -25,6 +25,9 @@
 
 This document provides a comprehensive reference of all working software components (classes and methods) in the CVEs Analytics pipeline.
 
+> **IMPORTANT NOTE ON LIKELIHOOD RATIOS AND VALIDATION:**
+> This pipeline implements Bayesian risk assessment using likelihood ratio (LR) values that are informed heuristics, not empirically validated through controlled studies. The LR values in `config/security_controls.yaml` are based on security principles and industry observations. The framework's value lies in **relative risk prioritization** (comparing vulnerabilities and attack paths) rather than **absolute probability prediction**. Actual effectiveness varies by implementation quality, organizational context, and threat landscape. See [BAYESIAN_RISK_ASSESSMENT.md](BAYESIAN_RISK_ASSESSMENT.md) for detailed methodology and caveats.
+
 ---
 
 ## Table of Contents
@@ -67,10 +70,8 @@ This document provides a comprehensive reference of all working software compone
 
 **Key Functions:**
 - `calculate_age_factor()` - Calculate vulnerability age decay factor
-- `calculate_patch_factor()` - Calculate patch availability factor
 - `apply_temporal_adjustment()` - Apply temporal factors to probability (NOT odds)
 - `calculate_days_since_disclosure()` - Calculate days since CVE disclosure
-- `calculate_days_since_patch()` - Calculate days since patch availability
 
 **Important:** Temporal factors are applied to PROBABILITY after Bayesian updating, not to odds.
 
@@ -614,22 +615,25 @@ python -m src.cli.run_pipeline \
 
 ## Key Design Patterns
 
+> **Note:** The percentage reductions and LR values mentioned below are informed heuristics based on security principles and industry observations, not empirically measured values. Actual effectiveness varies by implementation quality and organizational context.
+
 ### 1. Bayesian Risk Assessment
-- **Prior**: EPSS score
-- **Likelihood Ratios**: Security controls, exposure, CVSS vectors, threat indicators
-- **Posterior**: Final exploitation probability
+- **Prior**: EPSS score (empirically validated by FIRST.org)
+- **Likelihood Ratios**: Security controls, exposure, CVSS vectors, threat indicators (heuristic estimates)
+- **Posterior**: Final exploitation probability (best for relative ranking)
 - **Floors**: Minimum risk levels for KEV, exploits
+- **Note:** Framework optimized for relative risk prioritization rather than absolute probability prediction
 
 ### 2. Temporal Adjustments
 - Applied to PROBABILITY (not odds) after Bayesian updating
-- Age factor: Vulnerability lifecycle decay
-- Patch factor: Patch availability impact
+- Age factor: Vulnerability lifecycle decay (heuristic model)
+- EPSS trajectory: Captures patch adoption through observed exploitation trends
 - KEV multiplier: Maintains high probability for active threats
 
 ### 3. Exposure-Conditional LRs
 - Controls have different effectiveness based on exposure
-- WAF: 70% reduction (internet-facing) vs 10% (internal)
-- Network Segmentation: 50% (perimeter) vs 70% (internal)
+- WAF: ~70% reduction (internet-facing) vs ~10% (internal)
+- Network Segmentation: ~50% (perimeter) vs ~70% (internal)
 
 ### 4. Exploitability Gating
 - Amplification factors (LR > 1) only applied when exploitation is plausible
@@ -660,7 +664,7 @@ All core components have comprehensive unit tests in `tests/`:
 
 ## Configuration Files
 
-- `config/security_controls.yaml` - Security controls LR values
+- `config/security_controls.yaml` - Security controls LR values (heuristic estimates requiring calibration)
 - `config/services.yaml` - Service templates and configurations
 - `.env` - Environment variables (API keys, paths)
 
@@ -684,6 +688,7 @@ All core components have comprehensive unit tests in `tests/`:
 
 ## Version History
 
+- **v2.2** (2026-01-03): Added EPSS trajectory analysis, revised documentation with appropriate caveats
 - **v2.1** (2026-01-03): Fixed temporal adjustment logic, improved documentation
 - **v2.0** (2026-01-02): Probabilistic control types, exposure-conditional LRs
 - **v1.0** (2025-12-xx): Initial release

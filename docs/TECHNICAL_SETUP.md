@@ -1,6 +1,6 @@
 # CVEs Analytics - Technical Setup & Quick Start
 
-**Version:** 2.1  
+**Version:** 2.2  
 **Last Updated:** January 3, 2026  
 **Document Type:** Installation & Setup Guide  
 **Estimated Reading Time:** 15-20 minutes
@@ -49,7 +49,7 @@ A comprehensive Python application for CVE (Common Vulnerabilities and Exposures
    - Principled probabilistic risk scoring using Bayes' theorem
    - EPSS as prior probability, updated with environmental evidence
    - Configurable likelihood ratios for security controls, exposure, CVSS vectors
-   - **Exploit maturity LRs** from CVSS-BT (Metasploit: 2.5, ExploitDB: 2.0, Nuclei: 1.8, PoC: 1.5)
+   - **Exploit maturity LRs** from CVSS-BT (Metasploit: ~2.5, ExploitDB: ~2.0, Nuclei: ~1.8, PoC: ~1.5)
    - Uncertainty quantification with 95% credible intervals
    - Exploitability gating to prevent false risk inflation
    - **Attack scenarios and remediation focused on Bayesian-critical vulns only**
@@ -326,8 +326,9 @@ print(f"Risk Category: {result.risk_category}")
 **Key Concepts:**
 
 - **Likelihood Ratios (LRs)**: Quantify how evidence changes belief
-  - LR < 1: Reduces exploitation probability (e.g., WAF -> LR=0.4)
-  - LR > 1: Increases exploitation probability (e.g., public exploit -> LR=2.0)
+  - LR < 1: Reduces exploitation probability (e.g., WAF -> LR~0.4)
+  - LR > 1: Increases exploitation probability (e.g., public exploit -> LR~2.0)
+  - **Note:** LR values are informed heuristics requiring calibration - see methodology docs
   
 - **Exploitability Gating**: Amplification only applies when exploitation is plausible
   - Plausible if: EPSS >= 5% OR known exploit exists
@@ -335,6 +336,8 @@ print(f"Risk Category: {result.risk_category}")
 - **Uncertainty Quantification**: 95% credible intervals for all risk estimates
 
 See [docs/BAYESIAN_RISK_ASSESSMENT.md](docs/BAYESIAN_RISK_ASSESSMENT.md) for details.
+
+> **Note:** The Bayesian risk assessment uses heuristic LR values that should be calibrated for your organization. See [BAYESIAN_RISK_ASSESSMENT.md](docs/BAYESIAN_RISK_ASSESSMENT.md) and [SECURITY_CONTROLS_GUIDE.md](docs/SECURITY_CONTROLS_GUIDE.md) for detailed methodology and validation guidance.
 
 ## 🧪 Testing
 
@@ -366,9 +369,8 @@ pytest tests/ -v
 ## 📚 Documentation
 
 - **[DEMO_REPORT.md](DEMO_REPORT.md)** - Example vulnerability assessment report with kill-chain analysis
-- **[docs/BAYESIAN_RISK_ASSESSMENT.md](docs/BAYESIAN_RISK_ASSESSMENT.md)** - Bayesian methodology
+- **[docs/BAYESIAN_RISK_ASSESSMENT.md](docs/BAYESIAN_RISK_ASSESSMENT.md)** - Bayesian methodology and mathematical foundations
 - **[docs/EXTENDED_KILL_CHAIN_METHOD.md](docs/EXTENDED_KILL_CHAIN_METHOD.md)** - Kill-chain probability analysis ✨
-- **[docs/MATHEMATICAL_REFERENCE.md](docs/MATHEMATICAL_REFERENCE.md)** - Mathematical foundations and references
 - **[docs/SECURITY_CONTROLS_GUIDE.md](docs/SECURITY_CONTROLS_GUIDE.md)** - Security controls configuration
 - **[TEST_COVERAGE.md](TEST_COVERAGE.md)** - Test coverage details
 
