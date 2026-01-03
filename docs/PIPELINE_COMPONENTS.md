@@ -1,7 +1,27 @@
 # CVEs Analytics Pipeline - Software Components Reference
 
 **Version:** 2.1  
-**Last Updated:** January 3, 2026
+**Last Updated:** January 3, 2026  
+**Document Type:** Technical Reference  
+**Estimated Reading Time:** 30-45 minutes
+
+## Intended Audience
+
+**Primary:** Software developers, contributors, code reviewers  
+**Secondary:** Technical architects, security researchers implementing custom extensions
+
+**Prerequisites:**
+- Python programming experience
+- Understanding of object-oriented design
+- Familiarity with Bayesian statistics (helpful but not required)
+
+**What You'll Learn:**
+- Complete inventory of all pipeline classes and methods
+- Software architecture and component relationships
+- API reference for extending the pipeline
+- Testing coverage and configuration files
+
+---
 
 This document provides a comprehensive reference of all working software components (classes and methods) in the CVEs Analytics pipeline.
 

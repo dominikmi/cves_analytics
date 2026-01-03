@@ -1,7 +1,26 @@
 # CVEs Analytics - Multi-Scenario Comparison
 
-**Version:** 2.0 (Probabilistic Control Types)  
-**Generated:** January 2, 2026
+**Version:** 2.1  
+**Generated:** January 2, 2026  
+**Document Type:** Examples & Demonstrations  
+**Estimated Reading Time:** 15-20 minutes
+
+## Intended Audience
+
+**Primary:** Security managers, decision-makers, risk assessors  
+**Secondary:** Security analysts comparing maturity levels
+
+**Prerequisites:**
+- None - this is a comparative overview
+- Familiarity with security maturity models (helpful)
+
+**What You'll Learn:**
+- Side-by-side comparison of three security maturity levels
+- Impact of control types on vulnerability risk
+- How maturity affects kill-chain probability
+- ROI insights for security investments
+
+---
 
 This document showcases the CVEs Analytics tool's capabilities across three different security maturity levels, demonstrating how **probabilistic control types** and security practices impact vulnerability risk and kill-chain attack probabilities.
 

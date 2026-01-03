@@ -1,8 +1,27 @@
 # Security Controls Configuration Guide
 
-**Version:** 2.0  
-**Last Updated:** January 2, 2026  
-**Audience:** Security analysts, risk assessors, configuration managers
+**Version:** 2.1  
+**Last Updated:** January 3, 2026  
+**Document Type:** Configuration Reference  
+**Estimated Reading Time:** 40-50 minutes
+
+## Intended Audience
+
+**Primary:** Security operations teams, configuration managers, system administrators  
+**Secondary:** Security analysts, risk assessors, compliance teams
+
+**Prerequisites:**
+- Understanding of security controls (firewalls, WAF, MFA, EDR, etc.)
+- Basic knowledge of likelihood ratios (recommended: read BAYESIAN_RISK_ASSESSMENT.md first)
+- Familiarity with organizational security maturity models
+- Experience with YAML configuration files
+
+**What You'll Learn:**
+- How to configure and calibrate security control effectiveness
+- Control type system and probabilistic modeling
+- Maturity-based control distributions
+- Sector-specific adjustments and correlations
+- How to customize LR values for your organization
 
 ---
 

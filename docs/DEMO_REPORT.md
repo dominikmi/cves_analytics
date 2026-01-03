@@ -1,11 +1,30 @@
 # CVEs Analytics - Demo Report
 
-**Version:** 2.1 (Corrected Temporal Adjustment)  
-**Generated:** January 2, 2026
+**Version:** 2.2 (EPSS Trajectory Analysis)  
+**Generated:** January 3, 2026  
+**Document Type:** Examples & Demonstrations  
+**Estimated Reading Time:** 20-30 minutes
+
+## Intended Audience
+
+**Primary:** All users - security analysts, managers, developers, decision-makers  
+**Secondary:** Prospective users evaluating the tool
+
+**Prerequisites:**
+- None - this is an introductory document
+- Basic understanding of vulnerability management (helpful)
+
+**What You'll Learn:**
+- Real-world vulnerability assessment examples across three maturity levels
+- How security controls impact exploitation probability
+- Kill-chain analysis results and interpretations
+- Practical insights from different organizational scenarios
+
+---
 
 This is a demonstration report showcasing the CVEs Analytics tool's capabilities across **multiple security scenarios**. The tool performs Bayesian risk assessment with **probabilistic control types modeling**, multi-component kill-chain probability analysis, and security control effectiveness evaluation.
 
-**⚠️ Version 2.1 Update:** Corrected temporal adjustment logic - factors now applied to probability instead of odds for scientifically accurate calculations.
+**⚠️ Version 2.2 Update:** Added EPSS trajectory analysis to track exploitation trends over time. Replaced static patch availability factors with dynamic EPSS trajectory tracking based on the Work-Averse Cyberattacker Model (Allodi et al., 2021).
 
 ---
 
@@ -19,7 +38,14 @@ This demo includes **three different security scenarios** to demonstrate how the
 
 **📊 [View Detailed Scenario Comparison](SCENARIO_COMPARISON.md)** - Complete side-by-side analysis of all three scenarios
 
-**🔧 New in Version 2.0:**
+**🔧 New in Version 2.2:**
+- **EPSS Trajectory Analysis**: Tracks exploitation trends over 90 days (rising/declining/stable)
+- **Dynamic Risk Adjustment**: Rising EPSS trends get 1.2x amplification factor
+- **Historical Context**: Shows EPSS values from 30 and 90 days ago
+- **Patch Adoption Visibility**: Declining EPSS indicates successful patching
+- Based on Work-Averse Cyberattacker Model (Allodi et al., 2021)
+
+**Previous Features (v2.0-2.1):**
 - Probabilistic control types (8 control categories with varying effectiveness)
 - Realistic control type distributions based on maturity and industry
 - Granular likelihood ratios (LR) for each control implementation level
@@ -75,12 +101,16 @@ RISK-BASED PRIORITIZATION (Bayesian)
 CRITICAL (Fix ASAP): 24 vulnerabilities
   1. CVE-2023-44487 - P(Exploit): 99.9% [94.9%-100.0%] in nginx-web
       CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 94.40%
+      EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 94.44%, 30d ago: 94.39%]
   2. CVE-2018-25032 - P(Exploit): 50.6% [38.1%-63.1%] in nginx-web
       CVSS: 7.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:P), EPSS: 0.09%
+      EPSS Trajectory: → STABLE (factor: 1.00x, sustained threat level) [90d ago: 0.09%, 30d ago: 0.09%]
   3. CVE-2025-27363 - P(Exploit): 98.5% [93.0%-100.0%] in nginx-web
       CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 92.74%
+      EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 93.12%, 30d ago: 92.89%]
   4. CVE-2023-44487 - P(Exploit): 99.9% [94.9%-100.0%] in traefik
       CVSS: 7.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:H), EPSS: 94.40%
+      EPSS Trajectory: ↓ DECLINING (factor: 1.00x, patch adoption reducing risk) [90d ago: 94.44%, 30d ago: 94.39%]
 
 SCANNED ENVIRONMENT (Simulated)
 --------------------------------------------------------------------------------
