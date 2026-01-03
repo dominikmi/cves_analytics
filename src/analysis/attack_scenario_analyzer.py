@@ -160,23 +160,12 @@ class AttackScenarioAnalyzer:
                 epss_val = row.get("epss_score")
                 epss_score = float(epss_val) if epss_val is not None else 0.0
 
-                # Calculate risk factors
-                exposure_factor = (
-                    1.5 if row.get("exposure") == "internet-facing" else 1.0
-                )
-                asset_value_factor = {
-                    "critical": 1.5,
-                    "high": 1.3,
-                    "medium": 1.0,
-                    "low": 0.8,
-                }.get(str(row.get("asset_value", "medium")).lower(), 1.0)
-
-                # Risk score calculation
-                base_risk = max(
-                    cvss_score,
-                    epss_score * 10,
-                )  # Normalize EPSS to 0-10 scale
-                risk_score = min(10.0, base_risk * exposure_factor * asset_value_factor)
+                # Use Bayesian risk score if available (preferred) - as probability (0-1)
+                if "bayesian_risk_score" in row:
+                    risk_score = float(row.get("bayesian_risk_score", 0.01))
+                else:
+                    # Fallback to EPSS probability if Bayesian not available
+                    risk_score = epss_score
 
                 # Create attack step
                 step = AttackStep(
@@ -193,11 +182,15 @@ class AttackScenarioAnalyzer:
                 )
 
                 # Create attack path
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Direct internet attack on {row.get('service_name', 'unknown')} via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 5),  # Scale EPSS to likelihood
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=min(1.0, cvss_score / 10.0),
                 )
 
@@ -239,15 +232,12 @@ class AttackScenarioAnalyzer:
                 epss_val = row.get("epss_score")
                 epss_score = float(epss_val) if epss_val is not None else 0.0
 
-                # Higher risk for privilege escalation in critical services
-                asset_value_factor = {
-                    "critical": 1.8,
-                    "high": 1.5,
-                    "medium": 1.2,
-                    "low": 1.0,
-                }.get(str(row.get("asset_value", "medium")).lower(), 1.2)
-
-                risk_score = min(10.0, cvss_score * 1.2 * asset_value_factor)
+                # Use Bayesian risk score if available (preferred) - as probability (0-1)
+                if "bayesian_risk_score" in row:
+                    risk_score = float(row.get("bayesian_risk_score", 0.01))
+                else:
+                    # Fallback to EPSS probability if Bayesian not available
+                    risk_score = epss_score
 
                 step = AttackStep(
                     service_name=str(row.get("service_name", "unknown")),
@@ -262,11 +252,15 @@ class AttackScenarioAnalyzer:
                     epss_score=epss_score,
                 )
 
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Privilege escalation in {row.get('service_name', 'unknown')} via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 3),
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=min(1.0, cvss_score / 8.0),
                 )
 
@@ -309,8 +303,12 @@ class AttackScenarioAnalyzer:
                 epss_val = row.get("epss_score")
                 epss_score = float(epss_val) if epss_val is not None else 0.0
 
-                # High risk for network infrastructure vulnerabilities
-                risk_score = min(10.0, cvss_score * 1.3)
+                # Use Bayesian risk score if available (preferred) - as probability (0-1)
+                if "bayesian_risk_score" in row:
+                    risk_score = float(row.get("bayesian_risk_score", 0.01))
+                else:
+                    # Fallback to EPSS probability if Bayesian not available
+                    risk_score = epss_score
 
                 step = AttackStep(
                     service_name=str(row.get("service_name", "unknown")),
@@ -325,11 +323,15 @@ class AttackScenarioAnalyzer:
                     epss_score=epss_score,
                 )
 
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Lateral movement through {row.get('service_role', 'service')} service via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 4),
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=min(1.0, cvss_score / 7.0),
                 )
 
@@ -377,15 +379,12 @@ class AttackScenarioAnalyzer:
                 epss_val = row.get("epss_score")
                 epss_score = float(epss_val) if epss_val is not None else 0.0
 
-                # Very high risk for data-related vulnerabilities
-                asset_value_factor = {
-                    "critical": 2.0,
-                    "high": 1.7,
-                    "medium": 1.3,
-                    "low": 1.0,
-                }.get(str(row.get("asset_value", "medium")).lower(), 1.3)
-
-                risk_score = min(10.0, cvss_score * asset_value_factor)
+                # Use Bayesian risk score if available (preferred) - as probability (0-1)
+                if "bayesian_risk_score" in row:
+                    risk_score = float(row.get("bayesian_risk_score", 0.01))
+                else:
+                    # Fallback to EPSS probability if Bayesian not available
+                    risk_score = epss_score
 
                 step = AttackStep(
                     service_name=str(row.get("service_name", "unknown")),
@@ -400,11 +399,15 @@ class AttackScenarioAnalyzer:
                     epss_score=epss_score,
                 )
 
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Data exfiltration from {row.get('service_name', 'unknown')} via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 3),
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=0.9
                     if str(row.get("asset_value", "")).lower() in ["critical", "high"]
                     else 0.6,
