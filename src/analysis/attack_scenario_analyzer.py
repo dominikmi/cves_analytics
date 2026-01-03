@@ -193,11 +193,15 @@ class AttackScenarioAnalyzer:
                 )
 
                 # Create attack path
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Direct internet attack on {row.get('service_name', 'unknown')} via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 5),  # Scale EPSS to likelihood
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=min(1.0, cvss_score / 10.0),
                 )
 
@@ -262,11 +266,15 @@ class AttackScenarioAnalyzer:
                     epss_score=epss_score,
                 )
 
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Privilege escalation in {row.get('service_name', 'unknown')} via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 3),
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=min(1.0, cvss_score / 8.0),
                 )
 
@@ -325,11 +333,15 @@ class AttackScenarioAnalyzer:
                     epss_score=epss_score,
                 )
 
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Lateral movement through {row.get('service_role', 'service')} service via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 4),
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=min(1.0, cvss_score / 7.0),
                 )
 
@@ -400,11 +412,15 @@ class AttackScenarioAnalyzer:
                     epss_score=epss_score,
                 )
 
+                # Use Bayesian posterior probability if available, otherwise fall back to EPSS
+                bayesian_prob = row.get("bayesian_risk_score", epss_score)
                 path = AttackPath(
                     steps=[step],
                     risk_score=risk_score,
                     description=f"Data exfiltration from {row.get('service_name', 'unknown')} via {row.get('cve_id', row.get('vuln_id', 'unknown'))}",
-                    likelihood=min(1.0, epss_score * 3),
+                    likelihood=float(bayesian_prob)
+                    if bayesian_prob is not None
+                    else epss_score,
                     impact=0.9
                     if str(row.get("asset_value", "")).lower() in ["critical", "high"]
                     else 0.6,
