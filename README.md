@@ -545,15 +545,20 @@ The framework answers: which vulnerabilities to patch first, which security cont
 
 ## Technical Documentation
 
-If you want to dive deeper into technical details, installation steps, and API documentation, here is where to look:
+📚 **[Complete Documentation Hub](docs/index.md)** - Comprehensive documentation index with role-based navigation paths
+
+### Core Documentation
 
 - **[Technical Setup & Installation Guide](docs/TECHNICAL_SETUP.md)** - How to set it up, quick start, project structure, usage examples
-- **[Bayesian Risk Assessment Methodology](docs/BAYESIAN_RISK_ASSESSMENT.md)** - Detailed explanation of Bayesian approach, likelihood ratios, uncertainty quantification
+- **[Bayesian Risk Assessment Methodology](docs/BAYESIAN_RISK_ASSESSMENT.md)** - Detailed explanation of Bayesian approach, likelihood ratios, uncertainty quantification, and mathematical foundations (includes consolidated mathematical reference as Appendix A4)
 - **[Kill-Chain Probability Analysis](docs/EXTENDED_KILL_CHAIN_METHOD.md)** - Multi-stage attack modeling methodology and application templates
-- **[Mathematical Reference](docs/MATHEMATICAL_REFERENCE.md)** - Mathematical foundations and references for the probabilistic risk assessment
 - **[Security Controls Configuration Guide](docs/SECURITY_CONTROLS_GUIDE.md)** - How to configure and customize security controls and likelihood ratios
+- **[Pipeline Components](docs/PIPELINE_COMPONENTS.md)** - Detailed pipeline architecture and component documentation
+
+### Examples & Comparisons
+
+- **[Demo Report](docs/DEMO_REPORT.md)** - Example vulnerability assessment report with EPSS trajectory analysis (v2.2)
 - **[Scenario Comparison](docs/SCENARIO_COMPARISON.md)** - Comparative analysis across different security maturity levels
-- **[Demo Report](docs/DEMO_REPORT.md)** - Example vulnerability assessment report with kill-chain analysis
 
 ## References and Data Sources
 
