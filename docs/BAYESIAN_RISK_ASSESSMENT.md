@@ -862,10 +862,11 @@ P_adjusted = P_base x age_factor x patch_factor x kev_multiplier
 - Zero-day vulnerabilities are exploited rapidly (Bilge & Dumitras, 2012)
 - Age-based decay factors are heuristic estimates based on vulnerability lifecycle observations
 
-**Mathematical Soundness**: ✅ **VALID**
-- Based on empirical vulnerability lifecycle studies
-- Exponential decay aligns with observed exploitation patterns
-- Conservative estimates (better to overestimate old vulnerabilities)
+**Mathematical Status**: ⚠️ **THEORETICALLY PLAUSIBLE, UNVALIDATED**
+- Age factors are heuristic estimates inspired by Bilge & Dumitras (2012)
+- Exponential decay is logically consistent with vulnerability lifecycle theory
+- Actual effectiveness of age-based adjustments requires empirical validation
+- Conservative estimates provide safety margin but need real-world calibration
 
 ---
 
@@ -915,11 +916,11 @@ else:  # Stable
 - Persistent high EPSS despite patch = many unpatched systems (sustained threat)
 - Rising EPSS = active exploitation campaigns or new exploit releases
 
-**Mathematical Soundness**: ✅ **VALID**
-- Data-driven approach using observed exploitation trends
+**Mathematical Status**: ⚠️ **THEORETICALLY SOUND, REQUIRES VALIDATION**
+- EPSS data is empirically validated by FIRST.org, but trajectory factor amplification (1.2x) is heuristic
 - Avoids incorrect assumption that old patches reduce risk
-- Captures real-world patch adoption dynamics
-- No paradox: negligence is reflected in sustained high EPSS, not artificial reduction
+- Logical framework for capturing patch adoption dynamics
+- Actual predictive accuracy of trajectory factors requires real-world validation
 
 ---
 
@@ -943,10 +944,11 @@ else:  # Stable
 - Values represent lower bound of observed effectiveness ranges
 - Actual effectiveness varies by implementation quality and organizational context
 
-**Mathematical Soundness**: ✅ **VALID**
-- Based on industry breach reports and practitioner experience
-- Conservative estimates provide safety margin
-- Values are heuristic rather than precisely measured
+**Mathematical Status**: ⚠️ **HEURISTIC ESTIMATES, REQUIRE CALIBRATION**
+- Values informed by industry breach reports but not directly measured
+- Conservative estimates provide safety margin for prioritization
+- Actual control effectiveness varies significantly by implementation
+- Organization-specific calibration needed for improved accuracy
 
 ---
 
@@ -1130,10 +1132,10 @@ P(E1, E2|H) = P(E1|H) x P(E2|H)
 - ⚠️ Conditional independence assumption (acceptable simplification)
 
 **Overall Assessment**:
-The methodology is mathematically sound and based on solid academic foundations. The approach uses well-established Bayesian inference techniques with empirical validation from vulnerability lifecycle studies and exploitation data.
+The methodology is **mathematically consistent** and **theoretically plausible**, applying established Bayesian inference principles to vulnerability risk assessment. However, it remains **unvalidated against real-world breach data**. The likelihood ratios are informed heuristics rather than empirically measured values. The framework is most useful for **relative risk prioritization** (which vulnerabilities are riskier than others) rather than **absolute probability prediction** (exact exploitation likelihood). Extensive real-world validation is required before making high-stakes decisions based on absolute probability estimates.
 
 ---
 
-**Appendix Version**: 2.1  
+**Appendix Version**: 2.2  
 **Last Updated**: January 3, 2026  
-**Status**: Mathematically Sound
+**Status**: Theoretically Plausible, Requires Empirical Validation
