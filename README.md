@@ -149,7 +149,8 @@ The framework integrates multiple authoritative data sources:
 1. **CVE v5 data** - Vulnerability descriptions, CVSS vectors, CWE classifications
 2. **EPSS scores** - Monthly exploitation probability predictions from FIRST.org
 3. **KEV catalog** - Known Exploited Vulnerabilities from CISA
-4. **CWE database** - Weakness classifications with detailed descriptions
+4. **CVSS-BT** - CVSS with Base + Threat metrics including exploit availability indicators (Metasploit, ExploitDB, Nuclei, GitHub PoCs)
+5. **CWE database** - Weakness classifications with detailed descriptions
 
 **Enrichment pipeline:**
 
