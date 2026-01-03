@@ -36,7 +36,10 @@ This document describes the **implemented kill-chain analysis** for multi-compon
 - **CVSS Vector Analysis**: Attack Vector, Complexity, Privileges, User Interaction, Scope with exposure-aware LRs
 - **Uncertainty Quantification**: 95% credible intervals using Beta distribution approximation
 - **Sequential Kill-Chain Model**: Markov chain with conditional probabilities
-- **Mathematically Correct**: Bayesian odds-based calculation with log-odds arithmetic
+- **Mathematically Consistent**: Bayesian odds-based calculation (likelihood ratios require validation)
+
+> **IMPORTANT NOTE ON LIKELIHOOD RATIOS:**
+> The kill-chain probability calculations are mathematically consistent but rely on likelihood ratio (LR) values that are informed heuristics, not empirically validated through controlled studies. The framework's value lies in **relative risk prioritization** (which attack paths are riskier) rather than **absolute probability prediction** (exact success likelihood). Actual stage success rates and control effectiveness vary significantly based on implementation quality, attacker sophistication, and organizational context. Real-world validation is required before making high-stakes security decisions based on absolute probability estimates.
 
 ---
 
@@ -93,9 +96,9 @@ posterior = 1.584 / (1 + 1.584) = 1.584 / 2.584 = 0.613 = 61.3%
 posterior = 0.15 x 9.0 = 1.35 = 135% ❌
 ```
 
-**Correct Odds Form**:
+**Mathematically Consistent Odds Form**:
 ```python
-# CORRECT - always <= 1.0
+# Mathematically consistent - always <= 1.0
 posterior_odds = 0.176 x 9.0 = 1.584
 posterior = 1.584 / 2.584 = 0.613 = 61.3% ✓
 ```
@@ -247,7 +250,7 @@ P(Exploit | Control, Exposure) ~= P(Exploit) x LR(Control | Exposure)
 **Why This Matters**:
 
 1. **Avoids Independence Violations**: Controls aren't equally effective everywhere
-2. **More Accurate**: WAF on internal service is nearly useless
+2. **More Realistic**: WAF on internal service has minimal effect
 3. **Practical**: Reflects real-world deployment patterns
 4. **Simpler than Full Bayesian Networks**: Approximation that works in practice
 
@@ -261,12 +264,12 @@ waf_lr = 0.3  # Always 70% reduction
 mfa_lr = 0.3  # Always 70% reduction
 combined_lr = 0.3 x 0.3 = 0.09  # 91% reduction
 
-# With exposure-conditional LRs (CORRECT)
+# With exposure-conditional LRs (Mathematically consistent)
 waf_lr = 0.3  # 70% reduction for internet-facing
 mfa_lr = 0.2  # 80% reduction for internet-facing
 combined_lr = 0.3 x 0.2 = 0.06  # 94% reduction
 
-# For internal service (CORRECT)
+# For internal service (Mathematically consistent)
 waf_lr = 0.9  # 10% reduction for internal
 mfa_lr = 0.5  # 50% reduction for internal
 combined_lr = 0.9 x 0.5 = 0.45  # 55% reduction
@@ -1220,7 +1223,7 @@ def filter_exploitable_vulnerabilities(
     return exploitable
 ```
 
-### 7.4 Bayesian Update (Correct)
+### 7.4 Bayesian Update (Mathematically Consistent)
 
 ```python
 def bayesian_update(
@@ -1228,7 +1231,7 @@ def bayesian_update(
     likelihood_ratios: list[float]
 ) -> float:
     """
-    Correct Bayesian update using odds form
+    Mathematically consistent Bayesian update using odds form
     """
     # Convert prior to odds
     prior_odds = prior / (1 - prior)
@@ -1340,7 +1343,7 @@ def categorize_threat_level(probability: float) -> str:
 1. **Exploitability First**: Only consider vulnerabilities with mature exploits or trivial CVSS characteristics
 2. **Sequential Dependencies**: Model kill-chain as Markov chain with conditional probabilities
 3. **Temporal Factors**: Adjust for vulnerability age, zero-day status, and patch availability
-4. **Mathematically Correct**: Use Bayesian odds form to ensure probabilities ≤ 1.0
+4. **Mathematically Consistent**: Use Bayesian odds form to ensure probabilities ≤ 1.0
 5. **Probability Floors**: Prevent misleading "Negligible" ratings for critical threats
 6. **Docker Security**: Binary model (good vs poor practices) affects execution and lateral movement
 
@@ -1350,26 +1353,43 @@ def categorize_threat_level(probability: float) -> str:
 - **Realistic Modeling**: Reflects actual attacker workflow and pod deployment reality
 - **Actionable Insights**: Identifies bottleneck stages and critical vulnerabilities
 - **Temporal Context**: Accounts for zero-days, patch availability, and negligence
-- **Mathematically Sound**: Correct Bayesian probability calculations
+- **Theoretically Sound**: Bayesian probability calculations (LR values are heuristic estimates)
 
 ### 8.3 Limitations
 
+**Technical Limitations:**
 - **No Network Segmentation**: Assumes all components in pod can reach each other
 - **Binary Security Model**: Good vs poor is coarse-grained
-- **Expert Priors**: Some conditional probabilities based on expert judgment
 - **Simplified Controls**: WAF, IDS, Docker security only (no EDR, SIEM, etc.)
 
-### 8.4 Future Enhancements
+**Methodological Limitations:**
+- **Unvalidated Likelihood Ratios**: LR values are heuristic estimates requiring calibration
+- **Conditional Independence Assumptions**: Simplified from full Bayesian network complexity
+- **Expert Priors**: Stage transition probabilities based on security principles, not empirical measurements
+- **Best for Relative Ranking**: More reliable for prioritization than absolute prediction
 
+### 8.4 Future Work
+
+**Priority 1: Validation and Calibration (Required Before Further Development)**
+- Empirical validation of LR values against real penetration test data
+- Calibration of stage transition probabilities with breach analysis
+- Validation of kill-chain model against red team exercises
+
+**Priority 2: Incremental Improvements (After Validation)**
 - Add network segmentation modeling (K8s NetworkPolicy)
 - Granular Docker security scoring (0-5 scale)
+- EPSS trajectory analysis integration
+
+**Priority 3: Long-term Research (Requires Extensive Testing)**
 - Service mesh integration (Istio, Linkerd)
 - Attack path enumeration (multiple routes to objective)
-- Uncertainty quantification (credible intervals)
+- Advanced uncertainty quantification techniques
 
 ---
 
 ## Appendix A: Likelihood Ratio Reference
+
+> **Important:** These likelihood ratios are informed estimates requiring organization-specific calibration. Actual effectiveness varies by implementation quality, attacker sophistication, and operational context.
 
 ### Exploit Maturity
 | Type | LR | Source |
@@ -1409,6 +1429,22 @@ def categorize_threat_level(probability: float) -> str:
 | DMZ | 1.8 |
 | Internal | 0.6 |
 | Restricted | 0.3 |
+
+---
+
+### 8.5 Methodological Assessment
+
+**Mathematical Consistency**: ✅ The Bayesian probability calculations are mathematically correct and avoid common statistical fallacies (Bernoulli's, Gambler's, Base Rate Neglect, Conjunction).
+
+**Empirical Validation**: ⚠️ The likelihood ratio values and stage transition probabilities are informed heuristics, not empirically measured from controlled experiments or breach data analysis.
+
+**Best Use Case**: The framework is most reliable for **relative risk prioritization** (comparing attack path A vs B) rather than **absolute probability prediction** (exact 34.7% success rate).
+
+**Validation Requirements**: Before making high-stakes decisions based on absolute probability estimates, the framework requires:
+- Real-world penetration testing validation
+- Breach analysis calibration  
+- Organization-specific LR tuning
+- Red team exercise correlation
 
 ---
 
@@ -1457,7 +1493,7 @@ posterior = P(Exploit | EPSS, Exploits, CVSS, Controls)
 
 **Example from our method**:
 ```python
-# CORRECT
+# Mathematically Consistent
 P(Exploit | KEV=True, EPSS=15%, Metasploit=True)
 = Bayesian update using odds form
 = 0.176 × 3.0 × 2.5 / (1 + 0.176 × 3.0 × 2.5)
@@ -1554,7 +1590,7 @@ prior_odds = prior / (1 - prior)
 
 **Example**:
 ```python
-# CORRECT (our method)
+# Mathematically Consistent (our method)
 Prior (EPSS) = 0.1%
 After evidence: 5% (zero-day floor)
 
@@ -1769,13 +1805,14 @@ Sensitivity analysis shows ±40% variation with different LR assumptions."
 4. **Use conservative estimates** when independence is questionable
 5. **Validate against real-world breach data** when available
 
-**The method is statistically sound** for its intended purpose (threat prioritization), but users should understand that:
-- Point estimates may be **overconfident** due to independence violations
-- Credible intervals provide **realistic uncertainty bounds**
+**The method is theoretically sound** for its intended purpose (threat prioritization), but remains **unvalidated against real-world data**. Users should understand that:
+- Point estimates may be **overconfident** due to independence violations and unvalidated LR values
+- Credible intervals provide **realistic uncertainty bounds** but don't account for LR calibration uncertainty
 - The model is a **simplification** of complex real-world attack dynamics
+- **Best use case**: Relative risk ranking (attack path A vs B) rather than absolute probability prediction
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: January 1, 2026  
-**Author**: CVEs Analytics Project
+**Document Version**: 2.1  
+**Last Updated**: January 3, 2026  
+**Status**: Theoretically Sound, Requires Empirical Validation
