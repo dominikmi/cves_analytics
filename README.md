@@ -566,6 +566,7 @@ The framework answers: which vulnerabilities to patch first, which security cont
 - **EPSS (Exploit Prediction Scoring System)**: https://www.first.org/epss/
 - **CISA KEV Catalog**: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 - **CVE Program**: https://www.cve.org/
+- **CVSS-BT (CVSS with Base + Threat Metrics)**: https://github.com/t0sche/cvss-bt
 - **CWE (Common Weakness Enumeration)**: https://cwe.mitre.org/
 - **CVSS (Common Vulnerability Scoring System)**: https://www.first.org/cvss/
 - **MITRE ATT&CK Framework**: https://attack.mitre.org/
