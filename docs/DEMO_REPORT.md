@@ -450,7 +450,7 @@ The analysis incorporates actual security controls with realistic impact:
 |--------|---------------------|---------------------|------------------------|
 | **Security Maturity** | Initial | Managed | Optimizing |
 | **Active Controls** | 8 | 11 | 12 |
-| **Services Scanned** | 7 | 7 | 7 |
+| **Services Scanned** | 7-10 (typical) | 18 (typical) | 21 (typical) |
 | **Total Vulnerabilities** | 965 | 4,593 | 6,525 |
 | **Critical (Bayesian)** | 48 (5.0%) | 127 (2.8%) | 117 (1.8%) |
 | **Actionable Vulns** | 77 | 318 | 377 |
@@ -459,6 +459,8 @@ The analysis incorporates actual security controls with realistic impact:
 | **Kill-Chain Probability** | 0.9% | 0.9% | 0.9% |
 | **Remediation Effort** | 240 hours | 789 hours | 803 hours |
 | **Timeline** | 6 weeks | 20 weeks | 21 weeks |
+
+> **Note on Service Counts:** The example reports above use fixed 7-component application templates (Consulting Services Platform and Financial Services Platform) to demonstrate consistent kill-chain analysis across maturity levels. The full scenario generator scales service count by organization size: small orgs typically generate 7-10 services, mid-size orgs ~18 services, and large enterprises ~21 services. This scaling reflects realistic infrastructure complexity but would make direct comparison more difficult.
 
 **Key Insights**: 
 - **Optimizing maturity** achieves lowest critical % (1.8%) despite having most vulnerabilities (6,525)
