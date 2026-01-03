@@ -196,3 +196,6 @@ notebooks/*
 .ruff_cache
 .vscode
 *plan.txt
+
+# Monte Carlo simulations (work in progress - keep local only)
+monte_carlo/
