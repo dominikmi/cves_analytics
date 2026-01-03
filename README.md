@@ -543,20 +543,26 @@ Penalizing bad practices (LR > 1.0) ensures the model accurately reflects that p
 
 ## Conclusion
 
-The framework combines Bayesian risk assessment, kill-chain probability modeling, and adaptive scenario generation to provide context-aware insights for efficient resource allocation.
+This is a home-grown project born from studying probability theory, Bayesian statistics, and decision-making techniques in the context of vulnerability management. It doesn't aspire to breakthrough innovations—rather, it's an attempt to apply established probabilistic methods to a practical problem I encountered in my work.
 
-Key innovations:
-1. Probabilistic risk assessment with mathematical rigor and uncertainty quantification
-2. Kill-chain modeling that reflects how attacks progress through systems
-3. Security control penalty modeling that represents the cost of poor practices
-4. Multi-scenario validation across different contexts
+**What the framework does:**
+- Combines Bayesian risk assessment with kill-chain probability modeling
+- Provides context-aware vulnerability prioritization based on environmental factors
+- Quantifies uncertainty in risk estimates rather than presenting false precision
+- Models both protective controls and the cost of poor security practices
 
-Results show that comprehensive security (12+ controls) achieves:
-- 40% lower lateral movement probability vs basic security (8 controls)
+**Key learnings from development:**
+1. Probabilistic risk assessment requires careful validation—likelihood ratios are assumptions, not facts
+2. Kill-chain modeling helps understand attack progression but simplifies complex reality
+3. Security control effectiveness varies significantly by implementation quality
+4. EPSS trajectory analysis provides valuable temporal context for exploitation risk
+
+**Simulation results** (requiring real-world validation):
+- Comprehensive security (12+ controls) shows 40% lower lateral movement probability vs basic security (8 controls)
 - 47x reduction in exploitation probability for moderate-EPSS vulnerabilities
 - 453x reduction in end-to-end attack success for high-EPSS vulnerabilities
 
-The framework answers: which vulnerabilities to patch first, which security controls to deploy, and where to focus defensive resources for maximum impact.
+The framework attempts to answer: which vulnerabilities to patch first, which security controls to deploy, and where to focus defensive resources. Whether it succeeds requires extensive testing against real-world data.
 
 ## Technical Documentation
 
