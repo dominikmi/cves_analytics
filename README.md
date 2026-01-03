@@ -515,17 +515,31 @@ Penalizing bad practices (LR > 1.0) ensures the model accurately reflects that p
 
 4. **Control effectiveness assumptions** - My likelihood ratios for security controls are based on industry research and expert judgment, not empirical measurements from the specific environment.
 
-### Future Enhancements
+### Future Work
 
-1. **Machine learning integration** - Use historical incident data to learn environment-specific likelihood ratios instead of using generic values.
+**Priority 1: Validation and Calibration (Required Before Further Development)**
 
-2. **Continuous monitoring** - Extend the framework to track risk over time, showing how it changes as vulnerabilities are patched and new ones emerge.
+1. **Empirical validation** - Compare model predictions against real-world exploitation attempts and incident data to validate probability estimates.
 
-3. **Attack simulation** - Add capability to simulate specific attack scenarios and measure defensive effectiveness.
+2. **Likelihood ratio calibration** - Test and refine control effectiveness values through controlled experiments and real-world measurements.
 
-4. **Integration with SIEM/EDR** - Pull actual security events to validate model predictions and refine probability estimates.
+3. **EPSS trajectory validation** - Verify that EPSS trend analysis accurately predicts exploitation risk changes over time.
 
-5. **Compliance mapping** - Map vulnerabilities to compliance requirements (PCI-DSS, HIPAA, GDPR) to support regulatory reporting.
+4. **Kill-chain model validation** - Assess whether the four-stage model adequately represents real attack patterns in production environments.
+
+**Priority 2: Incremental Improvements (After Validation)**
+
+1. **EPSS coverage expansion** - Develop fallback methods for CVEs without EPSS scores based on CVSS vectors and historical patterns.
+
+2. **Temporal tracking** - Add capability to track risk changes over time as vulnerabilities are patched and new ones emerge.
+
+3. **Attack complexity weighting** - Incorporate findings from Allodi et al. (2021) on attacker behavior and exploit development costs.
+
+**Priority 3: Long-term Research (Requires Extensive Testing)**
+
+1. **Environment-specific calibration** - Use historical incident data to learn organization-specific likelihood ratios (requires significant data collection).
+
+2. **SIEM/EDR integration** - Validate model predictions against actual security events (requires production deployment and monitoring).
 
 ## Conclusion
 
