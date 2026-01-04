@@ -1,4 +1,4 @@
-# CVEs Analytics: Comprehensive Vulnerability Assessment Framework
+# CVEs Analytics: Contextual Vulnerability Assessment
 
 ## Introduction
 
