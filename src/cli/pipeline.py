@@ -1,156 +1,113 @@
-import logging
-import time
-from typing import Any
+"""CLI entry point for pipeline orchestration."""
 
-from src.cli.pipeline_steps.attack_analyzer import AttackAnalyzer
-from src.cli.pipeline_steps.data_enricher import DataEnricher
-from src.cli.pipeline_steps.docker_scanner import DockerScanner
-from src.cli.pipeline_steps.environment_generator import EnvironmentGenerator
-from src.cli.pipeline_steps.report_generator import ReportGenerator
-from src.utils.config import AppConfig
-from src.utils.logging_config import setup_logger
+import argparse
+import sys
+
+from sqlmodel import Session
+
+from src.data.stores.duckdb_store import DuckDBStore
+from src.db.sqlite_models import Profile, get_engine
+from src.services.pipeline import VulnerabilityAssessmentPipeline
+from src.simulation.scenario_generator import ScenarioGenerator
+from src.utils.config import settings
+from src.utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
-class VulnerabilityAssessmentPipeline:
-    """Orchestrates the full vulnerability assessment pipeline."""
+def main() -> None:
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(description="CVEs Analytics Pipeline")
+    parser.add_argument("--data-dir", default=settings.data_dir, help="Data directory")
+    parser.add_argument(
+        "--upload-dir", default=settings.upload_dir, help="Upload directory"
+    )
+    parser.add_argument("--profile", default=1, type=int, help="Profile ID to scan")
+    parser.add_argument(
+        "--images", nargs="+", default=None, help="Docker images to scan"
+    )
+    parser.add_argument(
+        "--generate-scenario",
+        action="store_true",
+        help="Generate a simulated environment scenario",
+    )
+    parser.add_argument(
+        "--size", default="small", help="Organization size (small, mid)"
+    )
+    parser.add_argument(
+        "--reach", default="local", help="Geographic reach (local, global)"
+    )
+    parser.add_argument("--industry", default="technology", help="Industry type")
+    parser.add_argument(
+        "--env-type",
+        default="prod",
+        help="Environment type (dev, test, qa, stage, prod)",
+    )
+    args = parser.parse_args()
 
-    def __init__(self, config: AppConfig) -> None:
-        """Initialize the pipeline."""
-        self.config = config
-        # Setup logger with configured log level
-        log_level = getattr(logging, config.log_level.upper(), logging.INFO)
-        self.logger = setup_logger("pipeline", level=log_level)
+    engine = get_engine()
+    duckdb_store = DuckDBStore(":memory:")
 
-        # Initialize pipeline steps
-        self.environment_generator = EnvironmentGenerator(self.logger)
-        self.docker_scanner = DockerScanner(self.logger)
-        self.data_enricher = DataEnricher(self.logger)
-        self.attack_analyzer = AttackAnalyzer(self.logger)
-        self.report_generator = ReportGenerator(self.logger)
-
-        # Pipeline state
-        self.state: dict[str, Any] = {}
-
-    def run(self) -> str:
-        """Execute the complete pipeline and return the report path."""
-        self.logger.info("Starting vulnerability assessment pipeline")
-        start_time = time.time()
-
-        try:
-            # Step 1: Generate environment
-            self._execute_step("Environment Generation", self._generate_environment)
-
-            # Step 2: Scan Docker images
-            self._execute_step("Docker Image Scanning", self._scan_docker_images)
-
-            # Step 3: Enrich data
-            self._execute_step("Data Enrichment", self._enrich_data)
-
-            # Step 4: Analyze attack scenarios
-            self._execute_step(
-                "Attack Scenario Analysis",
-                self._analyze_attack_scenarios,
+    with Session(engine) as session:
+        profile = session.get(Profile, args.profile)
+        if not profile:
+            logger.warning("Profile %d not found, creating default", args.profile)
+            images = args.images or ["nginx:latest"]
+            profile = Profile(
+                id=args.profile,
+                name="default",
+                org_size=args.size,
+                org_reach=args.reach,
+                industry=args.industry,
+                environment=args.env_type,
+                security_maturity=0.5,
+                image_inventory=images,
             )
+            session.add(profile)
+            session.commit()
+            session.refresh(profile)
 
-            # Step 5: Generate report
-            report_path = self._execute_step("Report Generation", self._generate_report)
+        if args.images:
+            profile.image_inventory = args.images
+            session.commit()
 
-            total_time = time.time() - start_time
-            self.logger.info(f"Pipeline completed successfully in {total_time:.2f}s")
+        # Generate scenario if requested
+        if args.generate_scenario:
+            generator = ScenarioGenerator()
+            scenario = generator.generate_scenario(
+                size=args.size,
+                reach=args.reach,
+                industry=args.industry,
+                environment_type=args.env_type,
+            )
+            print("\nGenerated scenario:")
+            print(f"  Company: {scenario['company_name']}")  # type: ignore[index]
+            print(f"  Topology: {scenario['metadata']['topology']}")  # type: ignore[index]
+            print(f"  Services: {len(scenario['services'])}")  # type: ignore[index]
+            print(f"  Maturity: {scenario['security_maturity']}")  # type: ignore[index]
 
-            return report_path
-
-        except Exception as e:
-            self.logger.error(f"Pipeline failed: {e!s}", exc_info=True)
-            raise
-
-    def _execute_step(self, step_name: str, step_function) -> Any:
-        """Execute a pipeline step with timing and error handling."""
-        self.logger.info("=" * 80)
-        self.logger.info(f"STEP: {step_name}")
-        self.logger.info("=" * 80)
-        start_time = time.time()
+        pipeline = VulnerabilityAssessmentPipeline(
+            profile=profile,
+            duckdb_store=duckdb_store,
+            data_dir=args.data_dir,
+        )
 
         try:
-            result = step_function()
-            duration = time.time() - start_time
-            self.logger.info(f"STEP COMPLETE: {step_name} (Duration: {duration:.2f}s)")
-            self.logger.info("=" * 80)
-            return result
-        except Exception as e:
-            duration = time.time() - start_time
-            self.logger.error(f"ERROR in {step_name}: {e!s}", exc_info=True)
-            self.logger.error(f"Step {step_name} failed after {duration:.2f}s")
-            raise
+            result = pipeline.run()
+            print("\nPipeline complete:")
+            print(f"  Findings: {len(result.findings_df)}")
+            print(f"  Severities: {result.severity_counts}")
+            risk_val = (
+                result.avg_bayesian_risk
+                if result.avg_bayesian_risk is not None
+                else 0.0
+            )
+            print(f"  Avg Bayesian Risk: {risk_val:.4f}")
+            sys.exit(0)
+        except Exception as exc:
+            logger.error("Pipeline failed: %s", exc)
+            sys.exit(1)
 
-    def _generate_environment(self) -> None:
-        """Generate the simulated environment."""
-        self.state["scenario"] = self.environment_generator.generate(
-            self.config.org_size,
-            self.config.org_reach,
-            self.config.industry,
-            self.config.environment,
-        )
 
-    def _scan_docker_images(self) -> None:
-        """Scan Docker images for vulnerabilities."""
-        if "scenario" not in self.state:
-            raise RuntimeError("Environment must be generated before scanning")
-
-        scan_results = self.docker_scanner.scan(
-            self.state["scenario"],
-            self.config.grype_binary_path,
-        )
-        # Keep as Polars DataFrame for downstream processing
-        self.state["scan_results"] = scan_results
-
-    def _enrich_data(self) -> None:
-        """Enrich scan results with CVE and environment context."""
-        if "scan_results" not in self.state:
-            raise RuntimeError("Scan results must be available before enrichment")
-
-        if "scenario" not in self.state:
-            raise RuntimeError("Scenario must be available for enrichment")
-
-        self.state["enriched_results"] = self.data_enricher.enrich(
-            self.state["scan_results"],
-            self.state["scenario"],
-            self.config.data_path,
-        )
-
-    def _analyze_attack_scenarios(self) -> None:
-        """Analyze attack scenarios and vulnerability chains."""
-        if "enriched_results" not in self.state:
-            raise RuntimeError("Enriched results must be available for analysis")
-
-        if "scenario" not in self.state:
-            raise RuntimeError("Scenario must be available for analysis")
-
-        self.state["analysis_results"] = self.attack_analyzer.analyze(
-            self.state["enriched_results"],
-            self.state["scenario"],
-        )
-
-    def _generate_report(self) -> str:
-        """Generate the final vulnerability assessment report."""
-        required_keys = [
-            "scenario",
-            "scan_results",
-            "enriched_results",
-            "analysis_results",
-        ]
-        for key in required_keys:
-            if key not in self.state:
-                raise RuntimeError(f"{key} must be available for report generation")
-
-        # Extract kill-chain analysis from analysis_results
-        kill_chain_analysis = self.state["analysis_results"].get("kill_chain_analysis")
-
-        return self.report_generator.generate(
-            self.state["scenario"],
-            self.state["scan_results"],
-            self.state["enriched_results"],
-            self.state["analysis_results"],
-            self.config.output_path,
-            kill_chain_analysis=kill_chain_analysis,
-        )
+if __name__ == "__main__":
+    main()

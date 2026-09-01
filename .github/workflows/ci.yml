@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python pin ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint with Ruff
+        run: uv run ruff check .
+
+      - name: Format with Ruff
+        run: uv run ruff format --check .
+
+      - name: Type check with MyPy
+        run: uv run mypy src/
+
+      - name: Security audit with uv
+        run: uv audit
+
+      - name: Security scan with Bandit
+        # bandit does not auto-load .bandit; pass it explicitly (see the
+        # file header for why B311/B404/B603/B608 are skipped).
+        run: uv run bandit -r src/ -c .bandit
+
+      - name: Test with pytest
+        # fail_under lives in pyproject.toml [tool.pytest-cov] (single source
+        # of truth); it is applied automatically by pytest-cov.
+        run: uv run pytest --cov=src --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml

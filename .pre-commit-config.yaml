@@ -1,0 +1,45 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff Check
+        entry: uv run ruff check
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: ruff-format
+        name: Ruff Format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: mypy
+        name: MyPy
+        entry: uv run mypy src/
+        language: system
+        types: [python]
+        require_serial: true
+        pass_filenames: false
+
+      - id: trufflehog
+        name: TruffleHog
+        entry: trufflehog filesystem --fail --no-update
+        language: system
+        stages: [pre-commit]
+        require_serial: true
+
+      - id: uv-audit
+        name: UV Audit
+        entry: uv audit
+        language: system
+        pass_filenames: false
+
+      - id: bandit
+        name: Bandit
+        entry: uv run bandit -r src/ -c .bandit
+        language: system
+        types: [python]
+        require_serial: true
+        pass_filenames: false

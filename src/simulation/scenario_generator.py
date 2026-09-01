@@ -59,17 +59,17 @@ class ScenarioGenerator:
             current_dir = Path(__file__).parent.parent.parent
             config_path = current_dir / path
             if not config_path.exists():
-                logger.debug(f"Config file not found at {path}")
+                logger.debug("Config file not found at %s", path)
                 return {}
 
         try:
             yaml = YAML(typ="safe")
             with open(config_path) as f:
                 config = yaml.load(f) or {}
-            logger.info(f"Loaded service catalog from {config_path}")
+            logger.info("Loaded service catalog from %s", config_path)
             return config
         except Exception as e:
-            logger.error(f"Error loading config from {config_path}: {e}")
+            logger.error("Error loading config from %s: %s", config_path, e)
             return {}
 
     def generate_scenario(
@@ -119,7 +119,7 @@ class ScenarioGenerator:
             else ["flat_network"]
         )
 
-        environment = {
+        environment: dict[str, Any] = {
             "scenario_id": scenario_id,
             "company_name": company_name,
             "metadata": {
@@ -144,7 +144,7 @@ class ScenarioGenerator:
             complexity = max(1, complexity - 1)
 
         # Generate services
-        services = self._design_architecture(
+        services: list[dict[str, Any]] = self._design_architecture(
             industry,
             complexity,
             reach,
@@ -804,18 +804,18 @@ class ScenarioGenerator:
         # Add security issues to CI/CD services
         for service in cicd_services:
             if random.random() < self.scenario_config.MISCONFIG_PROBABILITY:
-                service["misconfigurations"] = [
+                service["misconfigurations"] = [  # type: ignore[index]
                     {
                         "key": random.choice(self.scenario_config.MISCONFIG_TYPES),
                         "value": self.fake.word(),
                     },
                 ]
             if random.random() < self.scenario_config.SECRETS_PROBABILITY:
-                service["hardcoded_secrets"] = [
+                service["hardcoded_secrets"] = [  # type: ignore[index]
                     {
                         "type": random.choice(self.scenario_config.SECRET_TYPES),
                         "location": f"/app/{self.fake.word()}.py",
                     },
                 ]
 
-        return services + cicd_services
+        return services + cicd_services  # type: ignore[operator]

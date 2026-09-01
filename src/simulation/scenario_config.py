@@ -58,15 +58,9 @@ class ScenarioConfig(BaseModel):
     MISCONFIG_PROBABILITY: float = Field(default=0.4, ge=0.0, le=1.0)
     MISCONFIG_TYPES: list[str] = Field(default_factory=list)
 
-    # ==========================================================================
-    # SECURITY MATURITY CONFIGURATION (NEW - for Bayesian risk assessment)
-    # ==========================================================================
-
-    # Security maturity level mapping based on organization characteristics
-    # Maps (size, reach, industry, environment) to maturity level
+    # Security maturity configuration
     MATURITY_LEVEL_MAPPING: dict[str, Any] = Field(
         default_factory=lambda: {
-            # Industry-based base maturity
             "industry": {
                 "financial-services": "managed",
                 "healthcare": "defined",
@@ -76,18 +70,15 @@ class ScenarioConfig(BaseModel):
                 "retail": "developing",
                 "default": "developing",
             },
-            # Size adjustments (can upgrade maturity)
             "size_upgrade": {
-                "large": 1,  # +1 maturity level
-                "mid": 0,  # no change
-                "small": -1,  # -1 maturity level
+                "large": 1,
+                "mid": 0,
+                "small": -1,
             },
-            # Reach adjustments
             "reach_upgrade": {
-                "global": 1,  # Global reach usually means more mature
+                "global": 1,
                 "local": 0,
             },
-            # Environment adjustments (dev/test have lower effective maturity)
             "environment_downgrade": {
                 "prod": 0,
                 "stage": -1,
@@ -127,32 +118,18 @@ class ScenarioConfig(BaseModel):
         industry: str,
         environment: str,
     ) -> str:
-        """Calculate security maturity level based on organization characteristics.
-
-        Args:
-            size: Organization size (small, mid, large)
-            reach: Geographic reach (local, global)
-            industry: Industry type
-            environment: Environment type (dev, test, qa, stage, prod)
-
-        Returns:
-            Maturity level string (initial, developing, defined, managed, optimizing)
-
-        """
+        """Calculate security maturity level based on organization characteristics."""
         maturity_levels = ["initial", "developing", "defined", "managed", "optimizing"]
 
-        # Get base maturity from industry
         industry_mapping = self.MATURITY_LEVEL_MAPPING.get("industry", {})
         default_maturity = industry_mapping.get("default", "developing")
         base_maturity = industry_mapping.get(industry, default_maturity)
 
-        # Get base index
         try:
             base_idx = maturity_levels.index(base_maturity)
         except ValueError:
-            base_idx = 1  # Default to "developing"
+            base_idx = 1
 
-        # Apply adjustments
         size_mapping = self.MATURITY_LEVEL_MAPPING.get("size_upgrade", {})
         reach_mapping = self.MATURITY_LEVEL_MAPPING.get("reach_upgrade", {})
         env_mapping = self.MATURITY_LEVEL_MAPPING.get("environment_downgrade", {})
@@ -161,12 +138,10 @@ class ScenarioConfig(BaseModel):
         reach_adj = reach_mapping.get(reach, 0)
         env_adj = env_mapping.get(environment, 0)
 
-        # Calculate final index
         final_idx = base_idx + size_adj + reach_adj + env_adj
         final_idx = max(0, min(len(maturity_levels) - 1, final_idx))
 
         return maturity_levels[final_idx]
 
 
-# Global default configuration
 DEFAULT_CONFIG = ScenarioConfig()

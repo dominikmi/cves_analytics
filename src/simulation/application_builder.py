@@ -1,9 +1,4 @@
-"""Application builder for creating multi-component applications from templates.
-
-This module instantiates application templates with actual Docker images from
-the service catalog, creating realistic multi-component applications for
-kill-chain analysis.
-"""
+"""Application builder for creating multi-component applications from templates."""
 
 import random
 from typing import Any
@@ -23,12 +18,7 @@ class ApplicationBuilder:
     """Builds concrete application instances from templates."""
 
     def __init__(self, service_catalog: dict[str, Any]) -> None:
-        """Initialize the application builder.
-
-        Args:
-            service_catalog: Service catalog from services.yaml
-
-        """
+        """Initialize the application builder."""
         self.service_catalog = service_catalog
 
     def build_application(
@@ -37,23 +27,12 @@ class ApplicationBuilder:
         company_name: str,
         is_segmented: bool,
     ) -> dict[str, Any]:
-        """Build a concrete application instance from a template.
-
-        Args:
-            template: ApplicationTemplate to instantiate
-            company_name: Company name for the application
-            is_segmented: Whether network is segmented
-
-        Returns:
-            Dictionary with application metadata and services
-
-        """
-        logger.info(f"Building application: {template.name}")
+        """Build a concrete application instance from a template."""
+        logger.info("Building application: %s", template.name)
 
         services = []
-        component_map = {}  # Map component names to service instances
+        component_map = {}
 
-        # Instantiate each component with actual Docker images
         for component in template.components:
             service = self._instantiate_component(
                 component,
@@ -63,7 +42,6 @@ class ApplicationBuilder:
                 services.append(service)
                 component_map[component.name] = service
 
-        # Add component dependencies to services
         for component in template.components:
             if component.name in component_map:
                 service = component_map[component.name]
@@ -82,7 +60,9 @@ class ApplicationBuilder:
         }
 
         logger.info(
-            f"Built application with {len(services)} components: {[s['name'] for s in services]}",
+            "Built application with %d components: %s",
+            len(services),
+            [s["name"] for s in services],
         )
 
         return application
@@ -92,35 +72,23 @@ class ApplicationBuilder:
         component: ApplicationComponent,
         is_segmented: bool,
     ) -> dict[str, Any] | None:
-        """Instantiate a component with a concrete Docker image.
-
-        Args:
-            component: ApplicationComponent to instantiate
-            is_segmented: Whether network is segmented
-
-        Returns:
-            Service dictionary or None if no matching service found
-
-        """
-        # Get services from catalog for this component's category
+        """Instantiate a component with a concrete Docker image."""
         category_services = self.service_catalog.get(component.service_category, [])
 
         if not category_services:
             logger.warning(
-                f"No services found for category: {component.service_category}",
+                "No services found for category: %s", component.service_category
             )
             return None
 
-        # Select a random service from the category
         if isinstance(category_services, list):
             service_def = random.choice(category_services)
         else:
             logger.warning(
-                f"Invalid service category format: {component.service_category}",
+                "Invalid service category format: %s", component.service_category
             )
             return None
 
-        # Create service instance
         service = {
             "name": component.name,
             "role": service_def.get("role", component.role.value),
@@ -149,9 +117,7 @@ class ApplicationBuilder:
         if not is_segmented:
             return "flat_network"
 
-        if exposure == "internet-facing":
-            return "dmz"
-        elif exposure == "dmz":
+        if exposure == "internet-facing" or exposure == "dmz":
             return "dmz"
         elif exposure == "internal":
             return random.choice(["app_tier", "data_tier", "internal"])
@@ -198,18 +164,7 @@ def build_application_for_scenario(
     is_segmented: bool,
     service_catalog: dict[str, Any],
 ) -> dict[str, Any]:
-    """Build an application for a scenario based on industry.
-
-    Args:
-        industry: Industry type (on-line-store, financial-services, etc.)
-        company_name: Company name
-        is_segmented: Whether network is segmented
-        service_catalog: Service catalog from services.yaml
-
-    Returns:
-        Application dictionary with services and metadata
-
-    """
+    """Build an application for a scenario based on industry."""
     template = get_template_for_industry(industry)
     builder = ApplicationBuilder(service_catalog)
     return builder.build_application(template, company_name, is_segmented)

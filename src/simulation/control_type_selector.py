@@ -49,7 +49,7 @@ def _normalize_probabilities(probs: dict[Any, float]) -> dict[Any, float]:
 
 def _apply_modifiers(
     base_probs: dict[Any, float],
-    modifiers: dict[Any, float],
+    modifiers: Any,
 ) -> dict[Any, float]:
     """Apply modifier multipliers to base probabilities."""
     result = base_probs.copy()
@@ -73,15 +73,12 @@ def select_mfa_type(
     exposure: str | None = None,
 ) -> MFAType:
     """Select MFA type based on maturity, industry, and exposure."""
-    # Get base probabilities
     base_probs = MFA_TYPE_PROBABILITIES.get(maturity, MFA_TYPE_PROBABILITIES["defined"])
 
-    # Apply industry modifiers
     if industry and industry in INDUSTRY_CONTROL_TYPE_MODIFIERS:
         industry_mods = INDUSTRY_CONTROL_TYPE_MODIFIERS[industry].get("mfa", {})
         base_probs = _apply_modifiers(base_probs, industry_mods)
 
-    # Apply exposure modifiers
     if exposure and exposure in EXPOSURE_CONTROL_TYPE_MODIFIERS:
         exposure_mods = EXPOSURE_CONTROL_TYPE_MODIFIERS[exposure].get("mfa", {})
         base_probs = _apply_modifiers(base_probs, exposure_mods)
