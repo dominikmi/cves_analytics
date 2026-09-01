@@ -5,7 +5,6 @@ from typing import Any
 
 from faker import Faker
 
-from src.utils.error_handling import error_handler
 from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -223,7 +222,6 @@ LINUX_SERVERS = {
 }
 
 
-@error_handler()
 class SimSystem:
     """Generates realistic simulated system configurations."""
 
@@ -234,15 +232,7 @@ class SimSystem:
         win_svs: dict[str, float] | None = None,
         lin_svs: dict[str, float] | None = None,
     ) -> None:
-        """Initialize the system simulator.
-
-        Args:
-            os_p_weights: OS probability weights
-            sys_p_weights: System posture probability weights
-            win_svs: Windows server versions and weights
-            lin_svs: Linux server versions and weights
-
-        """
+        """Initialize the system simulator."""
         self.os_p_weights = os_p_weights or OS_P_WEIGHTS
         self.sys_p_weights = sys_p_weights or SYSTEM_POSTURE_P_WEIGHTS
         self.win_svs = win_svs or WINDOWS_SERVERS
@@ -255,35 +245,26 @@ class SimSystem:
         self.os_ver = self.system["os_ver"]
         self.posture = self.system["posture"]
 
-        logger.debug(f"Generated system: {self}")
+        logger.debug("Generated system: %s", self)
 
     def __str__(self) -> str:
         """Return string representation of the system."""
         return f"System: {self.hostname} - Group: {self.group} - OS: {self.os}"
 
     def generate_random_system(self) -> dict[str, Any]:
-        """Randomly generate a system configuration.
-
-        Returns:
-            Dictionary with system configuration
-
-        """
+        """Randomly generate a system configuration."""
         fake = Faker()
 
-        # Select OS
         os_choices = list(self.os_p_weights.keys())
         selected_os = random.choice(os_choices)
 
-        # Select system group based on OS
         groups = list(self.os_p_weights[selected_os].keys())
         weights = list(self.os_p_weights[selected_os].values())
         selected_group = random.choices(groups, weights=weights, k=1)[0]
 
-        # Generate hostname
         prefix = "L" if selected_os == "Linux" else "W"
         hostname = f"{prefix}-{fake.hostname().split('.')[0]}.hal.com"
 
-        # Select OS version
         if selected_os == "Linux":
             os_ver = random.choices(
                 list(self.lin_svs.keys()),
@@ -297,7 +278,6 @@ class SimSystem:
                 k=1,
             )[0]
 
-        # Generate security posture
         posture_key = f"{selected_group}_{'L' if selected_os == 'Linux' else 'W'}"
         posture = {
             key: random.choices([True, False], weights=[p_weight, 1 - p_weight])[0]

@@ -1,168 +1,151 @@
-"""Control Type Enums and Effectiveness Mappings.
+"""Control Type Enums and Effectiveness Mappings."""
 
-This module defines the different types/implementations of security controls
-and their associated effectiveness levels (Likelihood Ratios).
-
-Each control can have multiple implementation types with varying effectiveness:
-- Basic/Legacy implementations: Lower effectiveness
-- Standard implementations: Moderate effectiveness
-- Advanced/Modern implementations: Higher effectiveness
-
-The effectiveness values (LR) represent how much the control reduces exploitation
-probability in Bayesian risk assessment.
-"""
-
-from __future__ import annotations
-
-from enum import Enum
+from enum import StrEnum
 
 
-class MFAType(str, Enum):
+class MFAType(StrEnum):
     """Multi-Factor Authentication implementation types."""
 
     NONE = "none"
-    SMS = "sms"  # SMS-based (weakest)
-    AUTHENTICATOR_APP = "authenticator_app"  # TOTP/Google Authenticator
-    PUSH_NOTIFICATION = "push_notification"  # Duo Push, Microsoft Authenticator
-    FIDO2 = "fido2"  # Hardware keys, passkeys (strongest)
+    SMS = "sms"
+    AUTHENTICATOR_APP = "authenticator_app"
+    PUSH_NOTIFICATION = "push_notification"
+    FIDO2 = "fido2"
 
 
-class FirewallType(str, Enum):
+class FirewallType(StrEnum):
     """Firewall implementation types."""
 
     NONE = "none"
-    BASIC = "basic"  # Basic packet filtering
-    STATEFUL = "stateful"  # Stateful inspection
-    NGFW = "next_gen"  # Next-gen with DPI
-    NGFW_ADVANCED = "next_gen_advanced"  # NGFW + threat intel
+    BASIC = "basic"
+    STATEFUL = "stateful"
+    NGFW = "next_gen"
+    NGFW_ADVANCED = "next_gen_advanced"
 
 
-class WAFType(str, Enum):
+class WAFType(StrEnum):
     """Web Application Firewall implementation types."""
 
     NONE = "none"
-    BASIC = "basic"  # Basic rules
-    MANAGED = "managed"  # Managed rule sets
-    OWASP_CRS = "owasp_crs"  # OWASP Core Rule Set
-    CUSTOM_TUNED = "custom_tuned"  # Custom + ML/behavioral
+    BASIC = "basic"
+    MANAGED = "managed"
+    OWASP_CRS = "owasp_crs"
+    CUSTOM_TUNED = "custom_tuned"
 
 
-class EndpointProtectionType(str, Enum):
+class EndpointProtectionType(StrEnum):
     """Endpoint protection implementation types."""
 
     NONE = "none"
-    TRADITIONAL_AV = "traditional_av"  # Signature-based only
-    BASIC_EDR = "basic_edr"  # Basic EDR
-    ADVANCED_EDR = "advanced_edr"  # EDR with behavioral analysis
-    XDR = "xdr"  # Extended Detection & Response
+    TRADITIONAL_AV = "traditional_av"
+    BASIC_EDR = "basic_edr"
+    ADVANCED_EDR = "advanced_edr"
+    XDR = "xdr"
 
 
-class SegmentationType(str, Enum):
+class SegmentationType(StrEnum):
     """Network segmentation implementation types."""
 
-    NONE = "none"  # Flat network
-    BASIC_VLAN = "basic_vlan"  # Basic VLANs
-    VLAN_ACL = "vlan_with_acl"  # VLANs + ACLs
-    MICRO_SEGMENTATION = "micro_seg"  # Micro-segmentation
-    ZERO_TRUST = "zero_trust"  # Zero-trust architecture
+    NONE = "none"
+    BASIC_VLAN = "basic_vlan"
+    VLAN_ACL = "vlan_with_acl"
+    MICRO_SEGMENTATION = "micro_seg"
+    ZERO_TRUST = "zero_trust"
 
 
-class IDSIPSType(str, Enum):
+class IDSIPSType(StrEnum):
     """IDS/IPS implementation types."""
 
     NONE = "none"
-    IDS_ONLY = "ids_only"  # Detection only
-    IPS_SIGNATURE = "ips_signature"  # Signature-based IPS
-    IPS_BEHAVIORAL = "ips_behavioral"  # Behavioral analysis
-    IPS_ML = "ips_ml"  # ML-based detection
+    IDS_ONLY = "ids_only"
+    IPS_SIGNATURE = "ips_signature"
+    IPS_BEHAVIORAL = "ips_behavioral"
+    IPS_ML = "ips_ml"
 
 
-class SIEMMaturity(str, Enum):
+class SIEMMaturity(StrEnum):
     """SIEM maturity levels."""
 
     NONE = "none"
-    LOG_COLLECTION = "log_collection"  # Just collecting logs
-    BASIC_CORRELATION = "basic_corr"  # Basic correlation rules
-    ADVANCED_ANALYTICS = "advanced"  # Advanced analytics
-    THREAT_HUNTING = "threat_hunting"  # Active threat hunting + SOAR
+    LOG_COLLECTION = "log_collection"
+    BASIC_CORRELATION = "basic_corr"
+    ADVANCED_ANALYTICS = "advanced"
+    THREAT_HUNTING = "threat_hunting"
 
 
-class PatchManagementQuality(str, Enum):
+class PatchManagementQuality(StrEnum):
     """Patch management quality levels."""
 
-    NONE = "none"  # No patching
-    REACTIVE = "reactive"  # Only after incidents
-    QUARTERLY = "quarterly"  # Quarterly cycle
-    MONTHLY = "monthly"  # Monthly (Patch Tuesday)
-    WEEKLY = "weekly"  # Weekly critical patches
-    AUTOMATED = "automated"  # Automated with testing
+    NONE = "none"
+    REACTIVE = "reactive"
+    QUARTERLY = "quarterly"
+    MONTHLY = "monthly"
+    WEEKLY = "weekly"
+    AUTOMATED = "automated"
 
 
 # Effectiveness mappings (Likelihood Ratios)
-# LR < 1.0 means the control reduces exploitation probability
-# LR = 1.0 means no effect
-
 MFA_EFFECTIVENESS = {
     MFAType.NONE: 1.0,
-    MFAType.SMS: 0.35,  # 65% reduction (weak, vulnerable to SIM swap)
-    MFAType.AUTHENTICATOR_APP: 0.15,  # 85% reduction
-    MFAType.PUSH_NOTIFICATION: 0.15,  # 85% reduction
-    MFAType.FIDO2: 0.05,  # 95% reduction (strongest)
+    MFAType.SMS: 0.35,
+    MFAType.AUTHENTICATOR_APP: 0.15,
+    MFAType.PUSH_NOTIFICATION: 0.15,
+    MFAType.FIDO2: 0.05,
 }
 
 FIREWALL_EFFECTIVENESS = {
     FirewallType.NONE: 1.0,
-    FirewallType.BASIC: 0.7,  # 30% reduction
-    FirewallType.STATEFUL: 0.5,  # 50% reduction
-    FirewallType.NGFW: 0.4,  # 60% reduction
-    FirewallType.NGFW_ADVANCED: 0.3,  # 70% reduction
+    FirewallType.BASIC: 0.7,
+    FirewallType.STATEFUL: 0.5,
+    FirewallType.NGFW: 0.4,
+    FirewallType.NGFW_ADVANCED: 0.3,
 }
 
 WAF_EFFECTIVENESS = {
     WAFType.NONE: 1.0,
-    WAFType.BASIC: 0.6,  # 40% reduction
-    WAFType.MANAGED: 0.4,  # 60% reduction
-    WAFType.OWASP_CRS: 0.3,  # 70% reduction
-    WAFType.CUSTOM_TUNED: 0.25,  # 75% reduction
+    WAFType.BASIC: 0.6,
+    WAFType.MANAGED: 0.4,
+    WAFType.OWASP_CRS: 0.3,
+    WAFType.CUSTOM_TUNED: 0.25,
 }
 
 ENDPOINT_EFFECTIVENESS = {
     EndpointProtectionType.NONE: 1.0,
-    EndpointProtectionType.TRADITIONAL_AV: 0.7,  # 30% reduction
-    EndpointProtectionType.BASIC_EDR: 0.5,  # 50% reduction
-    EndpointProtectionType.ADVANCED_EDR: 0.4,  # 60% reduction
-    EndpointProtectionType.XDR: 0.3,  # 70% reduction
+    EndpointProtectionType.TRADITIONAL_AV: 0.7,
+    EndpointProtectionType.BASIC_EDR: 0.5,
+    EndpointProtectionType.ADVANCED_EDR: 0.4,
+    EndpointProtectionType.XDR: 0.3,
 }
 
 SEGMENTATION_EFFECTIVENESS = {
     SegmentationType.NONE: 1.0,
-    SegmentationType.BASIC_VLAN: 0.7,  # 30% reduction
-    SegmentationType.VLAN_ACL: 0.5,  # 50% reduction
-    SegmentationType.MICRO_SEGMENTATION: 0.3,  # 70% reduction
-    SegmentationType.ZERO_TRUST: 0.2,  # 80% reduction
+    SegmentationType.BASIC_VLAN: 0.7,
+    SegmentationType.VLAN_ACL: 0.5,
+    SegmentationType.MICRO_SEGMENTATION: 0.3,
+    SegmentationType.ZERO_TRUST: 0.2,
 }
 
 IDS_IPS_EFFECTIVENESS = {
     IDSIPSType.NONE: 1.0,
-    IDSIPSType.IDS_ONLY: 0.8,  # 20% reduction (detection only)
-    IDSIPSType.IPS_SIGNATURE: 0.5,  # 50% reduction
-    IDSIPSType.IPS_BEHAVIORAL: 0.4,  # 60% reduction
-    IDSIPSType.IPS_ML: 0.35,  # 65% reduction
+    IDSIPSType.IDS_ONLY: 0.8,
+    IDSIPSType.IPS_SIGNATURE: 0.5,
+    IDSIPSType.IPS_BEHAVIORAL: 0.4,
+    IDSIPSType.IPS_ML: 0.35,
 }
 
 SIEM_EFFECTIVENESS = {
     SIEMMaturity.NONE: 1.0,
-    SIEMMaturity.LOG_COLLECTION: 0.8,  # 20% reduction
-    SIEMMaturity.BASIC_CORRELATION: 0.6,  # 40% reduction
-    SIEMMaturity.ADVANCED_ANALYTICS: 0.5,  # 50% reduction
-    SIEMMaturity.THREAT_HUNTING: 0.4,  # 60% reduction
+    SIEMMaturity.LOG_COLLECTION: 0.8,
+    SIEMMaturity.BASIC_CORRELATION: 0.6,
+    SIEMMaturity.ADVANCED_ANALYTICS: 0.5,
+    SIEMMaturity.THREAT_HUNTING: 0.4,
 }
 
 PATCH_EFFECTIVENESS = {
     PatchManagementQuality.NONE: 1.0,
-    PatchManagementQuality.REACTIVE: 0.9,  # 10% reduction
-    PatchManagementQuality.QUARTERLY: 0.7,  # 30% reduction
-    PatchManagementQuality.MONTHLY: 0.4,  # 60% reduction
-    PatchManagementQuality.WEEKLY: 0.3,  # 70% reduction
-    PatchManagementQuality.AUTOMATED: 0.2,  # 80% reduction
+    PatchManagementQuality.REACTIVE: 0.9,
+    PatchManagementQuality.QUARTERLY: 0.7,
+    PatchManagementQuality.MONTHLY: 0.4,
+    PatchManagementQuality.WEEKLY: 0.3,
+    PatchManagementQuality.AUTOMATED: 0.2,
 }

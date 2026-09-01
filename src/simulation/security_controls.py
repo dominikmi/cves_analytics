@@ -21,7 +21,7 @@ Each control has:
 from __future__ import annotations
 
 import random
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -48,17 +48,17 @@ from src.simulation.control_types import (
 )
 
 
-class SecurityMaturityLevel(str, Enum):
+class SecurityMaturityLevel(StrEnum):
     """Security maturity levels based on industry frameworks (CMMI, NIST CSF)."""
 
-    INITIAL = "initial"  # Ad-hoc, reactive security
-    DEVELOPING = "developing"  # Basic controls, inconsistent
-    DEFINED = "defined"  # Documented policies, some automation
-    MANAGED = "managed"  # Measured and controlled
-    OPTIMIZING = "optimizing"  # Continuous improvement, advanced
+    INITIAL = "initial"
+    DEVELOPING = "developing"
+    DEFINED = "defined"
+    MANAGED = "managed"
+    OPTIMIZING = "optimizing"
 
 
-class PatchManagementCadence(str, Enum):
+class PatchManagementCadence(StrEnum):
     """Patch management frequency."""
 
     DAILY = "daily"
@@ -69,15 +69,8 @@ class PatchManagementCadence(str, Enum):
 
 
 class ControlProbabilities(BaseModel):
-    """Probability of each control being present at different maturity levels.
+    """Probability of each control being present at different maturity levels."""
 
-    These probabilities are derived from:
-    - Verizon DBIR control adoption statistics
-    - SANS security spending surveys
-    - Industry benchmarks
-    """
-
-    # Network Controls
     network_segmentation: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.1,
@@ -118,7 +111,6 @@ class ControlProbabilities(BaseModel):
         },
     )
 
-    # Endpoint Controls
     edr_xdr: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.05,
@@ -139,7 +131,6 @@ class ControlProbabilities(BaseModel):
         },
     )
 
-    # Access Controls
     mfa: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.1,
@@ -160,7 +151,6 @@ class ControlProbabilities(BaseModel):
         },
     )
 
-    # Security Operations
     siem: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.05,
@@ -181,7 +171,6 @@ class ControlProbabilities(BaseModel):
         },
     )
 
-    # Patch Management (probability of each cadence)
     patch_daily: dict[str, float] = Field(
         default_factory=lambda: {
             "initial": 0.01,
@@ -224,12 +213,8 @@ class ControlProbabilities(BaseModel):
 
 
 class SecurityControlsConfig(BaseModel):
-    """Configuration for security controls in a simulated environment.
+    """Configuration for security controls in a simulated environment."""
 
-    Controls now have types/implementations with varying effectiveness levels.
-    """
-
-    # Network Controls - with types
     segmentation_type: SegmentationType = Field(
         default=SegmentationType.NONE,
         description="Network segmentation implementation type",
@@ -247,13 +232,11 @@ class SecurityControlsConfig(BaseModel):
         description="IDS/IPS implementation type",
     )
 
-    # Endpoint Controls - with types
     endpoint_protection_type: EndpointProtectionType = Field(
         default=EndpointProtectionType.TRADITIONAL_AV,
         description="Endpoint protection implementation type",
     )
 
-    # Access Controls - with types
     mfa_type: MFAType = Field(
         default=MFAType.NONE,
         description="Multi-Factor Authentication implementation type",
@@ -263,13 +246,11 @@ class SecurityControlsConfig(BaseModel):
         description="Privileged Access Management solution",
     )
 
-    # Patch Management - with quality levels
     patch_management_quality: PatchManagementQuality = Field(
         default=PatchManagementQuality.MONTHLY,
         description="Patch management quality level",
     )
 
-    # Security Operations - with maturity levels
     siem_maturity: SIEMMaturity = Field(
         default=SIEMMaturity.NONE,
         description="SIEM maturity level",
@@ -284,7 +265,6 @@ class SecurityControlsConfig(BaseModel):
         description="Regular security awareness training",
     )
 
-    # Physical/Environmental
     air_gapped: bool = Field(
         default=False,
         description="Air-gapped network (no internet connectivity)",
@@ -302,7 +282,6 @@ class SecurityControlsConfig(BaseModel):
         """Get list of active control names."""
         controls = []
         for field_name, value in self.model_dump().items():
-            # Include controls that are not NONE type
             if field_name.endswith("_type") and value != "none":
                 controls.append(field_name.replace("_type", ""))
             elif field_name.endswith("_maturity") and value != "none":
@@ -316,7 +295,6 @@ class SecurityControlsConfig(BaseModel):
             ):
                 controls.append(field_name)
 
-        # Add patch management
         cadence = self.get_patch_cadence()
         if cadence != "ad_hoc":
             controls.append(f"patch_{cadence}")
@@ -329,21 +307,9 @@ class SecurityControlsConfig(BaseModel):
 
 
 class SecurityControlsGenerator:
-    """Generates realistic security control configurations based on:
-    - Organization size
-    - Industry
-    - Security maturity level
-    - Environment type (dev/test/prod)
-    """
+    """Generates realistic security control configurations."""
 
     def __init__(self, probabilities: ControlProbabilities | None = None) -> None:
-        """Initialize the generator.
-
-        Args:
-            probabilities: Optional custom control probabilities.
-                          If None, uses research-derived defaults.
-
-        """
         self.probabilities = probabilities or ControlProbabilities()
 
     def generate(
@@ -353,40 +319,21 @@ class SecurityControlsGenerator:
         environment: str = "prod",
         size: str = "mid",
     ) -> SecurityControlsConfig:
-        """Generate security controls configuration.
-
-        Args:
-            maturity: Security maturity level
-            industry: Industry type (financial-services, healthcare, retail, etc.)
-            environment: Environment type (dev, test, stage, prod)
-            size: Organization size (small, mid, large)
-
-        Returns:
-            SecurityControlsConfig with generated controls
-
-        """
+        """Generate security controls configuration."""
         if isinstance(maturity, str):
             maturity = SecurityMaturityLevel(maturity.lower())
 
         maturity_key = maturity.value
-
-        # Industry modifiers (some industries have regulatory requirements)
         industry_modifiers = self._get_industry_modifiers(industry)
-
-        # Environment modifiers (prod has more controls than dev)
         env_modifiers = self._get_environment_modifiers(environment)
-
-        # Size modifiers (larger orgs have more resources)
         size_modifiers = self._get_size_modifiers(size)
 
-        # Generate each control based on probability
-        controls = {}
+        controls: dict[str, Any] = {}
 
-        # Network Controls - with types
         controls["segmentation_type"] = select_segmentation_type(
             maturity_key,
             industry=industry,
-            exposure=None,  # Organization-level, not service-specific
+            exposure=None,
         )
 
         controls["firewall_type"] = select_firewall_type(
@@ -406,13 +353,11 @@ class SecurityControlsGenerator:
             industry=industry,
         )
 
-        # Endpoint Controls - with types
         controls["endpoint_protection_type"] = select_endpoint_type(
             maturity_key,
             industry=industry,
         )
 
-        # Access Controls - with types
         controls["mfa_type"] = select_mfa_type(
             maturity_key,
             industry=industry,
@@ -426,7 +371,6 @@ class SecurityControlsGenerator:
             size_modifiers.get("privileged_access_mgmt", 1.0),
         )
 
-        # Security Operations - with maturity levels
         controls["siem_maturity"] = select_siem_maturity(
             maturity_key,
             industry=industry,
@@ -440,7 +384,7 @@ class SecurityControlsGenerator:
         )
 
         controls["incident_response_plan"] = self._should_have_control(
-            0.3 if maturity_key == "initial" else 0.9,  # Most orgs have some plan
+            0.3 if maturity_key == "initial" else 0.9,
             industry_modifiers.get("incident_response_plan", 1.0),
             env_modifiers.get("incident_response_plan", 1.0),
             1.0,
@@ -453,13 +397,11 @@ class SecurityControlsGenerator:
             1.0,
         )
 
-        # Patch Management - with quality levels
         controls["patch_management_quality"] = select_patch_quality(
             maturity_key,
             industry=industry,
         )
 
-        # Air-gapped (rare, usually only for critical infrastructure)
         controls["air_gapped"] = self._should_have_control(
             0.01 if industry not in ("critical-infrastructure", "defense") else 0.2,
             1.0,
@@ -489,11 +431,9 @@ class SecurityControlsGenerator:
             "quarterly": self.probabilities.patch_quarterly[maturity_key],
         }
 
-        # Normalize probabilities
         total = sum(probs.values())
         normalized = {k: v / total for k, v in probs.items()}
 
-        # Random selection
         r = random.random()
         cumulative = 0.0
         for cadence, prob in normalized.items():
@@ -501,7 +441,7 @@ class SecurityControlsGenerator:
             if r < cumulative:
                 return cadence
 
-        return "monthly"  # Default fallback
+        return "monthly"
 
     def _get_industry_modifiers(self, industry: str) -> dict[str, float]:
         """Get industry-specific probability modifiers."""
@@ -601,70 +541,59 @@ class SecurityControlsGenerator:
 
 
 class ExposureBasedControlProbabilities:
-    """Control probabilities adjusted by exposure type.
+    """Control probabilities adjusted by exposure type."""
 
-    Rationale:
-    - Internet-facing: Maximum protection required (WAF mandatory, strong perimeter)
-    - DMZ: High protection (buffer zone, most controls active)
-    - Internal: Variable protection (often under-protected, basic controls)
-    - Restricted: High protection (sensitive data, strict access)
-    """
-
-    # Probability multipliers by exposure type
-    # Values > 1.0 increase probability, < 1.0 decrease
     EXPOSURE_MODIFIERS: dict[str, dict[str, float]] = {
         "internet-facing": {
-            "firewall": 1.0,  # Always (base prob already high)
-            "waf": 2.5,  # WAF is critical for internet-facing
-            "ids_ips": 1.5,  # Strong perimeter monitoring
-            "network_segmentation": 1.3,  # Isolate from internal
-            "mfa": 1.5,  # Mandatory for external access
-            "edr_xdr": 1.3,  # Enhanced endpoint protection
-            "antivirus": 1.0,  # Always
-            "privileged_access_mgmt": 1.2,  # Control admin access
-            "siem": 1.3,  # Monitor external threats
-            "soc_24x7": 1.2,  # 24/7 monitoring for external
+            "firewall": 1.0,
+            "waf": 2.5,
+            "ids_ips": 1.5,
+            "network_segmentation": 1.3,
+            "mfa": 1.5,
+            "edr_xdr": 1.3,
+            "antivirus": 1.0,
+            "privileged_access_mgmt": 1.2,
+            "siem": 1.3,
+            "soc_24x7": 1.2,
         },
         "dmz": {
-            "firewall": 1.0,  # Always
-            "waf": 2.0,  # Likely for web services in DMZ
-            "ids_ips": 1.4,  # Strong monitoring
-            "network_segmentation": 1.5,  # DMZ is segmentation by definition
-            "mfa": 1.3,  # Required for DMZ access
-            "edr_xdr": 1.2,  # Enhanced protection
-            "antivirus": 1.0,  # Always
-            "privileged_access_mgmt": 1.1,  # Control access
-            "siem": 1.2,  # Monitor DMZ activity
-            "soc_24x7": 1.0,  # Normal monitoring
+            "firewall": 1.0,
+            "waf": 2.0,
+            "ids_ips": 1.4,
+            "network_segmentation": 1.5,
+            "mfa": 1.3,
+            "edr_xdr": 1.2,
+            "antivirus": 1.0,
+            "privileged_access_mgmt": 1.1,
+            "siem": 1.2,
+            "soc_24x7": 1.0,
         },
         "internal": {
-            "firewall": 0.9,  # Usually present but may be relaxed
-            "waf": 0.3,  # Rarely needed for internal services
-            "ids_ips": 0.7,  # Often missing internally
-            "network_segmentation": 0.8,  # Often flat internal networks
-            "mfa": 0.7,  # Sometimes skipped internally
-            "edr_xdr": 0.8,  # May be present
-            "antivirus": 1.0,  # Always
-            "privileged_access_mgmt": 0.6,  # Often missing
-            "siem": 0.6,  # May not cover internal
-            "soc_24x7": 0.5,  # Less focus on internal
+            "firewall": 0.9,
+            "waf": 0.3,
+            "ids_ips": 0.7,
+            "network_segmentation": 0.8,
+            "mfa": 0.7,
+            "edr_xdr": 0.8,
+            "antivirus": 1.0,
+            "privileged_access_mgmt": 0.6,
+            "siem": 0.6,
+            "soc_24x7": 0.5,
         },
         "restricted": {
-            "firewall": 1.0,  # Always
-            "waf": 0.5,  # Only if web-based
-            "ids_ips": 1.3,  # Enhanced monitoring
-            "network_segmentation": 1.5,  # Strict isolation
-            "mfa": 1.5,  # Mandatory
-            "edr_xdr": 1.4,  # Enhanced protection
-            "antivirus": 1.0,  # Always
-            "privileged_access_mgmt": 1.5,  # Strict access control
-            "siem": 1.3,  # Full monitoring
-            "soc_24x7": 1.2,  # Enhanced monitoring
+            "firewall": 1.0,
+            "waf": 0.5,
+            "ids_ips": 1.3,
+            "network_segmentation": 1.5,
+            "mfa": 1.5,
+            "edr_xdr": 1.4,
+            "antivirus": 1.0,
+            "privileged_access_mgmt": 1.5,
+            "siem": 1.3,
+            "soc_24x7": 1.2,
         },
     }
 
-    # Minimum controls that MUST be present for each exposure type
-    # These override probability-based selection
     MANDATORY_CONTROLS: dict[str, list[str]] = {
         "internet-facing": ["firewall", "waf", "antivirus"],
         "dmz": ["firewall", "antivirus", "network_segmentation"],
@@ -688,26 +617,13 @@ class ExposureBasedControlProbabilities:
 
 
 class ServiceSecurityControlsGenerator:
-    """Generates security controls for individual services based on their exposure.
-
-    This provides more realistic control distributions where:
-    - Internet-facing services have WAF, strong MFA, enhanced monitoring
-    - Internal services have basic controls only
-    - Restricted services have strict access controls
-    """
+    """Generates security controls for individual services based on their exposure."""
 
     def __init__(
         self,
         base_generator: SecurityControlsGenerator | None = None,
         base_maturity: SecurityMaturityLevel | str = SecurityMaturityLevel.DEFINED,
     ) -> None:
-        """Initialize the service-level generator.
-
-        Args:
-            base_generator: Base generator for organization-wide controls
-            base_maturity: Base security maturity level
-
-        """
         self.base_generator = base_generator or SecurityControlsGenerator()
         if isinstance(base_maturity, str):
             base_maturity = SecurityMaturityLevel(base_maturity.lower())
@@ -722,29 +638,14 @@ class ServiceSecurityControlsGenerator:
         environment: str = "prod",
         size: str = "mid",
     ) -> dict[str, bool]:
-        """Generate security controls for a specific service.
-
-        Args:
-            exposure: Service exposure (internet-facing, dmz, internal, restricted)
-            service_role: Role of the service (web_server, database, cache, etc.)
-            asset_value: Value of the asset (critical, high, medium, low)
-            industry: Industry type
-            environment: Environment type (dev, test, prod)
-            size: Organization size
-
-        Returns:
-            Dictionary of control name -> bool
-
-        """
+        """Generate security controls for a specific service."""
         maturity_key = self.base_maturity.value
         probabilities = self.base_generator.probabilities
 
-        # Get base modifiers
         industry_mods = self.base_generator._get_industry_modifiers(industry)
         env_mods = self.base_generator._get_environment_modifiers(environment)
         size_mods = self.base_generator._get_size_modifiers(size)
 
-        # Get exposure-based modifiers
         exposure_mods = {
             ctrl: ExposureBasedControlProbabilities.get_modifier(exposure, ctrl)
             for ctrl in [
@@ -761,15 +662,11 @@ class ServiceSecurityControlsGenerator:
             ]
         }
 
-        # Asset value modifiers (critical assets get more protection)
         asset_mods = self._get_asset_value_modifiers(asset_value)
-
-        # Service role modifiers (databases get more access control, etc.)
         role_mods = self._get_service_role_modifiers(service_role)
 
         controls = {}
 
-        # Generate each control
         control_configs = [
             ("network_segmentation", probabilities.network_segmentation),
             ("firewall", probabilities.firewall),
@@ -785,8 +682,6 @@ class ServiceSecurityControlsGenerator:
 
         for control_name, base_probs in control_configs:
             base_prob = base_probs[maturity_key]
-
-            # Apply all modifiers
             adjusted_prob = base_prob
             adjusted_prob *= industry_mods.get(control_name, 1.0)
             adjusted_prob *= env_mods.get(control_name, 1.0)
@@ -794,19 +689,14 @@ class ServiceSecurityControlsGenerator:
             adjusted_prob *= exposure_mods.get(control_name, 1.0)
             adjusted_prob *= asset_mods.get(control_name, 1.0)
             adjusted_prob *= role_mods.get(control_name, 1.0)
-
-            # Cap at 99%
             adjusted_prob = min(0.99, adjusted_prob)
-
             controls[control_name] = random.random() < adjusted_prob
 
-        # Apply mandatory controls for exposure type
         mandatory = ExposureBasedControlProbabilities.get_mandatory_controls(exposure)
         for ctrl in mandatory:
             if ctrl in controls:
                 controls[ctrl] = True
 
-        # Add other controls with fixed probabilities
         controls["incident_response_plan"] = random.random() < (
             0.3 if maturity_key == "initial" else 0.8
         )
@@ -814,14 +704,12 @@ class ServiceSecurityControlsGenerator:
             0.2 if maturity_key == "initial" else 0.6
         )
 
-        # Patch management
         patch_cadence = self.base_generator._select_patch_cadence(maturity_key)
         controls["patch_daily"] = patch_cadence == "daily"
         controls["patch_weekly"] = patch_cadence == "weekly"
         controls["patch_monthly"] = patch_cadence == "monthly"
         controls["patch_quarterly"] = patch_cadence == "quarterly"
 
-        # Air-gapped (only for restricted + critical infrastructure)
         controls["air_gapped"] = (
             exposure == "restricted"
             and industry in ("critical-infrastructure", "defense")
@@ -848,7 +736,7 @@ class ServiceSecurityControlsGenerator:
                 "edr_xdr": 1.2,
                 "siem": 1.2,
             },
-            "medium": {},  # No modification
+            "medium": {},
             "low": {
                 "siem": 0.7,
                 "soc_24x7": 0.5,
@@ -890,20 +778,9 @@ class ServiceSecurityControlsGenerator:
 
 
 def estimate_maturity_from_posture(posture: dict[str, Any]) -> SecurityMaturityLevel:
-    """Estimate security maturity level from existing security posture dict.
-
-    This is used to convert legacy security_posture dicts to maturity levels.
-
-    Args:
-        posture: Legacy security_posture dictionary
-
-    Returns:
-        Estimated SecurityMaturityLevel
-
-    """
+    """Estimate security maturity level from existing security posture dict."""
     score = 0
 
-    # Check various indicators
     if posture.get("network_segmentation"):
         score += 2
     if posture.get("mfa_enforced"):
@@ -915,7 +792,6 @@ def estimate_maturity_from_posture(posture: dict[str, Any]) -> SecurityMaturityL
     if posture.get("security_training"):
         score += 1
 
-    # Check patch management
     patch_mgmt = posture.get("patch_management", "monthly")
     if patch_mgmt == "daily":
         score += 3
@@ -924,11 +800,9 @@ def estimate_maturity_from_posture(posture: dict[str, Any]) -> SecurityMaturityL
     elif patch_mgmt == "monthly":
         score += 1
 
-    # Check compliance standards
     standards = posture.get("compliance_standards", [])
     score += len(standards)
 
-    # Map score to maturity
     if score >= 10:
         return SecurityMaturityLevel.OPTIMIZING
     if score >= 7:

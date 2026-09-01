@@ -1,0 +1,14 @@
+# Bandit configuration (YAML).
+#
+# B311 (pseudo-random generator): the simulation subsystem uses `random`
+# deliberately - it models stochastic security postures, not cryptography.
+# B404/B603 (subprocess): src/services/scanner.py restricts the binary to an
+# allowlist and validates image refs against a strict regex (no shell).
+# B608 (SQL string construction): src/data/stores/duckdb_store.py interpolates
+# only table names validated against ^[a-zA-Z_][a-zA-Z0-9_]*$.
+# Ruff enforces the same rules (S311/S602-S608) with per-file ignores.
+skips:
+  - B311
+  - B404
+  - B603
+  - B608

@@ -1,11 +1,6 @@
-"""Application templates for real-world multi-component applications.
+"""Application templates for real-world multi-component applications."""
 
-This module loads realistic application architectures from YAML configuration
-that group services into cohesive applications, enabling kill-chain analysis
-across components.
-"""
-
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -16,7 +11,7 @@ from src.utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class ApplicationType(str, Enum):
+class ApplicationType(StrEnum):
     """Types of real-world applications."""
 
     ECOMMERCE = "ecommerce"
@@ -27,19 +22,19 @@ class ApplicationType(str, Enum):
     DATA_ANALYTICS = "data_analytics"
 
 
-class ComponentRole(str, Enum):
+class ComponentRole(StrEnum):
     """Roles of components within an application."""
 
-    INGRESS = "ingress"  # Entry point (nginx, load balancer)
-    FRONTEND = "frontend"  # Web server, UI
-    BACKEND = "backend"  # API server, business logic
-    DATABASE = "database"  # Data persistence
-    CACHE = "cache"  # Redis, Memcached
-    MESSAGING = "messaging"  # RabbitMQ, Kafka
-    PAYMENT = "payment"  # Payment processing
-    AUTH = "auth"  # Authentication/authorization
-    MONITORING = "monitoring"  # Observability
-    CICD = "cicd"  # CI/CD pipeline
+    INGRESS = "ingress"
+    FRONTEND = "frontend"
+    BACKEND = "backend"
+    DATABASE = "database"
+    CACHE = "cache"
+    MESSAGING = "messaging"
+    PAYMENT = "payment"
+    AUTH = "auth"
+    MONITORING = "monitoring"
+    CICD = "cicd"
 
 
 class ApplicationComponent(BaseModel):
@@ -47,11 +42,11 @@ class ApplicationComponent(BaseModel):
 
     name: str
     role: ComponentRole
-    service_category: str  # Maps to services.yaml categories
-    exposure: str = "internal"  # internet-facing, dmz, internal, restricted
-    asset_value: str = "medium"  # critical, high, medium, low
-    required: bool = True  # Whether component is required for app to function
-    depends_on: list[str] = Field(default_factory=list)  # Component dependencies
+    service_category: str
+    exposure: str = "internal"
+    asset_value: str = "medium"
+    required: bool = True
+    depends_on: list[str] = Field(default_factory=list)
 
 
 class ApplicationTemplate(BaseModel):
@@ -61,35 +56,21 @@ class ApplicationTemplate(BaseModel):
     type: ApplicationType
     description: str
     components: list[ApplicationComponent]
-    kill_chain_stages: dict[str, list[str]] = Field(
-        default_factory=dict
-    )  # Stage -> component roles
-    data_flow: list[tuple[str, str]] = Field(
-        default_factory=list
-    )  # (source, destination) pairs
+    kill_chain_stages: dict[str, list[str]] = Field(default_factory=dict)
+    data_flow: list[tuple[str, str]] = Field(default_factory=list)
 
 
 def _load_application_templates(
     config_path: str = "config/services.yaml",
 ) -> dict[str, ApplicationTemplate]:
-    """Load application templates from YAML configuration.
-
-    Args:
-        config_path: Path to YAML configuration file
-
-    Returns:
-        Dictionary mapping application type to ApplicationTemplate
-
-    """
+    """Load application templates from YAML configuration."""
     config_file = Path(config_path)
 
-    # Try relative to current directory first
     if not config_file.exists():
-        # Try relative to project root
         current_dir = Path(__file__).parent.parent.parent
         config_file = current_dir / config_path
         if not config_file.exists():
-            logger.warning(f"Config file not found at {config_path}")
+            logger.warning("Config file not found at %s", config_path)
             return {}
 
     try:
@@ -105,7 +86,6 @@ def _load_application_templates(
         templates = {}
         for app_key, app_data in applications_config.items():
             try:
-                # Parse components
                 components = []
                 for comp_data in app_data.get("components", []):
                     component = ApplicationComponent(
@@ -119,13 +99,9 @@ def _load_application_templates(
                     )
                     components.append(component)
 
-                # Parse kill-chain stages
                 kill_chain_stages = app_data.get("kill_chain_stages", {})
-
-                # Parse data flow
                 data_flow = [tuple(flow) for flow in app_data.get("data_flow", [])]
 
-                # Create template
                 template = ApplicationTemplate(
                     name=app_data["name"],
                     type=ApplicationType(app_data["type"]),
@@ -136,40 +112,31 @@ def _load_application_templates(
                 )
                 templates[app_key] = template
 
-            except Exception as e:
-                logger.error(
-                    f"Failed to parse application template '{app_key}': {e}",
-                    exc_info=True,
-                )
+            except Exception:
+                logger.exception("Failed to parse application template '%s'", app_key)
                 continue
 
-        logger.info(f"Loaded {len(templates)} application templates from {config_file}")
+        logger.info(
+            "Loaded %d application templates from %s", len(templates), config_file
+        )
         return templates
 
-    except Exception as e:
-        logger.error(f"Error loading application templates: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Error loading application templates")
         return {}
 
 
-# Load templates from YAML on module import
 _APPLICATION_TEMPLATES_CACHE: dict[str, ApplicationTemplate] | None = None
 
 
 def _get_templates() -> dict[str, ApplicationTemplate]:
-    """Get application templates, loading from YAML if not cached.
-
-    Returns:
-        Dictionary of application templates
-
-    """
+    """Get application templates, loading from YAML if not cached."""
     global _APPLICATION_TEMPLATES_CACHE
     if _APPLICATION_TEMPLATES_CACHE is None:
         _APPLICATION_TEMPLATES_CACHE = _load_application_templates()
     return _APPLICATION_TEMPLATES_CACHE
 
 
-# Legacy template constants for backward compatibility
-# These are now loaded from YAML but exposed as module-level variables
 def _get_ecommerce_template() -> ApplicationTemplate:
     templates = _get_templates()
     return templates.get(
@@ -250,14 +217,8 @@ def _get_data_analytics_template() -> ApplicationTemplate:
 DATA_ANALYTICS_APP = _get_data_analytics_template()
 
 
-# Template registry - now loaded from YAML
 def get_application_templates() -> dict[ApplicationType, ApplicationTemplate]:
-    """Get all application templates.
-
-    Returns:
-        Dictionary mapping ApplicationType to ApplicationTemplate
-
-    """
+    """Get all application templates."""
     templates = _get_templates()
     return {
         ApplicationType.ECOMMERCE: templates.get("ecommerce", ECOMMERCE_APP),
@@ -278,16 +239,7 @@ APPLICATION_TEMPLATES = get_application_templates()
 
 
 def get_template_for_industry(industry: str) -> ApplicationTemplate:
-    """Get appropriate application template based on industry.
-
-    Args:
-        industry: Industry type (on-line-store, financial-services, consulting, etc.)
-
-    Returns:
-        ApplicationTemplate for the industry
-
-    """
-    # Load industry mapping from YAML if available
+    """Get appropriate application template based on industry."""
     try:
         yaml = YAML(typ="safe")
         config_file = Path("config/services.yaml")
@@ -304,9 +256,8 @@ def get_template_for_industry(industry: str) -> ApplicationTemplate:
             if app_key in templates:
                 return templates[app_key]
     except Exception as e:
-        logger.debug(f"Could not load industry mapping from YAML: {e}")
+        logger.debug("Could not load industry mapping from YAML: %s", e)
 
-    # Fallback to hardcoded mapping
     industry_mapping = {
         "on-line-store": ApplicationType.ECOMMERCE,
         "financial-services": ApplicationType.FINANCIAL_SERVICES,
@@ -320,10 +271,5 @@ def get_template_for_industry(industry: str) -> ApplicationTemplate:
 
 
 def get_all_templates() -> list[ApplicationTemplate]:
-    """Get all available application templates.
-
-    Returns:
-        List of all ApplicationTemplate instances
-
-    """
+    """Get all available application templates."""
     return list(get_application_templates().values())

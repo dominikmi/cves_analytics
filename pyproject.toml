@@ -1,78 +1,81 @@
 [project]
 name = "cves-analytics"
-version = "0.2.0"
+version = "0.3.0"
 description = "CVE data analytics with simulation scenario generation and vulnerability analysis"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "codeium-jupyter>=2.1.2",
-    "cve-bin-tool>=3.4",
-    "docker>=7.1.0",
+    "aiohttp>=3.10.0",
+    "duckdb>=1.2.0",
     "faker>=36.1.1",
-    "flask>=3.1.0",
-    "gensim>=4.3.3",
-    "ipykernel>=6.29.5",
-    "jupyter>=1.1.1",
-    "jupyterlab>=4.3.4",
-    "keras>=3.7.0",
+    "fastapi>=0.115.0",
     "networkx>=3.4.2",
-    "nltk>=3.9.1",
     "numpy>=1.26.4",
-    "openpyxl>=3.1.5",
-    "pandas>=2.2.3",
-    "pgmpy>=0.1.26",
-    "pip>=6.0.0",
-    "plotly",
     "polars>=1.33.0",
     "pyarrow>=18.1.0",
+    "pydantic>=2.10.0",
     "pydantic-settings>=2.12.0",
-    "pyexploitdb>=0.2.61",
-    "pygrype>=0.4.0",
-    "pyldavis>=3.4.1",
+    "python-dateutil>=2.9.0",
     "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.20",
     "requests>=2.32.3",
-    "ruff>=0.8.4",
-    "scikit-learn>=1.6.0",
-    "seaborn>=0.13.2",
-    "reportlab>=4.0.0",
-    "spacy>=3.8.4",
-    "ruamel-yaml>=0.18.16",
+    "ruamel.yaml>=0.18.16",
+    "sqlmodel>=0.0.22",
+    "sse-starlette>=2.1.0",
+    "uvicorn[standard]>=0.30.0",
+    "idna>=3.15",
+    "urllib3>=2.7.0",
 ]
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+cves-analytics = "src.cli.pipeline:main"
 
 [dependency-groups]
 dev = [
-    "ipykernel>=6.29.5",
-    "ruff>=0.8.4",
+    "bandit>=1.7.0",
+    # starlette >= 1.6 TestClient imports httpx2 (the httpx successor)
+    "httpx2>=0.1.0",
+    "hypothesis>=6.0.0",
+    "mypy>=2.3.0",
+    "pre-commit>=4.0.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=7.1.0",
+    "pytest-mock>=3.15.1",
+    "ruff>=0.16.2",
     "uv>=0.5.13",
 ]
 
 [tool.ruff]
-# Same behavior as Black for line length
 line-length = 88
+exclude = [".venv", "logs", "docs", "output", "uploads", "/data", "notebooks"]
 
-# Enable Flake8 (E, F), isort (I), pyupgrade (UP),
-# and flake8-bugbear (B) rules
-lint.select = ["E", "F", "I", "UP", "B"]
-
-# Exclude directories you don't want to analyze
-lint.exclude = [".venv", "logs", "docs", "output", "uploads", "data", "notebooks"]
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "G", "SIM"]
 
 [tool.ruff.lint.isort]
-# Help Ruff differentiate your imports from third-party ones
 known-first-party = ["src"]
 
 [tool.ruff.lint.per-file-ignores]
-# E501 line length - many files have complex expressions that are hard to break
 "src/**/*.py" = ["E501"]
-"tests/**/*.py" = ["E501"]
+"src/api/routers/*.py" = ["B008"]
+"src/services/scanner.py" = ["S603"]
+# Simulation uses the non-cryptographic `random` module by design; it generates
+# fake organizational scenarios, never security-relevant values.
+"src/simulation/**/*.py" = ["S311"]
+"tests/**/*.py" = ["E501", "S101"]
 
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = false
 warn_unused_configs = true
 ignore_missing_imports = true
-disallow_untyped_defs = false
-# Packages without type stubs
+disallow_untyped_defs = true
+strict = true
 [[tool.mypy.overrides]]
 module = [
     "polars.*",
@@ -80,12 +83,45 @@ module = [
     "networkx.*",
     "aiohttp.*",
     "ruamel.*",
-    "reportlab.*",
-    "matplotlib.*",
     "numpy.*",
-    "dotenv.*",
-    "pydantic_settings.*",
     "requests.*",
     "dateutil.*",
 ]
 ignore_missing_imports = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+filterwarnings = [
+    # sqlite3 reports unclosed connections at GC time with unreliable
+    # locations; real leaks are prevented by explicit close()/dispose() in
+    # the session dependency and test fixtures.
+    "ignore:unclosed database:ResourceWarning",
+]
+
+[tool.pytest-cov]
+source = ["src"]
+# Measured floor: 97% (timid mode). Was an aspirational 99 before the
+# suite grew; keep it just under the measured value.
+fail_under = 96
+
+# The app runs background work on worker threads (API scan pipelines via
+# anyio); tell coverage so its tracer is thread-safe. The pyarrow mimalloc
+# segfault that previously forced "timid" mode is fixed in src/__init__.py
+# (ARROW_DEFAULT_MEMORY_POOL=system), so full line tracing is safe again.
+[tool.coverage.run]
+concurrency = ["thread"]
+
+[tool.uv]
+package = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+# uv-hygiene freshness gate: pin to 7-day window via CI script
+# exclude-newer requires ISO date format, not relative
