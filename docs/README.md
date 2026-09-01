@@ -168,25 +168,18 @@ No circular dependencies. Core engine has zero external dependencies beyond pola
 ## Data Flow
 
 ```mermaid
-flowchart LR
-    A[Profile\n(image list)] --> B[Scanner]
-    B --> C[Raw findings DF\n(cve_id, package, version, severity)]
-    C --> D[Enrichment Transformer]
-    D --> E[CVSS-BT join]
-    D --> F[EPSS join]
-    D --> G[KEV join]
-    D --> H[CWE join]
-    E --> I[Enriched DF\n(+ cvss_base_score, epss, cwe_id, ...)]
-    F --> I
-    G --> I
-    H --> I
-    I --> J[Bayesian Assessor]
-    J --> K[Scored DF\n(+ posterior_probability, risk_category)]
-    K --> L[Kill Chain Calculator]
-    L --> M[Final DF\n(+ kill_chain_probability)]
-    M --> N[(DuckDB findings)]
-    M --> O[Summary\n(severity counts, avg risk)]
-    O --> P[(SQLite ScanRun)]
+flowchart TD
+    profile["Profile<br/>image list"] --> scanner["Container scanner"]
+    scanner --> raw["Raw findings DataFrame<br/>CVE ID · package · version · severity"]
+    raw --> enrich["Enrichment transformer<br/>CVSS-BT · EPSS · KEV · CWE"]
+    enrich --> enriched["Enriched DataFrame<br/>CVSS score · EPSS · KEV status · CWE metadata"]
+    enriched --> assessor["Bayesian assessor"]
+    assessor --> scored["Scored DataFrame<br/>posterior probability · risk category"]
+    scored --> killchain["Kill chain calculator"]
+    killchain --> final["Final DataFrame<br/>kill chain probability"]
+    final --> findings[("DuckDB findings")]
+    final --> summary["Summary<br/>severity counts · average risk"]
+    summary --> scanrun[("SQLite ScanRun")]
 ```
 
 ### Column Evolution
