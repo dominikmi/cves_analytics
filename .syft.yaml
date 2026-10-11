@@ -1,0 +1,10 @@
+exclude:
+  - ./data/**
+  - ./db/**
+  - ./uploads/**
+  - ./logs/**
+  - ./output/**
+  - ./monte_carlo/**
+  - ./notebooks/**
+  - ./frontend/dist/**
+  - ./test_data/**
