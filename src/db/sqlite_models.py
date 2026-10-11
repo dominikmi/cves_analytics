@@ -39,6 +39,7 @@ class ProfileOut(ProfileBase):
     """Response model for profiles."""
 
     id: int | None = None
+    controls_snapshot: dict[str, Any] = Field(default_factory=dict)
     total_scans: int = 0
     created_at: str
     updated_at: str
@@ -48,6 +49,8 @@ class Profile(ProfileBase, table=True):
     """SQLite ORM model for environment profiles."""
 
     id: int | None = Field(default=None, primary_key=True)
+    controls_snapshot: dict[str, Any] = Field(default_factory=dict, sa_type=JSON)
+    scenario_snapshot: dict[str, Any] = Field(default_factory=dict, sa_type=JSON)
     scan_runs: list["ScanRun"] = Relationship(back_populates="profile")
     created_at: str = Field(default_factory=lambda: datetime.now(tz=UTC).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(tz=UTC).isoformat())
@@ -100,6 +103,20 @@ class Job(JobBase, table=True):
     error_message: str | None = None
 
 
+def _migrate(engine: Any) -> None:
+    """Apply lightweight SQLite column additions for existing databases."""
+    profile_columns = {
+        "controls_snapshot": "controls_snapshot JSON",
+        "scenario_snapshot": "scenario_snapshot JSON",
+    }
+    with engine.begin() as connection:
+        rows = connection.exec_driver_sql("PRAGMA table_info(profile)").fetchall()
+        existing = {row[1] for row in rows}
+        for column, ddl in profile_columns.items():
+            if column not in existing:
+                connection.exec_driver_sql(f"ALTER TABLE profile ADD COLUMN {ddl}")
+
+
 def get_engine() -> Any:
     """Get or create SQLite engine."""
     global _engine
@@ -111,6 +128,7 @@ def get_engine() -> Any:
             "sqlite:///analytics.db", connect_args={"check_same_thread": False}
         )
         SQLModel.metadata.create_all(_engine)
+        _migrate(_engine)
     return _engine
 
 

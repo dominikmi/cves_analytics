@@ -51,11 +51,11 @@ class DuckDBStore:
         self.close()
 
     def _execute(
-        self, sql: str, params: dict[str, Any] | None = None
+        self, sql: str, params: dict[str, Any] | list[Any] | None = None
     ) -> duckdb.DuckDBPyConnection:
         """Execute SQL on the shared connection under the thread lock."""
         with self._lock:
-            if params:
+            if params is not None:
                 return self._conn.execute(sql, params)
             return self._conn.execute(sql)
 
@@ -78,14 +78,14 @@ class DuckDBStore:
         with self._lock:
             if mode == "overwrite":
                 self._conn.execute(
-                    f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM df"  # noqa: S608
+                    f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM df"  # noqa: S608  # nosec B608 - table identifiers are regex-validated before interpolation
                 )
             else:
                 self._conn.execute(
-                    f"CREATE TABLE IF NOT EXISTS {name} AS SELECT * FROM df LIMIT 0"  # noqa: S608
+                    f"CREATE TABLE IF NOT EXISTS {name} AS SELECT * FROM df LIMIT 0"  # noqa: S608  # nosec B608 - table identifiers are regex-validated before interpolation
                 )
                 self._conn.execute(
-                    f"INSERT INTO {name} SELECT * FROM df"  # noqa: S608
+                    f"INSERT INTO {name} SELECT * FROM df"  # noqa: S608  # nosec B608 - table identifiers are regex-validated before interpolation
                 )
         logger.info("Wrote %d rows to table '%s' (%s)", len(df), name, mode)
 
@@ -99,7 +99,107 @@ class DuckDBStore:
             Polars DataFrame.
         """
         _validate_table_name(name)
-        return self._execute(f"SELECT * FROM {name}").pl()  # noqa: S608
+        return self._execute(f"SELECT * FROM {name}").pl()  # noqa: S608  # nosec B608 - table identifiers are regex-validated before interpolation
+
+    def _table_columns(self, name: str) -> set[str]:
+        """Return column names for an existing table."""
+        _validate_table_name(name)
+        rows = self._execute(f"PRAGMA table_info({name})").fetchall()  # noqa: S608  # nosec B608 - table identifiers are regex-validated before interpolation
+        return {str(row[1]) for row in rows}
+
+    @staticmethod
+    def _finding_filters(
+        run_id: int,
+        columns: set[str],
+        severity: str | None,
+        status: str | None,
+    ) -> tuple[str, list[Any]]:
+        """Build a parameterized findings filter against available columns."""
+        filters = ["run_id = ?"]
+        params: list[Any] = [run_id]
+
+        if severity:
+            severity_column = next(
+                (
+                    column
+                    for column in ("severity_reassessed", "severity")
+                    if column in columns
+                ),
+                None,
+            )
+            if severity_column is None:
+                filters.append("1 = 0")
+            else:
+                filters.append(f"LOWER({severity_column}) = LOWER(?)")
+                params.append(severity)
+
+        if status:
+            if "status" not in columns:
+                filters.append("1 = 0")
+            else:
+                filters.append("LOWER(status) = LOWER(?)")
+                params.append(status)
+
+        return " AND ".join(filters), params
+
+    def query_findings(
+        self,
+        run_id: int,
+        *,
+        limit: int = 500,
+        offset: int = 0,
+        severity: str | None = None,
+        status: str | None = None,
+    ) -> pl.DataFrame:
+        """Return findings for one scan run, optionally filtered."""
+        if not self.table_exists("findings"):
+            return pl.DataFrame()
+
+        columns = self._table_columns("findings")
+        where_clause, params = self._finding_filters(run_id, columns, severity, status)
+        order_column = next(
+            (
+                column
+                for column in ("cvss_score", "cvss_base_score", "cvss_bt_score")
+                if column in columns
+            ),
+            None,
+        )
+        order_clause = (
+            f" ORDER BY {order_column} DESC NULLS LAST" if order_column else ""
+        )
+        return self._execute(
+            f"SELECT * FROM findings WHERE {where_clause}{order_clause} LIMIT ? OFFSET ?",  # noqa: S608  # nosec B608 - clauses use schema-derived identifiers and bound parameters
+            [*params, limit, offset],
+        ).pl()
+
+    def count_findings(
+        self,
+        run_id: int,
+        *,
+        severity: str | None = None,
+        status: str | None = None,
+    ) -> int:
+        """Count findings for one scan run with the same filters as queries."""
+        if not self.table_exists("findings"):
+            return 0
+        where_clause, params = self._finding_filters(
+            run_id,
+            self._table_columns("findings"),
+            severity,
+            status,
+        )
+        count_sql = f"SELECT COUNT(*) FROM findings WHERE {where_clause}"  # noqa: S608  # nosec B608 - schema-derived identifiers and bound parameters
+        row = self._execute(count_sql, params).fetchone()
+        return int(row[0]) if row else 0
+
+    def delete_findings(self, run_id: int) -> int:
+        """Delete all stored findings for one scan run."""
+        if not self.table_exists("findings"):
+            return 0
+        count = self.count_findings(run_id)
+        self._execute("DELETE FROM findings WHERE run_id = ?", [run_id])
+        return count
 
     def execute(self, sql: str, params: dict[str, Any] | None = None) -> pl.DataFrame:
         """Execute an arbitrary SQL query.
@@ -124,7 +224,8 @@ class DuckDBStore:
         """
         _validate_table_name(name)
         result = self._execute(
-            f"SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{name}'"  # noqa: S608
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?",
+            [name],
         ).fetchone()
         return result[0] > 0 if result else False
 

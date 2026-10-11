@@ -1,14 +1,22 @@
-"""Scan management router."""
+"""Scan management and findings router."""
 
 import uuid
 from datetime import UTC, datetime
 from queue import Queue
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    status,
+)
 from sqlmodel import Session, select
 
 from src.api.dependencies import job_queues, session_dep
+from src.api.schemas import FindingsPage, finding_from_row
 from src.data.stores.duckdb_store import DuckDBStore
 from src.db.sqlite_models import (
     Job,
@@ -37,6 +45,24 @@ def _job_id_for(session: Session, scan_run: ScanRun) -> str | None:
     return job.job_id if job else None
 
 
+def _scan_run_out(session: Session, scan_run: ScanRun) -> ScanRunOut:
+    """Map a scan run ORM object to its API response model."""
+    return ScanRunOut(
+        id=scan_run.id,
+        profile_id=scan_run.profile_id,
+        status=scan_run.status,
+        job_id=_job_id_for(session, scan_run),
+        epss_vintage=scan_run.epss_vintage,
+        cve_vintage=scan_run.cve_vintage,
+        severity_counts=scan_run.severity_counts,
+        avg_bayesian_risk=scan_run.avg_bayesian_risk,
+        error_message=scan_run.error_message,
+        report_path=scan_run.report_path,
+        started_at=scan_run.started_at,
+        completed_at=scan_run.completed_at,
+    )
+
+
 @router.get("/{profile_id}/scans", response_model=list[ScanRunOut])
 def list_scans(  # noqa: B008
     profile_id: int, session: Session = Depends(session_dep)
@@ -47,23 +73,7 @@ def list_scans(  # noqa: B008
         raise HTTPException(status_code=404, detail="Profile not found")
 
     runs = session.exec(select(ScanRun).where(ScanRun.profile_id == profile_id)).all()
-    return [
-        ScanRunOut(
-            id=r.id,
-            profile_id=r.profile_id,
-            status=r.status,
-            job_id=_job_id_for(session, r),
-            epss_vintage=r.epss_vintage,
-            cve_vintage=r.cve_vintage,
-            severity_counts=r.severity_counts,
-            avg_bayesian_risk=r.avg_bayesian_risk,
-            error_message=r.error_message,
-            report_path=r.report_path,
-            started_at=r.started_at,
-            completed_at=r.completed_at,
-        )
-        for r in runs
-    ]
+    return [_scan_run_out(session, run) for run in runs]
 
 
 @router.post(
@@ -109,14 +119,7 @@ def trigger_scan(  # noqa: B008
         duckdb_store=duckdb_store,
     )
 
-    return ScanRunOut(
-        id=scan_run.id,
-        profile_id=scan_run.profile_id,
-        status=scan_run.status,
-        job_id=job.job_id,
-        started_at=scan_run.started_at,
-        completed_at=scan_run.completed_at,
-    )
+    return _scan_run_out(session, scan_run)
 
 
 @router.get("/{profile_id}/scans/{run_id}", response_model=ScanRunOut)
@@ -130,19 +133,93 @@ def get_scan(  # noqa: B008
     if not scan_run or scan_run.profile_id != profile_id:
         raise HTTPException(status_code=404, detail="Scan run not found")
 
-    return ScanRunOut(
-        id=scan_run.id,
-        profile_id=scan_run.profile_id,
-        status=scan_run.status,
-        job_id=_job_id_for(session, scan_run),
-        epss_vintage=scan_run.epss_vintage,
-        cve_vintage=scan_run.cve_vintage,
-        severity_counts=scan_run.severity_counts,
-        avg_bayesian_risk=scan_run.avg_bayesian_risk,
-        error_message=scan_run.error_message,
-        report_path=scan_run.report_path,
-        started_at=scan_run.started_at,
-        completed_at=scan_run.completed_at,
+    return _scan_run_out(session, scan_run)
+
+
+@router.delete(
+    "/{profile_id}/scans/{run_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_scan(  # noqa: B008
+    profile_id: int,
+    run_id: int,
+    duckdb_store: DuckDBStore = Depends(_get_duckdb),
+    session: Session = Depends(session_dep),
+) -> None:
+    """Delete a completed scan run and its stored findings."""
+    scan_run = session.get(ScanRun, run_id)
+    if not scan_run or scan_run.profile_id != profile_id:
+        raise HTTPException(status_code=404, detail="Scan run not found")
+    if scan_run.status in {"PENDING", "RUNNING"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete an active scan run",
+        )
+
+    job = session.exec(select(Job).where(Job.scan_run_id == run_id)).first()
+    if job:
+        job_queues.remove(job.job_id)
+        session.delete(job)
+
+    session.delete(scan_run)
+    session.flush()
+    deleted_findings = duckdb_store.delete_findings(run_id)
+    session.commit()
+    logger.info(
+        "Deleted scan run %d for profile %d (%d findings)",
+        run_id,
+        profile_id,
+        deleted_findings,
+    )
+
+
+@router.get(
+    "/{profile_id}/scans/{run_id}/findings",
+    response_model=FindingsPage,
+)
+def get_findings(  # noqa: B008
+    profile_id: int,
+    run_id: int,
+    duckdb_store: DuckDBStore = Depends(_get_duckdb),
+    session: Session = Depends(session_dep),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    severity: str | None = Query(default=None),
+    finding_status: str | None = Query(default=None, alias="status"),
+) -> FindingsPage:
+    """Return paginated findings for a scan run."""
+    scan_run = session.get(ScanRun, run_id)
+    if not scan_run or scan_run.profile_id != profile_id:
+        raise HTTPException(status_code=404, detail="Scan run not found")
+
+    findings = duckdb_store.query_findings(
+        run_id,
+        limit=limit,
+        offset=offset,
+        severity=severity,
+        status=finding_status,
+    )
+    total = duckdb_store.count_findings(
+        run_id,
+        severity=severity,
+        status=finding_status,
+    )
+    items = [
+        finding_from_row(
+            row,
+            profile_id=profile_id,
+            run_id=run_id,
+            index=offset + index,
+            epss_vintage=scan_run.epss_vintage,
+        )
+        for index, row in enumerate(findings.to_dicts())
+    ]
+    return FindingsPage(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        scan_run_id=run_id,
     )
 
 
@@ -151,10 +228,13 @@ def generate_scenario(  # noqa: B008
     profile_id: int,
     session: Session = Depends(session_dep),
 ) -> dict[str, Any]:
-    """Generate a simulated environment scenario for a profile."""
+    """Generate or return the durable environment scenario for a profile."""
     profile = session.get(Profile, profile_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
+
+    if profile.scenario_snapshot:
+        return profile.scenario_snapshot
 
     generator = ScenarioGenerator()
     scenario = generator.generate_scenario(
@@ -163,8 +243,13 @@ def generate_scenario(  # noqa: B008
         industry=profile.industry or "technology",
         environment_type=profile.environment or "prod",
     )
-
-    return scenario if isinstance(scenario, dict) else {"csv": scenario}
+    if isinstance(scenario, dict):
+        profile.scenario_snapshot = scenario
+        profile.updated_at = datetime.now(tz=UTC).isoformat()
+        session.add(profile)
+        session.commit()
+        return scenario
+    return {"csv": scenario}
 
 
 def _run_pipeline_background(

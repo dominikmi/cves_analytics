@@ -13,6 +13,11 @@ uv run cves-analytics --images nginx:latest
 
 # 3. Start the REST API
 uv run uvicorn src.api.main:create_app --factory --host 0.0.0.0 --port 8000
+
+# 4. Start the frontend (separate terminal)
+cd frontend
+npm ci
+npm run dev
 ```
 
 ## CLI
@@ -68,8 +73,15 @@ uv run uvicorn src.api.main:create_app --factory --host 0.0.0.0 --port 8000
 | `POST` | `/api/profiles/{id}/scans` | Trigger scan |
 | `GET` | `/api/profiles/{id}/scans` | List scan runs |
 | `GET` | `/api/profiles/{id}/scans/{run_id}` | Get scan details |
-| `POST` | `/api/profiles/{id}/generate-scenario` | Generate simulated environment |
+| `GET` | `/api/profiles/{id}/scans/{run_id}/findings` | Paginated findings (`limit`, `offset`, `severity`, `status`) |
+| `DELETE` | `/api/profiles/{id}/scans/{run_id}` | Delete a completed scan and its findings |
+| `POST` | `/api/profiles/{id}/generate-scenario` | Return the profile's durable scenario snapshot |
 | `GET` | `/api/stream/{job_id}` | SSE job status stream |
+
+Profile and scan IDs are integers. Scan statuses are `PENDING`, `RUNNING`,
+`DONE`, and `FAILED`. Profiles or scans cannot be deleted while a scan is
+active; deleting a profile removes its completed scan metadata and DuckDB
+findings.
 
 **Example workflow:**
 
@@ -95,7 +107,24 @@ curl -N http://localhost:8000/api/stream/<job_id>
 
 # Generate simulated environment scenario
 curl -X POST http://localhost:8000/api/profiles/1/generate-scenario
+
+# Read the first page of CRITICAL findings for scan run 3
+curl 'http://localhost:8000/api/profiles/1/scans/3/findings?severity=CRITICAL&limit=100&offset=0'
 ```
+
+## Optional RAG calibration
+
+The archived threat-intelligence calibration module is isolated in the `rag`
+dependency group and is not installed by default:
+
+```bash
+uv sync --group rag
+uv run python -m src.rag.cli status
+```
+
+Security note: `uv audit` currently reports unfixed ChromaDB advisories. Keep
+the group disabled unless the local RAG workflow is explicitly needed, and use
+`uv audit --no-group rag` for the core application dependency surface.
 
 ## Configuration
 
