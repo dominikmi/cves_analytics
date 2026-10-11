@@ -161,6 +161,7 @@ class TestProfileCrud:
         assert fetched["name"] == "e2e-profile"
         assert fetched["image_inventory"] == ["myapp:1.0", "web:2.0"]
         assert fetched["total_scans"] == 0
+        assert fetched["controls_snapshot"]["patch_management"]
 
         patched = client.patch(
             f"/api/profiles/{profile_id}", json={"image_inventory": ["solo:1.0"]}
@@ -222,6 +223,78 @@ class TestScanEndToEnd:
         runs = client.get(f"/api/profiles/{profile_id}/scans").json()
         assert runs[0]["job_id"] == job_id
 
+    def test_findings_endpoint_filters_and_deletes_scan(
+        self, client: TestClient, stub_pipeline: None
+    ) -> None:
+        """Stored findings are queryable and removed with the scan run."""
+        profile = _create_profile(client)
+        profile_id = profile["id"]
+        run_id = client.post(f"/api/profiles/{profile_id}/scans").json()["id"]
+        _wait_for_status(client, profile_id, run_id, "DONE")
+
+        findings = client.get(
+            f"/api/profiles/{profile_id}/scans/{run_id}/findings",
+            params={"severity": "critical", "limit": 10, "offset": 0},
+        )
+        assert findings.status_code == 200, findings.text
+        page = findings.json()
+        assert page["total"] == 1
+        assert page["scan_run_id"] == run_id
+        assert page["items"][0]["cve_id"] == "CVE-2024-5678"
+        assert page["items"][0]["scan_run_id"] == run_id
+        assert page["items"][0]["bayesian_risk"] is not None
+
+        deleted = client.delete(f"/api/profiles/{profile_id}/scans/{run_id}")
+        assert deleted.status_code == 204
+        assert (
+            client.get(f"/api/profiles/{profile_id}/scans/{run_id}").status_code == 404
+        )
+
+        from src.api.main import _get_duckdb_store
+
+        assert _get_duckdb_store().count_findings(run_id) == 0
+
+    def test_active_scan_cannot_be_deleted(
+        self, client: TestClient, isolated_db: None
+    ) -> None:
+        """Deleting a running scan returns a conflict instead of corrupting it."""
+        profile = _create_profile(client)
+        session = sqlite_models.get_session()
+        try:
+            run = ScanRun(profile_id=profile["id"], status="RUNNING")
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+            run_id = run.id
+        finally:
+            session.close()
+
+        assert (
+            client.delete(f"/api/profiles/{profile['id']}/scans/{run_id}").status_code
+            == 409
+        )
+        assert client.delete(f"/api/profiles/{profile['id']}").status_code == 409
+
+    def test_delete_profile_removes_scan_metadata_and_findings(
+        self, client: TestClient, stub_pipeline: None
+    ) -> None:
+        """Deleting a profile also removes its scan runs, jobs, and findings."""
+        profile = _create_profile(client)
+        profile_id = profile["id"]
+        scan = client.post(f"/api/profiles/{profile_id}/scans").json()
+        run_id = scan["id"]
+        job_id = scan["job_id"]
+        _wait_for_status(client, profile_id, run_id, "DONE")
+
+        from src.api.main import _get_duckdb_store
+
+        assert _get_duckdb_store().count_findings(run_id) > 0
+
+        assert client.delete(f"/api/profiles/{profile_id}").status_code == 204
+        assert _get_duckdb_store().count_findings(run_id) == 0
+        assert client.get(f"/api/profiles/{profile_id}").status_code == 404
+        assert client.get(f"/api/stream/{job_id}").status_code == 404
+
     def test_scan_failure_is_recorded(
         self, client: TestClient, stub_pipeline: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -264,6 +337,15 @@ class TestScenarioEndpoint:
         body = resp.json()
         assert body["metadata"]["industry"] == "on-line-store"
         assert len(body["services"]) > 0
+
+    def test_generate_scenario_reuses_profile_snapshot(
+        self, client: TestClient
+    ) -> None:
+        """A profile's generated scenario is stable across requests."""
+        profile = _create_profile(client)
+        first = client.post(f"/api/profiles/{profile['id']}/generate-scenario").json()
+        second = client.post(f"/api/profiles/{profile['id']}/generate-scenario").json()
+        assert second == first
 
     def test_generate_scenario_unknown_profile_404(self, client: TestClient) -> None:
         assert client.post("/api/profiles/999/generate-scenario").status_code == 404

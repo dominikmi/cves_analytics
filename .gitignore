@@ -14,10 +14,21 @@ wheels/
 .coverage
 
 # security output
-.security-output
+.security-output/
 
 # Runtime reference data
 /data/
+/db/
+/logs/
+/output/
+/uploads/
+/monte_carlo/
+/notebooks/
+/test_data/
+
+# Frontend runtime/build artifacts
+/frontend/node_modules/
+/frontend/dist/
 
 # Local agent and generated graph state
 /.opencode/

@@ -153,6 +153,8 @@ class VulnerabilityAssessmentPipeline:
             logger.warning("Missing cvss_base_score or epss, skipping Bayesian risk")
             return df
 
+        df = self._apply_profile_controls(df)
+
         # Map column names to assess_vulnerabilities_bayesian expectations
         df = df.rename({"cvss_base_score": "cvss_score"})
         if "epss" in df.columns:
@@ -163,6 +165,38 @@ class VulnerabilityAssessmentPipeline:
             df = df.with_columns(pl.col("cvss_base_vector").alias("cvss_vector"))
 
         df = assess_vulnerabilities_bayesian(df)
+        return df
+
+    def _apply_profile_controls(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Attach the profile's durable controls to each finding row."""
+        controls = self.profile.controls_snapshot or {}
+        patch_cadence = str(controls.get("patch_management") or "")
+        control_values = {
+            "firewall": bool(controls.get("firewall")),
+            "ids_ips": bool(controls.get("ids_ips")),
+            "waf": bool(controls.get("waf")),
+            "patching": bool(patch_cadence and patch_cadence != "ad_hoc"),
+            "mfa": bool(controls.get("mfa")),
+            "encryption": bool(controls.get("encryption")),
+            "access_control": bool(
+                controls.get("access_control")
+                or controls.get("privileged_access_mgmt")
+                or controls.get("network_segmentation")
+            ),
+            "monitoring": bool(
+                controls.get("monitoring")
+                or controls.get("edr_xdr")
+                or controls.get("siem")
+                or controls.get("soc_24x7")
+            ),
+        }
+        for field, enabled in control_values.items():
+            if field not in df.columns:
+                df = df.with_columns(pl.lit(enabled).alias(field))
+            else:
+                df = df.with_columns(
+                    pl.coalesce(pl.col(field), pl.lit(enabled)).alias(field)
+                )
         return df
 
     def _analyze_attack_paths(self, df: pl.DataFrame) -> pl.DataFrame:

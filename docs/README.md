@@ -389,10 +389,10 @@ In-process OLAP store for analytical queries over findings DataFrames. Supports 
 ## Testing
 
 ```bash
-# Unit tests (388)
+# Unit tests (403)
 uv run pytest tests/unit/
 
-# Functional + integration tests (37)
+# Functional + integration tests (41)
 uv run pytest tests/functional/ tests/integration/
 
 # All tests with coverage (fail_under lives in pyproject.toml)

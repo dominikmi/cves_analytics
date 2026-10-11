@@ -49,6 +49,10 @@ dev = [
     "ruff>=0.16.2",
     "uv>=0.5.13",
 ]
+rag = [
+    "chromadb>=1.0.0",
+    "pymupdf4llm>=0.0.17",
+]
 
 [tool.ruff]
 line-length = 88
@@ -118,6 +122,8 @@ concurrency = ["thread"]
 
 [tool.uv]
 package = true
+# Keep dependency resolution behind the rolling 7-day supply-chain freshness window.
+exclude-newer = "P7D"
 
 [tool.setuptools.packages.find]
 where = ["."]
