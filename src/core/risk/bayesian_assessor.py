@@ -604,6 +604,12 @@ def assess_vulnerabilities_bayesian(
         "monitoring",
     ]
 
+    def _num(row: dict[str, Any], key: str, default: float) -> float:
+        # dict.get defaults apply only to missing keys; enrichment leaves
+        # unmatched fields as None, which float() rejects.
+        value = row.get(key)
+        return default if value is None else float(value)
+
     def _row_assess(row: dict[str, Any]) -> dict[str, Any]:
         controls = SecurityControlsInput(
             **{ctrl: bool(row.get(ctrl, False)) for ctrl in control_fields}
@@ -611,15 +617,15 @@ def assess_vulnerabilities_bayesian(
         threats = ThreatIndicatorsInput(
             active_exploitation=bool(row.get("active_exploitation", False)),
             exploit_available=bool(row.get("exploit_available", False)),
-            threat_intel_confidence=float(row.get("threat_intel_confidence", 0.0)),
+            threat_intel_confidence=_num(row, "threat_intel_confidence", 0.0),
         )
         result = assessor.assess(
-            cvss_score=float(row.get("cvss_score", 0.0)),
-            epss_score=float(row.get("epss_score", 0.0)),
-            cvss_vector=str(row.get("cvss_vector", "")),
+            cvss_score=_num(row, "cvss_score", 0.0),
+            epss_score=_num(row, "epss_score", 0.0),
+            cvss_vector=str(row.get("cvss_vector") or ""),
             controls=controls,
             threats=threats,
-            asset_criticality=float(row.get("asset_criticality", 0.5)),
+            asset_criticality=_num(row, "asset_criticality", 0.5),
         )
         return {
             "posterior_probability": result.posterior_probability,
