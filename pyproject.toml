@@ -50,7 +50,10 @@ dev = [
     "uv>=0.5.13",
 ]
 rag = [
-    "chromadb>=1.0.0",
+    # Qdrant local mode replaces ChromaDB (8 unfixable CVEs in chromadb 1.5.9)
+    "qdrant-client[fastembed]>=1.19.1,<2",
+    # Pinned below 0.9: 0.9.0 was published <7 days ago
+    "fastembed>=0.8.1,<0.9",
     "pymupdf4llm>=0.0.17",
 ]
 

@@ -44,7 +44,7 @@ def _setup_logging(level: str) -> None:
 
 
 def cmd_ingest(args: argparse.Namespace, config: RAGConfig) -> int:
-    """Ingest threat intelligence documents into ChromaDB.
+    """Ingest threat intelligence documents into the vector store.
 
     Args:
         args: Parsed CLI arguments.
@@ -56,7 +56,10 @@ def cmd_ingest(args: argparse.Namespace, config: RAGConfig) -> int:
     doc_dir = Path(args.dir) if args.dir else config.documents_dir
 
     ingester = DocumentIngester(config)
-    total = ingester.ingest_directory(doc_dir)
+    try:
+        total = ingester.ingest_directory(doc_dir)
+    finally:
+        ingester.close()
 
     if total == 0:
         print(f"\nNo documents found in {doc_dir}")
@@ -75,7 +78,7 @@ def cmd_ingest(args: argparse.Namespace, config: RAGConfig) -> int:
         return 1
 
     print(f"\nIngested {total} chunks from {doc_dir}")
-    print(f"ChromaDB stored at: {config.chroma_persist_dir}")
+    print(f"Vector store at: {config.vector_store_dir}")
     return 0
 
 
@@ -144,7 +147,7 @@ def cmd_calibrate(args: argparse.Namespace, config: RAGConfig) -> int:
 
 
 def cmd_status(args: argparse.Namespace, config: RAGConfig) -> int:
-    """Check system status: ChromaDB, LLM, embeddings.
+    """Check system status: vector store, LLM, embeddings.
 
     Args:
         args: Parsed CLI arguments.
@@ -165,17 +168,20 @@ def cmd_status(args: argparse.Namespace, config: RAGConfig) -> int:
         print(f"[!!] Documents dir missing: {doc_dir}")
         issues += 1
 
-    # Check ChromaDB
-    if config.chroma_persist_dir.exists():
+    # Check vector store
+    if config.vector_store_dir.exists():
         try:
             retriever = ThreatIntelRetriever(config)
-            count = retriever.collection.count()
-            print(f"[OK] ChromaDB: {count} chunks in '{config.collection_name}'")
+            try:
+                count = retriever.doc_count()
+            finally:
+                retriever.close()
+            print(f"[OK] Vector store: {count} chunks in '{config.collection_name}'")
         except Exception as exc:
-            print(f"[!!] ChromaDB error: {exc}")
+            print(f"[!!] Vector store error: {exc}")
             issues += 1
     else:
-        print("[!!] ChromaDB not initialised (run ingest first)")
+        print("[!!] Vector store not initialised (run ingest first)")
         issues += 1
 
     # Check LLM endpoint
@@ -196,8 +202,8 @@ def cmd_status(args: argparse.Namespace, config: RAGConfig) -> int:
         print(f"[!!] LLM API unreachable at {config.llm_base_url}")
         issues += 1
 
-    # Embeddings handled by ChromaDB's built-in model (no external API needed)
-    print("[OK] Embeddings: ChromaDB built-in (no external API required)")
+    # Embeddings run locally via FastEmbed/ONNX (no external API needed)
+    print("[OK] Embeddings: FastEmbed local model (no external API required)")
 
     if issues:
         print(f"\n{issues} issue(s) found.")

@@ -1,7 +1,7 @@
 """Retrieval module for threat parameter calibration.
 
-Handles embedding queries, retrieving relevant chunks from ChromaDB,
-and formatting context for the LLM.
+Handles embedding queries, retrieving relevant chunks from an
+embedded Qdrant vector store, and formatting context for the LLM.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from src.rag.config import RAGConfig
 
 if TYPE_CHECKING:
-    from chromadb.api.models.Collection import Collection
+    from qdrant_client import QdrantClient
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class RetrievedChunk:
         source: Source document filename.
         page: Page number in source document.
         heading: Nearest section heading.
-        score: Cosine similarity score (0-1, higher is better).
+        score: Cosine similarity score (clamped to 0-1, higher is better).
     """
 
     text: str
@@ -46,35 +46,47 @@ class ThreatIntelRetriever:
 
     def __init__(self, config: RAGConfig | None = None) -> None:
         self.config = config or RAGConfig()
-        self._collection: Collection | None = None
+        self._client: QdrantClient | None = None
 
     @property
-    def collection(self) -> Collection:
-        """Lazy-initialise the ChromaDB collection (read-only)."""
-        if self._collection is None:
-            if not self.config.chroma_persist_dir.exists():
+    def client(self) -> QdrantClient:
+        """Lazy-initialise the embedded Qdrant client (read-mostly)."""
+        if self._client is None:
+            if not self.config.vector_store_dir.exists():
                 msg = (
-                    f"ChromaDB directory not found: {self.config.chroma_persist_dir}. "
+                    f"Vector store not found: {self.config.vector_store_dir}. "
                     "Run ingestion first."
                 )
                 raise FileNotFoundError(msg)
             try:
-                import chromadb
+                from qdrant_client import QdrantClient
             except ImportError as exc:
                 msg = "Install the optional RAG dependencies with: uv sync --group rag"
                 raise RuntimeError(msg) from exc
-            client = chromadb.PersistentClient(
-                path=str(self.config.chroma_persist_dir),
-            )
-            self._collection = client.get_collection(
-                name=self.config.collection_name,
-            )
+            client = QdrantClient(path=str(self.config.vector_store_dir))
+            if not client.collection_exists(self.config.collection_name):
+                msg = (
+                    f"Collection '{self.config.collection_name}' not found. "
+                    "Run ingestion first."
+                )
+                raise FileNotFoundError(msg)
+            self._client = client
             logger.info(
                 "Connected to collection '%s' (%d documents)",
                 self.config.collection_name,
-                self._collection.count(),
+                self.doc_count(),
             )
-        return self._collection
+        return self._client
+
+    def close(self) -> None:
+        """Release the embedded store's file lock."""
+        if self._client is not None:
+            self._client.close()
+            self._client = None
+
+    def doc_count(self) -> int:
+        """Return the number of stored chunks."""
+        return self.client.count(self.config.collection_name).count
 
     def retrieve(self, query: str, top_k: int | None = None) -> list[RetrievedChunk]:
         """Retrieve the most relevant chunks for a query.
@@ -86,36 +98,33 @@ class ThreatIntelRetriever:
         Returns:
             List of retrieved chunks sorted by relevance (best first).
         """
+        from qdrant_client import models
+
         k = top_k or self.config.top_k
 
-        results = self.collection.query(
-            query_texts=[query],
-            n_results=k,
-            include=["documents", "metadatas", "distances"],
-        )
+        points = self.client.query_points(
+            collection_name=self.config.collection_name,
+            query=models.Document(text=query, model=self.config.embedding_model),
+            limit=k,
+            with_payload=True,
+        ).points
 
         chunks: list[RetrievedChunk] = []
-        if not results or not results["documents"] or not results["documents"][0]:
+        if not points:
             logger.warning("No results for query: %s", query[:80])
             return chunks
 
-        documents = results["documents"][0]
-        metadatas = (
-            results["metadatas"][0] if results["metadatas"] else [{}] * len(documents)
-        )
-        distances = (
-            results["distances"][0] if results["distances"] else [1.0] * len(documents)
-        )
-
-        for doc, meta, dist in zip(documents, metadatas, distances, strict=False):
-            # ChromaDB cosine distance → similarity (1 - distance)
-            similarity = max(0.0, 1.0 - dist)
+        for point in points:
+            # Qdrant cosine score is already a similarity (higher is better)
+            similarity = max(0.0, min(1.0, float(point.score)))
+            meta = point.payload or {}
             source = meta.get("source")
             page = meta.get("page")
             heading = meta.get("heading")
+            text = meta.get("text")
             chunks.append(
                 RetrievedChunk(
-                    text=doc,
+                    text=text if isinstance(text, str) else "",
                     source=source if isinstance(source, str) else "unknown",
                     page=int(page) if isinstance(page, (int, float)) else 0,
                     heading=heading if isinstance(heading, str) else "",

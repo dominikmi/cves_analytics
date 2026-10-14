@@ -21,7 +21,7 @@ class RAGConfig(BaseSettings):
 
     Attributes:
         documents_dir: Directory containing threat intel PDFs/markdown.
-        chroma_persist_dir: Directory for ChromaDB persistent storage.
+        vector_store_dir: Directory for Qdrant embedded vector storage.
         output_dir: Directory for calibration YAML output.
         llm_base_url: OpenAI-compatible API base URL for generation (LM Studio).
         llm_model: Generation model name as shown in LM Studio.
@@ -32,7 +32,8 @@ class RAGConfig(BaseSettings):
         chunk_size: Target chunk size in characters.
         chunk_overlap: Overlap between consecutive chunks in characters.
         top_k: Number of chunks to retrieve per query.
-        collection_name: ChromaDB collection name.
+        collection_name: Vector store collection name.
+        embedding_model: FastEmbed model name for vectorisation.
     """
 
     model_config = SettingsConfigDict(
@@ -48,9 +49,9 @@ class RAGConfig(BaseSettings):
         default=Path("data/threat_intel"),
         description="Directory containing threat intel PDFs and markdown files",
     )
-    chroma_persist_dir: Path = Field(
-        default=Path("data/chroma_db"),
-        description="ChromaDB persistent storage directory",
+    vector_store_dir: Path = Field(
+        default=Path("data/qdrant_db"),
+        description="Qdrant embedded vector store directory",
     )
     output_dir: Path = Field(
         default=Path("output/calibration"),
@@ -114,7 +115,11 @@ class RAGConfig(BaseSettings):
     )
     collection_name: str = Field(
         default="threat_intel",
-        description="ChromaDB collection name",
+        description="Vector store collection name",
+    )
+    embedding_model: str = Field(
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        description="FastEmbed model used to vectorise chunks",
     )
 
     # Logging

@@ -22,7 +22,7 @@ from src.rag.retriever import RetrievedChunk, ThreatIntelRetriever
 def _config(tmp_path: Path) -> RAGConfig:
     return RAGConfig(
         documents_dir=tmp_path / "documents",
-        chroma_persist_dir=tmp_path / "chroma",
+        vector_store_dir=tmp_path / "qdrant",
         output_dir=tmp_path / "output",
         chunk_size=200,
         chunk_overlap=20,
@@ -87,7 +87,7 @@ def test_ingester_splits_markdown_by_headings_and_size(tmp_path: Path) -> None:
 
 
 def test_retriever_query_and_context_formatting(tmp_path: Path) -> None:
-    """Retrieval helpers produce cited context without ChromaDB."""
+    """Retrieval helpers produce cited context without the vector store."""
     retriever = ThreatIntelRetriever(_config(tmp_path))
     chunk = RetrievedChunk(
         text="23% of incidents involved the vector.",
@@ -236,7 +236,7 @@ def test_build_user_prompt_contains_finding_context_and_parameter() -> None:
 
 
 def test_cmd_calibrate_rejects_unknown_parameter(tmp_path: Path) -> None:
-    """The RAG CLI validates target dimensions before touching ChromaDB."""
+    """The RAG CLI validates target dimensions before touching the store."""
     args = type(
         "Args",
         (),
