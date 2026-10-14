@@ -1,9 +1,11 @@
-
-Based on my comprehensive review of the codebase, here's the **Vectorization & Code Quality Improvement Plan**:
-
----
-
 # Codebase Optimization Plan
+
+> **Status (2026-10-12): mostly superseded.** File paths below refer to the
+> pre-v0.3 layout (`src/core/*.py` flat modules); the current code lives in
+> `src/core/{cvss,risk,attack,data,models}/`. `to_dicts()` now appears only
+> 3 times (in `src/core/data/ingestion.py`, `src/api/routers/scans.py`,
+> `src/services/analysis.py`). Keep this document as a checklist of the
+> vectorization techniques; re-audit before applying.
 
 ## Overview
 
@@ -13,7 +15,7 @@ The codebase uses `to_dicts()` + row iteration in **30+ locations** across 8 fil
 
 ## Phase 1: High-Impact Vectorization (Critical Path)
 
-### 1.1 [src/core/bayesian_risk.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/bayesian_risk.py:0:0-0:0) - [assess_vulnerabilities_bayesian()](cci:1://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/bayesian_risk.py:1334:0-1442:13)
+### 1.1 `src/core/bayesian_risk.py` - `assess_vulnerabilities_bayesian()`
 **Lines**: 1335-1443 | **Impact**: HIGH | **Effort**: HIGH
 
 **Current**: Row-by-row iteration with complex object instantiation
@@ -31,7 +33,7 @@ results = [assess_row(row) for row in df.to_dicts()]
 
 ---
 
-### 1.2 [src/core/cvss_vector_reassessment.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/cvss_vector_reassessment.py:0:0-0:0) - `reassess_vulnerabilities()`
+### 1.2 `src/core/cvss_vector_reassessment.py` - `reassess_vulnerabilities()`
 **Lines**: 545-648 | **Impact**: HIGH | **Effort**: MEDIUM
 
 **Current**: Row-by-row reassessment
@@ -46,7 +48,7 @@ results = [reassess_row(row) for row in df.to_dicts()]
 
 ---
 
-### 1.3 [src/core/nlp_extractor.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/nlp_extractor.py:0:0-0:0) - [enrich_with_nlp_features()](cci:1://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/nlp_extractor.py:560:0-605:13)
+### 1.3 `src/core/nlp_extractor.py` - `enrich_with_nlp_features()`
 **Lines**: 561-607 | **Impact**: MEDIUM | **Effort**: MEDIUM
 
 **Current**: Row-by-row regex extraction
@@ -64,7 +66,7 @@ for desc in df[description_col].to_list():
 
 ## Phase 2: Report Generation Optimization
 
-### 2.1 [src/cli/pipeline_steps/report_generator.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/cli/pipeline_steps/report_generator.py:0:0-0:0)
+### 2.1 `src/cli/pipeline_steps/report_generator.py`
 **Lines**: 273, 617, 652, 674, 716, 1378 | **Impact**: LOW | **Effort**: LOW
 
 **Current**: Multiple `to_dicts()` calls for report formatting
@@ -78,7 +80,7 @@ for desc in df[description_col].to_list():
 
 ## Phase 3: Attack Analysis Optimization
 
-### 3.1 [src/analysis/attack_scenario_analyzer.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/analysis/attack_scenario_analyzer.py:0:0-0:0)
+### 3.1 `src/analysis/attack_scenario_analyzer.py`
 **Lines**: 156, 235, 305, 373 | **Impact**: MEDIUM | **Effort**: MEDIUM
 
 **Current**: Row iteration for attack path construction
@@ -95,7 +97,7 @@ for row in internet_vulns.to_dicts():
 
 ---
 
-### 3.2 [src/core/vulnerability_analyzer.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/vulnerability_analyzer.py:0:0-0:0) - `build_graph()`
+### 3.2 `src/core/vulnerability_analyzer.py` - `build_graph()`
 **Lines**: 105-148 | **Impact**: MEDIUM | **Effort**: HIGH
 
 **Current**: Row iteration for NetworkX graph construction
@@ -113,7 +115,7 @@ for row in self.df.to_dicts():
 
 ## Phase 4: Data Enrichment Optimization
 
-### 4.1 [src/cli/pipeline_steps/data_enricher.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/cli/pipeline_steps/data_enricher.py:0:0-0:0)
+### 4.1 `src/cli/pipeline_steps/data_enricher.py`
 **Lines**: 75-79 | **Impact**: MEDIUM | **Effort**: LOW
 
 **Current**: CWE enrichment via list comprehension
@@ -128,7 +130,7 @@ cwe_details = [get_cwe_name_and_description(cwe_id) for cwe_id in enriched["cwe_
 
 ---
 
-### 4.2 [src/cli/create_dataset.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/cli/create_dataset.py:0:0-0:0)
+### 4.2 `src/cli/create_dataset.py`
 **Lines**: 175-180 | **Impact**: LOW | **Effort**: LOW
 
 **Current**: Vulnrichment row update
@@ -145,7 +147,7 @@ enriched_rows = [update_row_with_vulnrichment_details(row) for row in cves_enric
 ## Phase 5: Architectural Improvements
 
 ### 5.1 Consolidate CVSS Parsing
-- Merge [cvss_parser.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/cvss_parser.py:0:0-0:0) and [cvss_vector_reassessment.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/cvss_vector_reassessment.py:0:0-0:0) CVSS parsing logic
+- Merge `cvss_parser.py` and `cvss_vector_reassessment.py` CVSS parsing logic
 - Create single `CVSSVectorParser` class with vectorized methods
 
 ### 5.2 Add Pydantic Validation Models
