@@ -9,6 +9,7 @@ execution, and exit codes.
 import sys
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import polars as pl
 import pytest
@@ -38,7 +39,9 @@ def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Non
 def stub_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:
     """Stub every external-data boundary of the pipeline (no network, no CLI)."""
 
-    def fake_scan_batch(self: object, images: list[str]) -> pl.DataFrame:
+    def fake_scan_batch(
+        self: object, images: list[str], on_image: Any = None
+    ) -> pl.DataFrame:
         return pl.DataFrame(
             {
                 "cve_id": ["CVE-2024-1234"],
@@ -204,7 +207,9 @@ class TestCli:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        def exploding_scan_batch(self: object, images: list[str]) -> pl.DataFrame:
+        def exploding_scan_batch(
+            self: object, images: list[str], on_image: Any = None
+        ) -> pl.DataFrame:
             raise RuntimeError("scan exploded")
 
         monkeypatch.setattr(

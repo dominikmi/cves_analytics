@@ -1,0 +1,42 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.continue
+.opencode
+.serena
+.security-output
+graphify-out
+tagger_parser_ud
+
+# Secrets and rendered config — never enter the build context
+.env
+.env.*
+config.yaml
+
+# Runtime data
+data/
+db/
+logs/
+output/
+uploads/
+images/
+monte_carlo/
+notebooks/
+test_data/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend artifacts (rebuilt inside web.Dockerfile)
+frontend/node_modules
+frontend/dist
+
+# Docs and metadata not needed at runtime
+docs/
+htmlcov/
+.coverage*

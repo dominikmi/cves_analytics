@@ -146,14 +146,23 @@ class TestFunctionalScanner:
                 ],
             }
         )
-        with patch.object(scanner, "scan") as mock_scan:
+        with patch.object(scanner, "_scan") as mock_scan:
             mock_scan.side_effect = [
-                scanner._parse_output(mock_json1.encode()),
-                scanner._parse_output(mock_json2.encode()),
+                (scanner._parse_output(mock_json1.encode()), None),
+                (scanner._parse_output(mock_json2.encode()), None),
             ]
-            df = scanner.scan_batch(["img1", "img2"])
+            events: list[tuple[int, int, str, str, str | None]] = []
+            df = scanner.scan_batch(
+                ["img1", "img2"],
+                on_image=lambda i, t, img, phase, detail: events.append(
+                    (i, t, img, phase, detail)
+                ),
+            )
         assert len(df) == 2
         assert set(df["cve_id"].to_list()) == {"CVE-A", "CVE-B"}
+        # every image reports start + done, in order, with totals
+        assert [e[:2] for e in events] == [(1, 2), (1, 2), (2, 2), (2, 2)]
+        assert [e[3] for e in events] == ["start", "done", "start", "done"]
 
     def test_scan_empty_on_invalid_json(self) -> None:
         """Invalid JSON produces empty DataFrame with correct schema."""

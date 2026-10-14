@@ -414,8 +414,10 @@ Test structure:
 
 - **Single worker**: scan progress streams (SSE) and job queues live in
   process memory, so run the API with one worker (`uvicorn --workers 1`).
-- **No report file**: the pipeline stores findings in DuckDB and records a
-  summary on the `ScanRun`; `report_path` is never populated because no report
-  generator exists yet.
+  Job event buffers do not survive an API restart.
+- **Computed report only**: `GET /api/profiles/{id}/scans/{run_id}/report`
+  builds the full pipeline report (coverage, severity distributions, risk
+  decomposition, threat intel, kill chain, top findings) from DuckDB on
+  demand. It is not persisted to a file; `report_path` remains unpopulated.
 - **Scanner tools**: `grype`/`trivy` must be installed for real scans; the
   pipeline degrades gracefully to an empty result set if they are missing.

@@ -1,0 +1,32 @@
+# config.yaml template — rendered by `make config` from .env.
+# The rendered file contains secrets and is gitignored. Do not commit it.
+#
+# Placeholders (written without braces to keep this header verbatim):
+#   $VAR           reads .env (or the process environment)
+#   $VAR:-default  falls back to a literal default when VAR is unset
+#   bare $VAR      renders empty — only for optional (nullable) fields
+
+# --- Core application (Settings, CVE_* env prefix) ---
+data_dir: ${CVE_DATA_DIR:-/app/data}
+upload_dir: ${CVE_UPLOAD_DIR:-/app/uploads}
+db_path: ${CVE_DB_PATH:-/app/db/analytics.db}
+duckdb_path: ${CVE_DUCKDB_PATH:-/app/db/findings.duckdb}
+log_level: ${CVE_LOG_LEVEL:-INFO}
+debug: ${CVE_DEBUG:-false}
+github_cve_url: ${CVE_GITHUB_CVE_URL:-https://api.github.com/repos/CVEProject/cvelistV5/contents/cves/}
+github_max_cve_files: ${CVE_GITHUB_MAX_CVE_FILES:-10}
+registry_host: ${CVE_REGISTRY_HOST:-registry.local:5000}
+
+# --- Secrets (never commit; supplied via .env) ---
+gh_token: ${GH_TOKEN}
+nvd_api_key: ${NVD_API_KEY}
+# NOTE: GRYPE_BINARY_PATH in .env is a host path (e.g. Homebrew). It is
+# deliberately not rendered here — the api image installs grype at
+# /usr/local/bin, which the scanner resolves via PATH.
+
+# --- RAG module (optional; RAG_* env prefix) ---
+llm_base_url: ${RAG_LLM_BASE_URL:-http://localhost:1234/v1}
+llm_model: ${RAG_LLM_MODEL:-local-model}
+llm_timeout: ${RAG_LLM_TIMEOUT:-300}
+top_k: ${RAG_TOP_K:-8}
+embedding_model: ${RAG_EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}

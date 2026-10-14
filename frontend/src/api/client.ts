@@ -1,9 +1,14 @@
 import type {
   FindingsPage,
+  FindingsSort,
+  ImageStats,
   ProfileCreate,
   ProfileOut,
+  ScanReport,
   ScanRunOut,
   ScanTriggered,
+  Scenario,
+  SortOrder,
 } from './types'
 
 const BASE = '/api'
@@ -99,12 +104,54 @@ export async function triggerScan(profileId: ApiId): Promise<ScanTriggered> {
 export async function getFindings(
   profileId: ApiId,
   runId: ApiId,
-  params?: { limit?: number; offset?: number; severity?: string },
+  params?: {
+    limit?: number
+    offset?: number
+    severity?: string
+    image?: string
+    sort?: FindingsSort
+    order?: SortOrder
+  },
 ): Promise<FindingsPage> {
   const qs = new URLSearchParams()
   if (params?.limit) qs.set('limit', String(params.limit))
   if (params?.offset) qs.set('offset', String(params.offset))
   if (params?.severity) qs.set('severity', params.severity)
+  if (params?.image) qs.set('image', params.image)
+  if (params?.sort) qs.set('sort', params.sort)
+  if (params?.order) qs.set('order', params.order)
   const url = `${BASE}/profiles/${profileId}/scans/${runId}/findings?${qs}`
   return _json(await fetch(url))
+}
+
+export async function getScanReport(
+  profileId: ApiId,
+  runId: ApiId,
+): Promise<ScanReport> {
+  return _json(
+    await fetch(`${BASE}/profiles/${profileId}/scans/${runId}/report`),
+  )
+}
+
+export async function getImageStats(
+  profileId: ApiId,
+  runId: ApiId,
+): Promise<ImageStats[]> {
+  return _json(
+    await fetch(`${BASE}/profiles/${profileId}/scans/${runId}/images`),
+  )
+}
+
+export async function getScenario(profileId: ApiId): Promise<Scenario | null> {
+  const res = await fetch(`${BASE}/profiles/${profileId}/scenario`)
+  if (res.status === 404) return null
+  return _json(res)
+}
+
+export async function generateScenario(profileId: ApiId): Promise<Scenario> {
+  return _json(
+    await fetch(`${BASE}/profiles/${profileId}/generate-scenario`, {
+      method: 'POST',
+    }),
+  )
 }

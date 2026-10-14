@@ -1,6 +1,7 @@
 """SQLModel ORM models for metadata storage."""
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import JSON
@@ -124,8 +125,12 @@ def get_engine() -> Any:
         # check_same_thread=False: the engine's pooled connections are shared
         # between API request threads and background pipeline workers. SQLite
         # serializes writers internally, so this is safe for our workload.
+        from src.utils.config import settings
+
+        db_path = Path(settings.db_path)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
         _engine = create_engine(
-            "sqlite:///analytics.db", connect_args={"check_same_thread": False}
+            f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
         )
         SQLModel.metadata.create_all(_engine)
         _migrate(_engine)

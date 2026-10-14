@@ -567,3 +567,18 @@ class TestAssessVulnerabilitiesBayesian:
         result = assess_vulnerabilities_bayesian(df)
         posteriors = result["posterior_probability"].to_list()
         assert posteriors[1] > posteriors[0]
+
+    def test_null_scores_fall_back_to_defaults(self) -> None:
+        """Enrichment leaves unmatched fields null; assessment must not fail."""
+        df = pl.DataFrame(
+            {
+                "cvss_score": [None, 9.0],
+                "epss_score": [None, 0.05],
+                "cvss_vector": [None, ""],
+                "asset_criticality": [None, 0.7],
+                "threat_intel_confidence": [None, 0.5],
+            }
+        )
+        result = assess_vulnerabilities_bayesian(df)
+        assert result.height == 2
+        assert result["posterior_probability"].is_not_null().all()

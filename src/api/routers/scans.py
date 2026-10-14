@@ -2,8 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from queue import Queue
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import (
     APIRouter,
@@ -15,7 +14,7 @@ from fastapi import (
 )
 from sqlmodel import Session, select
 
-from src.api.dependencies import job_queues, session_dep
+from src.api.dependencies import JobEventStream, job_queues, session_dep
 from src.api.schemas import FindingsPage, finding_from_row
 from src.data.stores.duckdb_store import DuckDBStore
 from src.db.sqlite_models import (
@@ -93,7 +92,7 @@ def trigger_scan(  # noqa: B008
         raise HTTPException(status_code=404, detail="Profile not found")
 
     job_id = str(uuid.uuid4())
-    queue: Queue[Any] = job_queues.create(job_id)
+    stream = job_queues.create(job_id)
 
     now = datetime.now(tz=UTC).isoformat()
     scan_run = ScanRun(
@@ -115,7 +114,7 @@ def trigger_scan(  # noqa: B008
         profile_id=profile_id,
         scan_run_id=scan_run.id or 0,
         job_id=job_id,
-        queue=queue,
+        stream=stream,
         duckdb_store=duckdb_store,
     )
 
@@ -186,6 +185,20 @@ def get_findings(  # noqa: B008
     offset: int = Query(default=0, ge=0),
     severity: str | None = Query(default=None),
     finding_status: str | None = Query(default=None, alias="status"),
+    image: str | None = Query(default=None),
+    sort: Literal[
+        "cve",
+        "image",
+        "service",
+        "severity",
+        "reassessed",
+        "cvss",
+        "epss",
+        "risk",
+        "kev",
+    ]
+    | None = Query(default=None),
+    order: Literal["asc", "desc"] = Query(default="desc"),
 ) -> FindingsPage:
     """Return paginated findings for a scan run."""
     scan_run = session.get(ScanRun, run_id)
@@ -198,11 +211,15 @@ def get_findings(  # noqa: B008
         offset=offset,
         severity=severity,
         status=finding_status,
+        image=image,
+        sort=sort,
+        order=order,
     )
     total = duckdb_store.count_findings(
         run_id,
         severity=severity,
         status=finding_status,
+        image=image,
     )
     items = [
         finding_from_row(
@@ -221,6 +238,58 @@ def get_findings(  # noqa: B008
         offset=offset,
         scan_run_id=run_id,
     )
+
+
+@router.get("/{profile_id}/scans/{run_id}/report")
+def get_scan_report(  # noqa: B008
+    profile_id: int,
+    run_id: int,
+    duckdb_store: DuckDBStore = Depends(_get_duckdb),
+    session: Session = Depends(session_dep),
+) -> dict[str, Any]:
+    """Aggregate report for one scan run: coverage, severity + risk
+    distributions, threat-intel hits, kill chain, and top findings."""
+    scan_run = session.get(ScanRun, run_id)
+    if not scan_run or scan_run.profile_id != profile_id:
+        raise HTTPException(status_code=404, detail="Scan run not found")
+    profile = session.get(Profile, profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    from src.services.report import ScanReportBuilder
+
+    return ScanReportBuilder(duckdb_store, scan_run, profile).build()
+
+
+@router.get("/{profile_id}/scans/{run_id}/images")
+def get_scan_image_stats(  # noqa: B008
+    profile_id: int,
+    run_id: int,
+    duckdb_store: DuckDBStore = Depends(_get_duckdb),
+    session: Session = Depends(session_dep),
+) -> list[dict[str, Any]]:
+    """Per-image finding aggregates for a scan run (drives the tabs UI)."""
+    scan_run = session.get(ScanRun, run_id)
+    if not scan_run or scan_run.profile_id != profile_id:
+        raise HTTPException(status_code=404, detail="Scan run not found")
+    return duckdb_store.findings_by_image(run_id)
+
+
+@router.get("/{profile_id}/scenario", response_model=dict)
+def get_scenario(  # noqa: B008
+    profile_id: int,
+    session: Session = Depends(session_dep),
+) -> dict[str, Any]:
+    """Return the profile's durable environment scenario."""
+    profile = session.get(Profile, profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    if not profile.scenario_snapshot:
+        raise HTTPException(
+            status_code=404,
+            detail="No scenario yet — POST generate-scenario first",
+        )
+    return profile.scenario_snapshot
 
 
 @router.post("/{profile_id}/generate-scenario", response_model=dict)
@@ -256,7 +325,7 @@ def _run_pipeline_background(
     profile_id: int,
     scan_run_id: int,
     job_id: str,
-    queue: Queue[Any],
+    stream: JobEventStream,
     duckdb_store: DuckDBStore,
 ) -> None:
     """Execute the vulnerability assessment pipeline in background."""
@@ -274,14 +343,11 @@ def _run_pipeline_background(
         if not profile:
             raise ValueError(f"Profile {profile_id} not found")
 
-        def _report_progress(step: str) -> None:
-            queue.put({"type": "progress", "message": step})
-
         pipeline = VulnerabilityAssessmentPipeline(
             profile=profile,
             duckdb_store=duckdb_store,
         )
-        result = pipeline.run(run_id=scan_run.id, on_progress=_report_progress)
+        result = pipeline.run(run_id=scan_run.id, on_progress=stream.push)
 
         scan_run.status = "DONE"
         scan_run.completed_at = datetime.now(tz=UTC).isoformat()
@@ -294,7 +360,7 @@ def _run_pipeline_background(
             job.finished_at = datetime.now(tz=UTC).isoformat()
             session.commit()
 
-        queue.put(None)
+        stream.push({"type": "done", "status": "DONE"})
 
     except Exception as exc:
         logger.error("Pipeline failed for scan %d: %s", scan_run_id, exc)
@@ -311,7 +377,9 @@ def _run_pipeline_background(
             job.error_message = str(exc)
             session.commit()
 
-        queue.put(None)
+        stream.push({"type": "error", "message": str(exc)})
     finally:
+        # Keep the event buffer so late-joining clients can replay the
+        # full run; delete_scan/delete_profile own its cleanup.
+        stream.close()
         session.close()
-        job_queues.remove(job_id)

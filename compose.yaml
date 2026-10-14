@@ -1,0 +1,62 @@
+name: cves-analytics
+
+# Compatible with `docker compose` and `podman compose`.
+# No privileged containers, no host socket mounts.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: cves-analytics-api:${VERSION:-dev}
+    # No published port — reachable only on the internal network
+    # (through the web proxy at /api/*) and inside the stack.
+    volumes:
+      - cves-data:/app/data
+      - cves-db:/app/db
+      - cves-output:/app/output
+      - cves-uploads:/app/uploads
+      - ./config.yaml:/app/config.yaml:ro
+    networks: [app]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    image: cves-analytics-web:${VERSION:-dev}
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_started
+    networks: [app]
+    restart: unless-stopped
+
+  # Loopback-only OCI registry sidecar. Secure path for scanning
+  # host-local images without mounting the docker/podman socket:
+  # `make mirror IMAGE=x` pushes to localhost:5000, the api then
+  # scans `registry.local:5000/x`. Also caches remote images between scans.
+  # The dotted alias is required: a bare `registry:` prefix is a valid
+  # grype source scheme and would not resolve as a hostname.
+  registry:
+    image: registry:2
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - cves-registry:/var/lib/registry
+    networks:
+      app:
+        aliases:
+          - registry.local
+    restart: unless-stopped
+
+networks:
+  app:
+
+volumes:
+  cves-data:
+  cves-db:
+  cves-output:
+  cves-uploads:
+  cves-registry:

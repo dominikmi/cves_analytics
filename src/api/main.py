@@ -22,7 +22,15 @@ _duckdb_store: DuckDBStore | None = None
 def _get_duckdb_store() -> DuckDBStore:
     global _duckdb_store
     if _duckdb_store is None:
-        _duckdb_store = DuckDBStore(":memory:")
+        from pathlib import Path
+
+        from src.utils.config import settings
+
+        # Persisted (not :memory:) so findings survive restarts — ScanRun
+        # metadata lives in SQLite and would otherwise outlive its rows.
+        db_file = Path(settings.duckdb_path)
+        db_file.parent.mkdir(parents=True, exist_ok=True)
+        _duckdb_store = DuckDBStore(db_file)
     return _duckdb_store
 
 
