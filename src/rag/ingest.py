@@ -1,8 +1,8 @@
 """Document ingestion pipeline.
 
 Extracts text from PDFs and markdown files, chunks them with
-section-aware splitting, and stores in ChromaDB (which handles
-embedding internally via its built-in model).
+section-aware splitting, and stores in an embedded Qdrant vector
+store (embedding is handled by FastEmbed via ONNX Runtime).
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from src.rag.config import RAGConfig
 
 if TYPE_CHECKING:
-    from chromadb.api.models.Collection import Collection
+    from qdrant_client import QdrantClient
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +50,21 @@ class DocumentChunk:
 
     @property
     def doc_id(self) -> str:
-        """Deterministic ID from content hash for deduplication."""
+        """Deterministic UUID from content hash for deduplication.
+
+        Qdrant point IDs must be integers or UUIDs, so the SHA-256
+        digest is formatted as a UUID string.
+        """
         content = f"{self.source}:{self.page}:{self.chunk_index}"
-        return hashlib.sha256(content.encode()).hexdigest()[:16]
+        digest = hashlib.sha256(content.encode()).hexdigest()[:32]
+        return (
+            f"{digest[:8]}-{digest[8:12]}-{digest[12:16]}-"
+            f"{digest[16:20]}-{digest[20:32]}"
+        )
 
     @property
     def metadata(self) -> dict[str, str | int]:
-        """Metadata dict for ChromaDB storage."""
+        """Metadata dict for vector store payload."""
         return {
             "source": self.source,
             "page": self.page,
@@ -66,7 +74,7 @@ class DocumentChunk:
 
 
 class DocumentIngester:
-    """Ingests threat intel documents into ChromaDB.
+    """Ingests threat intel documents into an embedded Qdrant store.
 
     Supports PDF (via pymupdf4llm) and markdown files.
     Chunks are section-aware: splits prefer section boundaries
@@ -78,31 +86,40 @@ class DocumentIngester:
 
     def __init__(self, config: RAGConfig | None = None) -> None:
         self.config = config or RAGConfig()
-        self._collection: Collection | None = None
+        self._client: QdrantClient | None = None
 
     @property
-    def collection(self) -> Collection:
-        """Lazy-initialise the ChromaDB collection."""
-        if self._collection is None:
+    def client(self) -> QdrantClient:
+        """Lazy-initialise the embedded Qdrant client and collection."""
+        if self._client is None:
             try:
-                import chromadb
+                from qdrant_client import QdrantClient, models
             except ImportError as exc:
                 msg = "Install the optional RAG dependencies with: uv sync --group rag"
                 raise RuntimeError(msg) from exc
-            self.config.chroma_persist_dir.mkdir(parents=True, exist_ok=True)
-            client = chromadb.PersistentClient(
-                path=str(self.config.chroma_persist_dir),
-            )
-            self._collection = client.get_or_create_collection(
-                name=self.config.collection_name,
-                metadata={"hnsw:space": "cosine"},
-            )
+            self.config.vector_store_dir.mkdir(parents=True, exist_ok=True)
+            client = QdrantClient(path=str(self.config.vector_store_dir))
+            if not client.collection_exists(self.config.collection_name):
+                client.create_collection(
+                    collection_name=self.config.collection_name,
+                    vectors_config=models.VectorParams(
+                        size=client.get_embedding_size(self.config.embedding_model),
+                        distance=models.Distance.COSINE,
+                    ),
+                )
+            self._client = client
             logger.info(
-                "ChromaDB collection '%s' ready (%d documents)",
+                "Qdrant collection '%s' ready (%d documents)",
                 self.config.collection_name,
-                self._collection.count(),
+                self._client.count(self.config.collection_name).count,
             )
-        return self._collection
+        return self._client
+
+    def close(self) -> None:
+        """Release the embedded store's file lock."""
+        if self._client is not None:
+            self._client.close()
+            self._client = None
 
     def ingest_directory(self, directory: Path | None = None) -> int:
         """Ingest all supported files from a directory.
@@ -346,20 +363,26 @@ class DocumentIngester:
         return sections
 
     def _store_chunks(self, chunks: list[DocumentChunk]) -> None:
-        """Embed and store chunks in ChromaDB.
+        """Embed and store chunks in the Qdrant collection.
 
         Skips chunks that already exist (by doc_id) for idempotency.
 
         Args:
             chunks: List of document chunks to store.
         """
+        from qdrant_client import models
+
         # Filter out already-ingested chunks
         ids = [c.doc_id for c in chunks]
-        existing = set()
+        existing: set[str] = set()
         try:
-            result = self.collection.get(ids=ids)
-            if result and result["ids"]:
-                existing = set(result["ids"])
+            points = self.client.retrieve(
+                collection_name=self.config.collection_name,
+                ids=ids,
+                with_payload=False,
+                with_vector=False,
+            )
+            existing = {str(point.id) for point in points}
         except Exception as exc:
             logger.debug("Existing chunk lookup failed; ingesting all chunks: %s", exc)
 
@@ -375,13 +398,16 @@ class DocumentIngester:
                 len(existing),
             )
 
-        texts = [c.text for c in new_chunks]
         logger.info("  ↳ Embedding + storing %d chunks...", len(new_chunks))
         t_store = time.perf_counter()
-        self.collection.add(
+        self.client.upload_collection(
+            collection_name=self.config.collection_name,
+            vectors=[
+                models.Document(text=c.text, model=self.config.embedding_model)
+                for c in new_chunks
+            ],
+            payload=[{**c.metadata, "text": c.text} for c in new_chunks],
             ids=[c.doc_id for c in new_chunks],
-            documents=texts,
-            metadatas=[c.metadata for c in new_chunks],
         )
         logger.info("  ↳ Done in %.1fs", time.perf_counter() - t_store)
-        logger.info("  ↳ Stored %d chunks in ChromaDB", len(new_chunks))
+        logger.info("  ↳ Stored %d chunks in Qdrant", len(new_chunks))

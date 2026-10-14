@@ -9,9 +9,45 @@ wheels/
 # Virtual environments
 .venv
 
+# logs
+*.log
+*.log.*
+
 # Local databases and coverage artifacts
 *.db
+*.sqlite
+*.sqlite3
 .coverage
+.coverage.*
+htmlcov/
+
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.yaml
+secrets.yml
+
+# Local agent state
+/.continue/
+
+# Downloaded spaCy UD tagger project
+/tagger_parser_ud/
+
+# OS and editor artifacts
+.DS_Store
+.idea/
+.vscode/
 
 # security output
 .security-output/

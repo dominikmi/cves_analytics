@@ -1,0 +1,196 @@
+
+Based on my comprehensive review of the codebase, here's the **Vectorization & Code Quality Improvement Plan**:
+
+---
+
+# Codebase Optimization Plan
+
+## Overview
+
+The codebase uses `to_dicts()` + row iteration in **30+ locations** across 8 files. This is a significant anti-pattern for Polars, which is designed for vectorized operations.
+
+---
+
+## Phase 1: High-Impact Vectorization (Critical Path)
+
+### 1.1 [src/core/bayesian_risk.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/bayesian_risk.py:0:0-0:0) - [assess_vulnerabilities_bayesian()](cci:1://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/bayesian_risk.py:1334:0-1442:13)
+**Lines**: 1335-1443 | **Impact**: HIGH | **Effort**: HIGH
+
+**Current**: Row-by-row iteration with complex object instantiation
+```python
+results = [assess_row(row) for row in df.to_dicts()]
+```
+
+**Proposed**:
+- Pre-extract CVSS vector components into columns using vectorized parsing
+- Pre-compute likelihood ratios as columns using `pl.when().then().otherwise()`
+- Use `pl.struct()` for complex multi-column operations
+- Keep only the final Bayesian calculation as row-wise (unavoidable due to math complexity)
+
+**Estimated speedup**: 3-5x for large datasets
+
+---
+
+### 1.2 [src/core/cvss_vector_reassessment.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/cvss_vector_reassessment.py:0:0-0:0) - `reassess_vulnerabilities()`
+**Lines**: 545-648 | **Impact**: HIGH | **Effort**: MEDIUM
+
+**Current**: Row-by-row reassessment
+```python
+results = [reassess_row(row) for row in df.to_dicts()]
+```
+
+**Proposed**:
+- Parse CVSS vectors into component columns first (vectorized)
+- Apply severity criteria using `pl.when().then().otherwise()` chains
+- Generate reasons as string expressions
+
+---
+
+### 1.3 [src/core/nlp_extractor.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/nlp_extractor.py:0:0-0:0) - [enrich_with_nlp_features()](cci:1://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/nlp_extractor.py:560:0-605:13)
+**Lines**: 561-607 | **Impact**: MEDIUM | **Effort**: MEDIUM
+
+**Current**: Row-by-row regex extraction
+```python
+for desc in df[description_col].to_list():
+    features = extractor.extract(desc)
+```
+
+**Proposed**:
+- Use `pl.col().str.contains()` for pattern matching
+- Use `pl.col().str.extract()` for regex groups
+- Aggregate attack types using `pl.when()` chains
+
+---
+
+## Phase 2: Report Generation Optimization
+
+### 2.1 [src/cli/pipeline_steps/report_generator.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/cli/pipeline_steps/report_generator.py:0:0-0:0)
+**Lines**: 273, 617, 652, 674, 716, 1378 | **Impact**: LOW | **Effort**: LOW
+
+**Current**: Multiple `to_dicts()` calls for report formatting
+
+**Proposed**:
+- Keep as-is for report generation (acceptable use case)
+- Report generation is I/O bound, not CPU bound
+- Consider using `iter_rows(named=True)` for memory efficiency on large datasets
+
+---
+
+## Phase 3: Attack Analysis Optimization
+
+### 3.1 [src/analysis/attack_scenario_analyzer.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/analysis/attack_scenario_analyzer.py:0:0-0:0)
+**Lines**: 156, 235, 305, 373 | **Impact**: MEDIUM | **Effort**: MEDIUM
+
+**Current**: Row iteration for attack path construction
+```python
+for row in internet_vulns.to_dicts():
+    step = AttackStep(...)
+    path = AttackPath(...)
+```
+
+**Proposed**:
+- Pre-compute risk scores as columns
+- Use `pl.struct()` to create step/path data
+- Convert to Pydantic models only at the end
+
+---
+
+### 3.2 [src/core/vulnerability_analyzer.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/vulnerability_analyzer.py:0:0-0:0) - `build_graph()`
+**Lines**: 105-148 | **Impact**: MEDIUM | **Effort**: HIGH
+
+**Current**: Row iteration for NetworkX graph construction
+```python
+for row in self.df.to_dicts():
+    self.attack_graph.add_node(cve_id, ...)
+```
+
+**Proposed**:
+- Use `nx.from_pandas_edgelist()` equivalent with Polars
+- Batch node/edge addition using DataFrame operations
+- Keep graph construction separate from data processing
+
+---
+
+## Phase 4: Data Enrichment Optimization
+
+### 4.1 [src/cli/pipeline_steps/data_enricher.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/cli/pipeline_steps/data_enricher.py:0:0-0:0)
+**Lines**: 75-79 | **Impact**: MEDIUM | **Effort**: LOW
+
+**Current**: CWE enrichment via list comprehension
+```python
+cwe_details = [get_cwe_name_and_description(cwe_id) for cwe_id in enriched["cwe_id"].to_list()]
+```
+
+**Proposed**:
+- Already optimized with caching
+- Consider using `pl.col().map_elements()` with return_dtype for type safety
+- Or pre-load all CWE data and use `pl.join()`
+
+---
+
+### 4.2 [src/cli/create_dataset.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/cli/create_dataset.py:0:0-0:0)
+**Lines**: 175-180 | **Impact**: LOW | **Effort**: LOW
+
+**Current**: Vulnrichment row update
+```python
+enriched_rows = [update_row_with_vulnrichment_details(row) for row in cves_enriched.to_dicts()]
+```
+
+**Proposed**:
+- Refactor `update_row_with_vulnrichment_details()` to work with columns
+- Use `pl.join()` for enrichment instead of row-by-row lookup
+
+---
+
+## Phase 5: Architectural Improvements
+
+### 5.1 Consolidate CVSS Parsing
+- Merge [cvss_parser.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/cvss_parser.py:0:0-0:0) and [cvss_vector_reassessment.py](cci:7://file:///Users/mikey/HomeWorks/homelab-repos/cves_analytics/src/core/cvss_vector_reassessment.py:0:0-0:0) CVSS parsing logic
+- Create single `CVSSVectorParser` class with vectorized methods
+
+### 5.2 Add Pydantic Validation Models
+- Create `CVSSData`, `EPSSData`, `VulnerabilityRecord` models
+- Validate data at ingestion, not during processing
+
+### 5.3 Lazy Evaluation
+- Use `pl.scan_csv()` instead of `pl.read_csv()` for large files
+- Chain operations before `.collect()`
+
+---
+
+## Priority Matrix
+
+| Task | Impact | Effort | Priority |
+|------|--------|--------|----------|
+| 1.1 Bayesian vectorization | HIGH | HIGH | P1 |
+| 1.2 CVSS reassessment vectorization | HIGH | MEDIUM | P1 |
+| 1.3 NLP extraction vectorization | MEDIUM | MEDIUM | P2 |
+| 3.1 Attack scenario vectorization | MEDIUM | MEDIUM | P2 |
+| 3.2 Graph construction optimization | MEDIUM | HIGH | P3 |
+| 4.1 CWE enrichment (join-based) | MEDIUM | LOW | P2 |
+| 4.2 Vulnrichment vectorization | LOW | LOW | P3 |
+| 2.1 Report generation | LOW | LOW | P4 (keep as-is) |
+
+---
+
+## Estimated Impact
+
+| Metric | Current | After Optimization |
+|--------|---------|-------------------|
+| Pipeline time (602 vulns) | ~13s | ~8-10s (est.) |
+| Memory usage | Moderate | Lower (no dict copies) |
+| Code maintainability | Good | Better (vectorized idioms) |
+| Type safety | Partial | Full (with Pydantic) |
+
+---
+
+## Notes
+
+1. **Report generation** (`to_dicts()` for string formatting) is acceptable - it's I/O bound
+2. **NetworkX graph building** requires row iteration - no vectorized alternative
+3. **Pydantic model instantiation** is inherently row-wise - minimize where possible
+4. **Bayesian math** with log-odds and gating is complex - partial vectorization possible
+
+---
+
+This plan is saved for future reference. Let me know when you want to start implementing any phase.
