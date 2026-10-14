@@ -22,12 +22,17 @@ Given a list of Docker images, the pipeline:
    execution, lateral movement, objective.
 5. **Stores** results in DuckDB for analytics and SQLite for metadata.
 
-The output is a ranked finding list. Each finding has a posterior risk
-score, a credible interval, a risk category, and attack-path probability.
+The output is a ranked finding list plus a per-scan report. Each finding
+has a posterior risk score, a credible interval, a risk category, and
+attack-path probability. The report aggregates coverage, raw versus
+reassessed severity, the likelihood-ratio decomposition that explains the
+scores, threat intelligence counts, kill-chain distribution, and the top
+findings with explanations.
 
 ```
 Images → Scanner → Raw findings → Enrichment (CVSS-BT, EPSS, KEV, CWE)
 → Bayesian risk scoring → Kill chain analysis → DuckDB + SQLite
+→ Report + findings in the Web UI
 ```
 
 ## Quick start
@@ -154,14 +159,23 @@ uv run uvicorn src.api.main:create_app --factory --host 0.0.0.0 --port 8000
 | `POST` | `/api/profiles/{id}/scans` | Trigger scan |
 | `GET` | `/api/profiles/{id}/scans` | List scan runs |
 | `GET` | `/api/profiles/{id}/scans/{run_id}` | Get scan details |
-| `GET` | `/api/profiles/{id}/scans/{run_id}/findings` | Paginated findings (`limit`, `offset`, `severity`, `status`) |
+| `GET` | `/api/profiles/{id}/scans/{run_id}/findings` | Paginated findings (`limit`, `offset`, `severity`, `status`, `image`, `sort`, `order`) |
+| `GET` | `/api/profiles/{id}/scans/{run_id}/images` | Per-image finding stats |
+| `GET` | `/api/profiles/{id}/scans/{run_id}/report` | Computed pipeline report: coverage, severity distributions, risk decomposition, threat intel, kill chain, top findings |
 | `DELETE` | `/api/profiles/{id}/scans/{run_id}` | Delete a completed scan and its findings |
-| `POST` | `/api/profiles/{id}/generate-scenario` | Return the profile's durable scenario snapshot |
-| `GET` | `/api/stream/{job_id}` | SSE job status stream |
+| `GET` | `/api/profiles/{id}/scenario` | Get the profile's durable scenario snapshot |
+| `POST` | `/api/profiles/{id}/generate-scenario` | Generate and persist a scenario snapshot |
+| `GET` | `/api/stream/{job_id}` | SSE job stream: replays buffered events, then live per-image progress |
 
 Scan statuses: `PENDING`, `RUNNING`, `DONE`, `FAILED`. Profiles and scans
 cannot be deleted while a scan is active. Deleting a profile removes its
 scan metadata and DuckDB findings.
+
+`severity` filtering and `reassessed` sorting act on the reassessed risk
+category (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFORMATIONAL`); `severity`
+as a sort key uses the raw scanner severity. The SSE stream emits one
+event per pipeline stage and one per scanned image (`current`, `total`,
+`phase`), then terminal `done`/`error` and `complete` events.
 
 **Example workflow:**
 
@@ -188,6 +202,28 @@ curl -N http://localhost:8000/api/stream/<job_id>
 # Read the first page of CRITICAL findings for scan run 3
 curl 'http://localhost:8000/api/profiles/1/scans/3/findings?severity=CRITICAL&limit=100&offset=0'
 ```
+
+## Web UI
+
+React + Vite frontend served by nginx in the container stack, or via
+`npm run dev` during development.
+
+Per profile it shows:
+
+- **Environment diagram** — the profile's scenario services grouped by
+  zone.
+- **Scan runs** — trigger a scan, click a running one to attach to its
+  live stream: progress bar (image `N` of `M`), per-image log lines, and
+  error detail.
+- **Report** — for completed scans: coverage, raw versus reassessed
+  severity, posterior risk, likelihood-ratio decomposition, threat
+  intelligence counts, kill-chain distribution, top risks with expandable
+  explanations, and JSON export.
+- **Findings table** — sortable columns, severity filter, and per-image
+  tabs.
+
+Light and dark themes. Scan progress streams replay buffered events on
+reconnect, but do not survive an api restart — the buffer is in-process.
 
 ## Optional RAG calibration
 
@@ -221,6 +257,9 @@ Settings load from environment variables (prefix `CVE_`) or `.env`:
 |----------|---------|-------------|
 | `CVE_DATA_DIR` | `data` | Reference data cache directory |
 | `CVE_UPLOAD_DIR` | `uploads` | Upload directory |
+| `CVE_DB_PATH` | `analytics.db` | SQLite metadata database path |
+| `CVE_DUCKDB_PATH` | `db/findings.duckdb` | Persistent DuckDB findings store |
+| `CVE_REGISTRY_HOST` | `localhost:5000` | Local OCI registry sidecar address |
 | `CVE_LOG_LEVEL` | `INFO` | Logging level |
 | `CVE_DEBUG` | `false` | Debug mode |
 | `CVE_GITHUB_CVE_URL` | CVEProject cvelistV5 API | CVE data source URL |
@@ -256,7 +295,8 @@ uv run bandit -r src/ -c .bandit
 ## Storage
 
 - **SQLite** (SQLModel ORM): profiles, scan runs, job tracking.
-- **DuckDB**: in-process analytical store for findings DataFrames.
+- **DuckDB**: persistent analytical store for findings
+  (`CVE_DUCKDB_PATH`); findings survive api restarts.
 - **Qdrant** (embedded, optional): threat-intel document chunks for RAG.
 
 For detailed architecture, data flow, and module map see
