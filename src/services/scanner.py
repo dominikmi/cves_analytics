@@ -4,11 +4,13 @@ Wraps Grype or Trivy CLI tools for container image scanning.
 """
 
 import json as _json
+import os
 import re
 import subprocess
 
 import polars as pl
 
+from src.utils.config import get_config
 from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -45,6 +47,9 @@ class DockerScanner:
                 f"(expected one of: {', '.join(sorted(_ALLOWED_TOOLS))})"
             )
         self.tool = tool
+        # GRYPE_BINARY_PATH may point at a non-PATH grype install.
+        env_key = f"{tool.upper()}_BINARY_PATH"
+        self._binary = os.environ.get(env_key, tool)
 
     def _validate_image(self, image: str) -> bool:
         """Return True if ``image`` is a safe Docker image reference."""
@@ -69,9 +74,10 @@ class DockerScanner:
         try:
             fmt_flag = "-o" if self.tool == "grype" else "--format"
             result = subprocess.run(
-                [self.tool, image, fmt_flag, "json"],
+                [self._binary, image, fmt_flag, "json"],
                 capture_output=True,
                 timeout=300,
+                env=self._subprocess_env(image),
             )
             if result.returncode != 0:
                 logger.warning("Scanner failed for %s: %s", image, result.stderr)
@@ -121,6 +127,22 @@ class DockerScanner:
             )
 
         return pl.DataFrame(vulns, schema=_SCHEMA) if vulns else self._empty_schema()
+
+    def _subprocess_env(self, image: str) -> dict[str, str] | None:
+        """Allow plain HTTP only for the configured local registry.
+
+        The compose stack's registry sidecar serves plain HTTP. Scanners
+        default to HTTPS, so refs pointing at ``settings.registry_host``
+        get the per-tool insecure flag scoped to this invocation — remote
+        registries keep TLS.
+        """
+        registry_host = get_config().registry_host
+        image_host = image.split("/", 1)[0]
+        if not registry_host or image_host != registry_host:
+            return None
+        if self.tool == "grype":
+            return {**os.environ, "GRYPE_REGISTRY_INSECURE_USE_HTTP": "true"}
+        return {**os.environ, "TRIVY_INSECURE": "true"}
 
     def _empty_schema(self) -> pl.DataFrame:
         """Return empty DataFrame with expected schema."""

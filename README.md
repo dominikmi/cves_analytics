@@ -48,6 +48,66 @@ npm ci
 npm run dev
 ```
 
+## Deployment
+
+The whole stack runs in containers. Everything goes through `make`.
+
+```bash
+make install   # check prerequisites; offers to install missing pieces
+cp .env.example .env   # fill in your secrets
+make up        # render config, build images, start the stack
+```
+
+Then open http://localhost:8080.
+
+What happens:
+
+1. `make install` checks for python3, curl, tar, docker or podman, and a
+   compose plugin. Missing pieces are installed via brew (macOS) or apt
+   (Linux). Every install asks for confirmation first.
+2. `make config` renders `config.yaml` from `.env`. The rendered file
+   holds the secrets. It is gitignored and never enters an image. It is
+   mounted read-only into the api container.
+3. `make build` builds two images from Ubuntu 24.04. `cves-analytics-api`
+   runs uvicorn with the app installed from a wheel. `cves-analytics-web`
+   serves the frontend through nginx. Both run as non-root.
+4. `make up` starts three services: web, api, and a local OCI registry.
+
+Topology:
+
+```
+browser → nginx :8080 → /api/* → api :8000 (internal only)
+                        static files → SPA
+api → registry.local:5000 (loopback-only on the host at 127.0.0.1:5000)
+```
+
+The api container has no published port. No container is privileged. No
+docker or podman socket is mounted.
+
+Scanning host-local images:
+
+```bash
+make mirror IMAGE=myapp:dev              # push into the local registry
+make scan IMAGE=registry.local:5000/myapp:dev
+make scan IMAGE=nginx:latest             # pull straight from Docker Hub
+```
+
+The registry sidecar also caches pulled images between scans.
+
+Useful targets:
+
+```bash
+make ps          # container status
+make logs        # follow logs
+make down        # stop the stack
+make version     # print the current semver (from pyproject.toml)
+make release BUMP=patch   # bump version, tag, rebuild images
+make clean       # stop stack and delete volumes (asks first)
+```
+
+Works with both `docker compose` and `podman compose`. The Makefile picks
+whatever is installed.
+
 ## CLI
 
 ```bash

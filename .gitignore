@@ -31,6 +31,8 @@ htmlcov/
 .env.*
 !.env.example
 !.env.sample
+# Rendered from .env by `make config` — contains secrets
+/config.yaml
 *.pem
 *.key
 *.p12
