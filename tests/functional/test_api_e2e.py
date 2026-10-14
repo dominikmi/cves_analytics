@@ -12,7 +12,7 @@ import time
 from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
-from queue import Queue
+from typing import Any
 
 import polars as pl
 import pytest
@@ -20,6 +20,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, create_engine
 
 import src.api.dependencies as api_dependencies
+from src.api.dependencies import JobEventStream
 from src.api.main import create_app
 from src.db import sqlite_models
 from src.db.sqlite_models import Profile, ScanRun
@@ -42,12 +43,17 @@ def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Non
 
 
 @pytest.fixture()
-def fresh_singletons(isolated_db: None, monkeypatch: pytest.MonkeyPatch) -> None:
+def fresh_singletons(
+    isolated_db: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Reset module singletons so each test starts clean."""
     import src.api.main as api_main
+    from src.utils.config import settings
 
     monkeypatch.setattr(api_main, "_duckdb_store", None)
-    monkeypatch.setattr(api_dependencies, "_job_queues", defaultdict(lambda: Queue()))
+    # Persisted store must not share the real db/findings.duckdb.
+    monkeypatch.setattr(settings, "duckdb_path", str(tmp_path / "findings.duckdb"))
+    monkeypatch.setattr(api_dependencies, "_job_queues", defaultdict(JobEventStream))
 
 
 @pytest.fixture()
@@ -62,7 +68,15 @@ def client(fresh_singletons: None) -> TestClient:
 def stub_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:
     """Stub every external-data boundary of the pipeline (no network, no CLI)."""
 
-    def fake_scan_batch(self: object, images: list[str]) -> pl.DataFrame:
+    def fake_scan_batch(
+        self: object,
+        images: list[str],
+        on_image: Any = None,
+    ) -> pl.DataFrame:
+        for index, image in enumerate(images, start=1):
+            if on_image is not None:
+                on_image(index, len(images), image, "start", None)
+                on_image(index, len(images), image, "done", "1 findings")
         return pl.DataFrame(
             {
                 "cve_id": ["CVE-2024-1234", "CVE-2024-5678"],
@@ -208,9 +222,15 @@ class TestScanEndToEnd:
             if line.startswith("data: ")
         ]
         assert {"type": "complete"} in events
+        # terminal status event is emitted before the stream closes, and the
+        # whole backlog replays even though the client connected late
+        assert {"type": "done", "status": "DONE"} in events
         progress = [e for e in events if e.get("type") == "progress"]
         assert any("Scanning" in e["message"] for e in progress)
         assert any("Storing findings" in e["message"] for e in progress)
+        # per-image progress carries the counters the UI renders as a bar
+        image_events = [e for e in progress if e.get("stage") == "scan"]
+        assert any(e.get("current") == 2 and e.get("total") == 2 for e in image_events)
 
         # findings landed in the DuckDB store with run attribution
         from src.api.main import _get_duckdb_store
@@ -232,15 +252,28 @@ class TestScanEndToEnd:
         run_id = client.post(f"/api/profiles/{profile_id}/scans").json()["id"]
         _wait_for_status(client, profile_id, run_id, "DONE")
 
+        all_findings = client.get(
+            f"/api/profiles/{profile_id}/scans/{run_id}/findings",
+            params={"limit": 10, "offset": 0},
+        )
+        assert all_findings.status_code == 200, all_findings.text
+        target = next(
+            i for i in all_findings.json()["items"] if i["cve_id"] == "CVE-2024-5678"
+        )
+
+        # severity filter applies to the reassessed category shown in the UI
         findings = client.get(
             f"/api/profiles/{profile_id}/scans/{run_id}/findings",
-            params={"severity": "critical", "limit": 10, "offset": 0},
+            params={"severity": target["severity_reassessed"], "limit": 10},
         )
         assert findings.status_code == 200, findings.text
         page = findings.json()
-        assert page["total"] == 1
+        assert page["total"] >= 1
         assert page["scan_run_id"] == run_id
-        assert page["items"][0]["cve_id"] == "CVE-2024-5678"
+        assert all(
+            i["severity_reassessed"] == target["severity_reassessed"]
+            for i in page["items"]
+        )
         assert page["items"][0]["scan_run_id"] == run_id
         assert page["items"][0]["bayesian_risk"] is not None
 
@@ -302,7 +335,9 @@ class TestScanEndToEnd:
         profile_id = profile["id"]
 
         # stub_pipeline fakes the loaders; override the scanner to explode
-        def exploding_scan_batch(self: object, images: list[str]) -> pl.DataFrame:
+        def exploding_scan_batch(
+            self: object, images: list[str], on_image: Any = None
+        ) -> pl.DataFrame:
             raise RuntimeError("scanner exploded")
 
         monkeypatch.setattr(

@@ -28,10 +28,13 @@ def _reset_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]
     monkeypatch.setattr(models, "_engine", engine)
     monkeypatch.setattr(models, "_session_factory", None)
 
-    # Reset DuckDB singleton
+    # Reset DuckDB singleton and point it at a throwaway file — the store
+    # is persisted now, so tests must not share the real db/findings.duckdb.
     import src.api.main as main_mod
+    from src.utils.config import settings
 
     monkeypatch.setattr(main_mod, "_duckdb_store", None)
+    monkeypatch.setattr(settings, "duckdb_path", str(tmp_path / "findings.duckdb"))
     yield
     # Close pooled connections before the engines are garbage-collected;
     # otherwise sqlite3 emits ResourceWarning at GC time.

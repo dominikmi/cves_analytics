@@ -15,6 +15,7 @@ wheels/
 
 # Local databases and coverage artifacts
 *.db
+*.duckdb
 *.sqlite
 *.sqlite3
 .coverage

@@ -74,8 +74,8 @@ export function ProfilesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Environment Profiles</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Environment Profiles</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Each profile represents a persistent environment definition for temporal tracking.
           </p>
         </div>
@@ -90,25 +90,25 @@ export function ProfilesPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-800 mb-4">Create Profile</h2>
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Create Profile</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => field('name', e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-800 dark:text-gray-100"
                 placeholder="e.g. prod-ecommerce-eu"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Org Size</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Org Size</label>
               <select
                 value={form.org_size}
                 onChange={(e) => field('org_size', e.target.value as OrgSize)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-800 dark:text-gray-100"
               >
                 {(['small', 'mid', 'large'] as OrgSize[]).map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -116,11 +116,11 @@ export function ProfilesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Org Reach</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Org Reach</label>
               <select
                 value={form.org_reach}
                 onChange={(e) => field('org_reach', e.target.value as OrgReach)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-800 dark:text-gray-100"
               >
                 {(['local', 'regional', 'global'] as OrgReach[]).map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -128,11 +128,11 @@ export function ProfilesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Industry</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Industry</label>
               <select
                 value={form.industry}
                 onChange={(e) => field('industry', e.target.value as Industry)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-800 dark:text-gray-100"
               >
                 {(['on-line-store', 'financial-services', 'consulting'] as Industry[]).map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -140,11 +140,11 @@ export function ProfilesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Environment</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Environment</label>
               <select
                 value={form.environment}
                 onChange={(e) => field('environment', e.target.value as Environment)}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-800 dark:text-gray-100"
               >
                 {(['dev', 'test', 'qa', 'stage', 'prod'] as Environment[]).map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -152,11 +152,11 @@ export function ProfilesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Security Maturity</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Security Maturity</label>
               <select
                 value={form.security_maturity}
                 onChange={(e) => field('security_maturity', Number(e.target.value))}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-800 dark:text-gray-100"
               >
                 {MATURITY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -166,14 +166,14 @@ export function ProfilesPage() {
           </div>
           {/* Image inventory */}
           <div className="col-span-2 mt-1">
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Container Images <span className="font-normal text-gray-400">(one per line or comma-separated)</span>
             </label>
             <textarea
               value={form.images_raw}
               onChange={(e) => field('images_raw', e.target.value)}
               rows={3}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500 dark:bg-gray-800 dark:text-gray-100"
               placeholder="nginx:latest&#10;redis:7&#10;postgres:15"
             />
           </div>
@@ -187,22 +187,22 @@ export function ProfilesPage() {
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="rounded-md border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Cancel
             </button>
           </div>
           {createMut.isError && (
-            <p className="mt-2 text-xs text-red-600">{String(createMut.error)}</p>
+            <p className="mt-2 text-xs text-red-600 dark:text-red-400">{String(createMut.error)}</p>
           )}
         </div>
       )}
 
       {/* Profile list */}
       {isLoading ? (
-        <p className="text-sm text-gray-500">Loading profiles…</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Loading profiles…</p>
       ) : profiles.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">
+        <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500 dark:text-gray-400">
           No profiles yet. Create one to start scanning.
         </div>
       ) : (
@@ -210,7 +210,7 @@ export function ProfilesPage() {
           {profiles.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm hover:border-violet-300 transition-colors"
+              className="flex items-center justify-between rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 px-5 py-4 shadow-sm hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
             >
               <button
                 className="flex-1 text-left"
@@ -218,15 +218,15 @@ export function ProfilesPage() {
               >
                 <div className="flex items-center gap-3">
                   <div>
-                    <p className="font-semibold text-gray-900">{p.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">{p.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {p.industry} · {p.environment} · {p.org_size} · {p.org_reach}
                     </p>
                   </div>
                   <div className="ml-auto flex items-center gap-4 mr-2">
                     <div className="text-center">
-                      <p className="text-lg font-bold text-gray-800">{p.total_scans}</p>
-                      <p className="text-xs text-gray-500">scans</p>
+                      <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{p.total_scans}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">scans</p>
                     </div>
                   </div>
                 </div>
@@ -234,7 +234,7 @@ export function ProfilesPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/profiles/${p.id}`)}
-                  className="p-1.5 text-gray-400 hover:text-violet-600 transition-colors"
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
                   title="View profile"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -243,7 +243,7 @@ export function ProfilesPage() {
                   onClick={() => {
                     if (confirm(`Delete profile "${p.name}"?`)) deleteMut.mutate(p.id)
                   }}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   title="Delete profile"
                 >
                   <Trash2 className="w-4 h-4" />

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     data_dir: str = "data"
     upload_dir: str = "uploads"
     db_path: str = "analytics.db"
+    duckdb_path: str = "db/findings.duckdb"
     log_level: str = "INFO"
     github_cve_url: str = (
         "https://api.github.com/repos/CVEProject/cvelistV5/contents/cves/"

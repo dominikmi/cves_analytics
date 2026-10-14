@@ -6,6 +6,7 @@ path analysis into a single reproducible workflow.
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 import polars as pl
 
@@ -60,38 +61,63 @@ class VulnerabilityAssessmentPipeline:
     def run(
         self,
         run_id: int | None = None,
-        on_progress: Callable[[str], None] | None = None,
+        on_progress: Callable[[dict[str, Any]], None] | None = None,
     ) -> PipelineResult:
         """Execute the full pipeline.
 
         Args:
             run_id: Optional ScanRun id stamped onto stored findings so rows
                 from repeated runs stay attributable in the DuckDB store.
-            on_progress: Optional callback invoked with a human-readable step
-                description as each stage completes (used for SSE streaming).
+            on_progress: Optional callback invoked with an event dict as each
+                stage progresses (used for SSE streaming). Per-image scan
+                events carry ``current``/``total``/``image`` fields.
         """
 
-        def _report(step: str) -> None:
+        def _report(message: str, **fields: Any) -> None:
             if on_progress is not None:
-                on_progress(step)
+                on_progress({"type": "progress", "message": message, **fields})
+
+        def _on_image(
+            index: int, total: int, image: str, phase: str, detail: str | None
+        ) -> None:
+            if phase == "start":
+                message = f"[{index}/{total}] Scanning {image}"
+            elif phase == "failed":
+                message = f"[{index}/{total}] {image} — failed: {detail}"
+            else:
+                message = f"[{index}/{total}] {image} — {detail}"
+            _report(
+                message,
+                stage="scan",
+                current=index,
+                total=total,
+                image=image,
+                image_phase=phase,
+            )
 
         logger.info("Starting pipeline for profile %s", self.profile.name)
 
         # Step 1: Load reference datasets
-        _report("Loading reference datasets (CVSS-BT, EPSS, KEV, CWE)")
+        _report("Loading reference datasets (CVSS-BT, EPSS, KEV, CWE)", stage="load")
         cvss_bt_df = CVSSBTLoader(self.data_dir).load()
         epss_df = EPSSLoader(self.data_dir).load()
         kev_df = KEVLoader(self.data_dir).load()
         cwe_loader = CWELoader(self.data_dir)
 
         # Step 2: Scan Docker images
-        _report(f"Scanning {len(self.profile.image_inventory)} image(s)")
-        scan_df = self.scanner.scan_batch(self.profile.image_inventory)
+        images = self.profile.image_inventory
+        _report(f"Scanning {len(images)} image(s)", stage="scan", total=len(images))
+        scan_df = self.scanner.scan_batch(images, on_image=_on_image)
         logger.info("Scan complete: %d raw findings", len(scan_df))
-        _report(f"Scan complete: {len(scan_df)} raw findings")
+        _report(
+            f"Scan complete: {len(scan_df)} raw findings",
+            stage="scan",
+            current=len(images),
+            total=len(images),
+        )
 
         # Step 3: Enrich with reference data
-        _report("Enriching findings with reference data")
+        _report("Enriching findings with reference data", stage="enrich")
         enriched, matched = EnrichmentTransformer.enrich_cvss_bt(scan_df, cvss_bt_df)
         logger.info("CVSS-BT matched %d/%d findings", matched, len(scan_df))
 
@@ -113,16 +139,16 @@ class VulnerabilityAssessmentPipeline:
         logger.info("Enrichment complete: %d columns", len(enriched.columns))
 
         # Step 4: Bayesian risk assessment
-        _report("Computing Bayesian risk scores")
+        _report("Computing Bayesian risk scores", stage="risk")
         enriched = self._compute_bayesian_risk(enriched)
 
         # Step 5: Attack path analysis
-        _report("Analyzing attack paths (kill chain)")
+        _report("Analyzing attack paths (kill chain)", stage="attack_paths")
         enriched = self._analyze_attack_paths(enriched)
 
         # Step 6: Store findings (always stamp run_id so the schema is stable
         # across append-mode writes and rows stay attributable per scan run)
-        _report("Storing findings")
+        _report("Storing findings", stage="store")
         findings_df = enriched.with_columns(
             pl.lit(run_id or 0).cast(pl.Int64).alias("run_id")
         )

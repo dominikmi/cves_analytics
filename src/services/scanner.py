@@ -7,6 +7,7 @@ import json as _json
 import os
 import re
 import subprocess
+from collections.abc import Callable
 
 import polars as pl
 
@@ -66,9 +67,19 @@ class DockerScanner:
         Returns:
             DataFrame of vulnerabilities with image column populated.
         """
+        df, _error = self._scan(image)
+        return df
+
+    def _scan(self, image: str) -> tuple[pl.DataFrame, str | None]:
+        """Scan one image, returning ``(findings, error)``.
+
+        ``error`` is a short human-readable reason when the scan could not
+        produce results (invalid ref, registry failure, timeout); the
+        DataFrame is empty in that case. ``None`` means the scan ran.
+        """
         if not self._validate_image(image):
             logger.error("Rejecting invalid image reference: %r", image)
-            return self._empty_schema()
+            return self._empty_schema(), "invalid image reference"
 
         logger.info("Scanning image %s with %s", image, self.tool)
         try:
@@ -80,28 +91,57 @@ class DockerScanner:
                 env=self._subprocess_env(image),
             )
             if result.returncode != 0:
-                logger.warning("Scanner failed for %s: %s", image, result.stderr)
-                return self._empty_schema()
+                detail = self._stderr_summary(result.stderr)
+                logger.warning("Scanner failed for %s: %s", image, detail)
+                return self._empty_schema(), detail
 
             df = self._parse_output(result.stdout)
             # Tag every row with the scanned image name (overwrites the
             # all-null placeholder column from _parse_output's schema)
             df = df.with_columns(pl.lit(image).alias("image"))
-            return df
-        except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            return df, None
+        except subprocess.TimeoutExpired:
+            logger.error("Scanner timed out for %s", image)
+            return self._empty_schema(), "scanner timed out"
+        except FileNotFoundError as exc:
             logger.error("Scanner error for %s: %s", image, exc)
-            return self._empty_schema()
+            return self._empty_schema(), f"scanner binary not found: {exc}"
 
-    def scan_batch(self, images: list[str]) -> pl.DataFrame:
-        """Scan multiple Docker images.
+    @staticmethod
+    def _stderr_summary(stderr: bytes) -> str:
+        """Extract the last non-empty stderr line as the failure reason."""
+        lines = stderr.decode(errors="replace").strip().splitlines()
+        return lines[-1].strip() if lines else "scanner exited non-zero"
+
+    def scan_batch(
+        self,
+        images: list[str],
+        on_image: Callable[[int, int, str, str, str | None], None] | None = None,
+    ) -> pl.DataFrame:
+        """Scan multiple Docker images sequentially.
 
         Args:
             images: List of Docker image references.
+            on_image: Optional progress callback invoked per image as
+                ``on_image(index, total, image, phase, detail)``. Phase is
+                ``"start"`` before scanning, ``"done"`` with the finding
+                count in ``detail``, or ``"failed"`` with the error reason.
 
         Returns:
             Combined DataFrame of all vulnerabilities.
         """
-        frames = [self.scan(img) for img in images]
+        total = len(images)
+        frames = []
+        for index, image in enumerate(images, start=1):
+            if on_image is not None:
+                on_image(index, total, image, "start", None)
+            df, error = self._scan(image)
+            if on_image is not None:
+                if error is None:
+                    on_image(index, total, image, "done", f"{len(df)} findings")
+                else:
+                    on_image(index, total, image, "failed", error)
+            frames.append(df)
         if not frames:
             return self._empty_schema()
         return pl.concat(frames, rechunk=True)
