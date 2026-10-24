@@ -103,8 +103,11 @@ def trigger_scan(  # noqa: B008
     session.add(scan_run)
     session.commit()
     session.refresh(scan_run)
+    run_id = scan_run.id
+    if run_id is None:
+        raise HTTPException(status_code=500, detail="Scan run id not populated")
 
-    job = Job(scan_run_id=scan_run.id, job_id=job_id)
+    job = Job(scan_run_id=run_id, job_id=job_id)
     session.add(job)
     session.commit()
     session.refresh(job)
@@ -112,7 +115,7 @@ def trigger_scan(  # noqa: B008
     background_tasks.add_task(
         _run_pipeline_background,
         profile_id=profile_id,
-        scan_run_id=scan_run.id or 0,
+        scan_run_id=run_id,
         job_id=job_id,
         stream=stream,
         duckdb_store=duckdb_store,

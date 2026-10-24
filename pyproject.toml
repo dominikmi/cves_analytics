@@ -127,10 +127,12 @@ concurrency = ["thread"]
 package = true
 # Keep dependency resolution behind the rolling 7-day supply-chain freshness window.
 exclude-newer = "P7D"
+# Freshness-gate overrides (user-approved 2026-10-18): security patches younger
+# than 7 days. certifi/uv fix compromised emSign CA roots (GHSA-6q48-6c7w-9gw2,
+# GHSA-hq85-5cpj-mr62); filelock/virtualenv fix pre-commit tooling vulns.
+# Cutoffs sit just past each fix's publish date; remove once P7D covers them.
+exclude-newer-package = { certifi = "2026-10-24", uv = "2026-10-21", filelock = "2026-10-18", virtualenv = "2026-10-18" }
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
-
-# uv-hygiene freshness gate: pin to 7-day window via CI script
-# exclude-newer requires ISO date format, not relative
